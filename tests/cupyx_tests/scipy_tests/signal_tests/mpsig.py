@@ -1,6 +1,7 @@
 """
 Some signal functions implemented using mpmath.
 """
+
 from __future__ import annotations
 
 
@@ -27,8 +28,9 @@ def _relative_degree(z, p):
     """
     degree = len(p) - len(z)
     if degree < 0:
-        raise ValueError("Improper transfer function. "
-                         "Must have at least as many poles as zeros.")
+        raise ValueError(
+            "Improper transfer function. " "Must have at least as many poles as zeros."
+        )
     return degree
 
 
@@ -37,7 +39,7 @@ def _zpkbilinear(z, p, k, fs):
 
     degree = _relative_degree(z, p)
 
-    fs2 = 2*fs
+    fs2 = 2 * fs
 
     # Bilinear transform the poles and zeros
     z_z = [(fs2 + z1) / (fs2 - z1) for z1 in z]
@@ -78,7 +80,7 @@ def _butter_analog_poles(n):
     scipy.signal.butter(n, 1, analog=True, output='zpk'), but mpmath is used,
     and only the poles are returned.
     """
-    poles = [-mpmath.exp(1j*mpmath.pi*k/(2*n)) for k in range(-n+1, n, 2)]
+    poles = [-mpmath.exp(1j * mpmath.pi * k / (2 * n)) for k in range(-n + 1, n, 2)]
     return poles
 
 

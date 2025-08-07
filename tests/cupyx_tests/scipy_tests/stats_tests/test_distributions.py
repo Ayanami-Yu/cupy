@@ -55,8 +55,7 @@ class TestEntropyBasic(unittest.TestCase):
     def test_entropy_2d_zero(self):
         pk = cupy.asarray([[0.1, 0.2], [0.6, 0.3], [0.3, 0.5]])
         qk = cupy.asarray([[0.0, 0.1], [0.3, 0.6], [0.5, 0.3]])
-        testing.assert_array_almost_equal(stats.entropy(pk, qk),
-                                          [cupy.inf, 0.18609809])
+        testing.assert_array_almost_equal(stats.entropy(pk, qk), [cupy.inf, 0.18609809])
 
         pk[0][0] = 0.0
         testing.assert_array_almost_equal(
@@ -85,16 +84,20 @@ class TestEntropyBasic(unittest.TestCase):
             stats.entropy(pk, qk)
 
 
-@testing.parameterize(*(
-    testing.product({
-        'shape': [(64, ), (16, 15), (14, 4, 10)],
-        'base': [None, 10],
-        'axis': [None, 0, -1],
-        'use_qk': [False, True],
-        'normalize': [False, True],
-    })
-))
-@testing.with_requires('scipy>=1.15.0')
+@testing.parameterize(
+    *(
+        testing.product(
+            {
+                "shape": [(64,), (16, 15), (14, 4, 10)],
+                "base": [None, 10],
+                "axis": [None, 0, -1],
+                "use_qk": [False, True],
+                "normalize": [False, True],
+            }
+        )
+    )
+)
+@testing.with_requires("scipy>=1.15.0")
 class TestEntropy(unittest.TestCase):
 
     def _entropy(self, xp, scp, dtype, shape, use_qk, base, axis, normalize):
@@ -104,7 +107,7 @@ class TestEntropy(unittest.TestCase):
         else:
             qk = None
 
-        if normalize and pk.dtype.kind != 'c':
+        if normalize and pk.dtype.kind != "c":
             # if we don't normalize pk and qk, entropy will do it internally
             norm_axis = 0 if axis is None else axis
             pk = _distributions._normalize(pk, norm_axis)
@@ -115,14 +118,31 @@ class TestEntropy(unittest.TestCase):
 
     @testing.for_all_dtypes(no_complex=True)
     @testing.numpy_cupy_allclose(
-        rtol={cupy.float32: 1e-3, 'default': 1e-15}, scipy_name='scp')
+        rtol={cupy.float32: 1e-3, "default": 1e-15}, scipy_name="scp"
+    )
     def test_entropy(self, xp, scp, dtype):
-        return self._entropy(xp, scp, dtype, self.shape, self.use_qk,
-                             self.base, self.axis, self.normalize)
+        return self._entropy(
+            xp,
+            scp,
+            dtype,
+            self.shape,
+            self.use_qk,
+            self.base,
+            self.axis,
+            self.normalize,
+        )
 
     @testing.for_complex_dtypes()
     def test_entropy_complex(self, dtype):
         for xp, scp in zip([numpy, cupy], [scipy, cupyx.scipy]):
             with pytest.raises(TypeError):
-                return self._entropy(xp, scp, dtype, self.shape, self.use_qk,
-                                     self.base, self.axis, self.normalize)
+                return self._entropy(
+                    xp,
+                    scp,
+                    dtype,
+                    self.shape,
+                    self.use_qk,
+                    self.base,
+                    self.axis,
+                    self.normalize,
+                )

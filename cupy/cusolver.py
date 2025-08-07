@@ -6,5 +6,5 @@ from cupyx.cusolver import *  # NOQA
 
 
 warnings.warn(
-    'cupy.cusolver is deprecated. Use cupyx.cusolver instead',
-    DeprecationWarning)
+    "cupy.cusolver is deprecated. Use cupyx.cusolver instead", DeprecationWarning
+)

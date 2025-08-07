@@ -54,8 +54,7 @@ class TestByteBounds:
         a = cupy.zeros((4, 7), dtype=dtype)
         b = a[::-2, ::-2]  # strides = (-56, -8), shape = (2, 4)
         itemsize = b.itemsize
-        b_low = b.data.ptr - 2 * 7 * itemsize * \
-            (2 - 1) - 2 * itemsize * (4 - 1)
+        b_low = b.data.ptr - 2 * 7 * itemsize * (2 - 1) - 2 * itemsize * (4 - 1)
         b_high = b.data.ptr + 1 * itemsize
         assert cupy.byte_bounds(b) == (b_low, b_high)
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 try:
     import scipy.sparse
+
     _scipy_available = True
 except ImportError:
     _scipy_available = False
@@ -15,7 +16,6 @@ from cupyx.scipy.sparse import _compressed
 
 
 class csc_matrix(_compressed._compressed_sparse_matrix):
-
     """Compressed Sparse Column matrix.
 
     This can be instantiated in several ways.
@@ -45,7 +45,7 @@ class csc_matrix(_compressed._compressed_sparse_matrix):
 
     """
 
-    format = 'csc'
+    format = "csc"
 
     def get(self, stream=None):
         """Returns a copy of the array on host memory.
@@ -62,18 +62,17 @@ class csc_matrix(_compressed._compressed_sparse_matrix):
 
         """
         if not _scipy_available:
-            raise RuntimeError('scipy is not available')
+            raise RuntimeError("scipy is not available")
         data = self.data.get(stream)
         indices = self.indices.get(stream)
         indptr = self.indptr.get(stream)
-        return scipy.sparse.csc_matrix(
-            (data, indices, indptr), shape=self._shape)
+        return scipy.sparse.csc_matrix((data, indices, indptr), shape=self._shape)
 
     def _convert_dense(self, x):
         from cupyx import cusparse
 
-        if cusparse.check_availability('denseToSparse'):
-            m = cusparse.denseToSparse(x, format='csc')
+        if cusparse.check_availability("denseToSparse"):
+            m = cusparse.denseToSparse(x, format="csc")
         else:
             m = cusparse.dense2csc(x)
         return m.data, m.indices, m.indptr
@@ -90,15 +89,15 @@ class csc_matrix(_compressed._compressed_sparse_matrix):
         elif cupyx.scipy.sparse.isspmatrix_csr(other):
             self.sum_duplicates()
             other.sum_duplicates()
-            if cusparse.check_availability('spgemm'):
+            if cusparse.check_availability("spgemm"):
                 a = self.tocsr()
                 a.sum_duplicates()
                 return cusparse.spgemm(a, other)
-            elif cusparse.check_availability('csrgemm') and not runtime.is_hip:
+            elif cusparse.check_availability("csrgemm") and not runtime.is_hip:
                 # trans=True is still buggy as of ROCm 4.2.0
                 a = self.T
                 return cusparse.csrgemm(a, other, transa=True)
-            elif cusparse.check_availability('csrgemm2'):
+            elif cusparse.check_availability("csrgemm2"):
                 a = self.tocsr()
                 a.sum_duplicates()
                 return cusparse.csrgemm2(a, other)
@@ -107,18 +106,18 @@ class csc_matrix(_compressed._compressed_sparse_matrix):
         elif isspmatrix_csc(other):
             self.sum_duplicates()
             other.sum_duplicates()
-            if cusparse.check_availability('csrgemm') and not runtime.is_hip:
+            if cusparse.check_availability("csrgemm") and not runtime.is_hip:
                 # trans=True is still buggy as of ROCm 4.2.0
                 a = self.T
                 b = other.T
                 return cusparse.csrgemm(a, b, transa=True, transb=True)
-            elif cusparse.check_availability('csrgemm2'):
+            elif cusparse.check_availability("csrgemm2"):
                 a = self.tocsr()
                 b = other.tocsr()
                 a.sum_duplicates()
                 b.sum_duplicates()
                 return cusparse.csrgemm2(a, b)
-            elif cusparse.check_availability('spgemm'):
+            elif cusparse.check_availability("spgemm"):
                 a = self.tocsr()
                 b = other.tocsr()
                 a.sum_duplicates()
@@ -134,17 +133,12 @@ class csc_matrix(_compressed._compressed_sparse_matrix):
                 return self._with_data(self.data * other)
             elif other.ndim == 1:
                 self.sum_duplicates()
-                if (
-                    cusparse.check_availability('csrmv')
-                    and (
-                        not runtime.is_hip
-                        or driver.get_build_version() >= 5_00_00000
-                    )
+                if cusparse.check_availability("csrmv") and (
+                    not runtime.is_hip or driver.get_build_version() >= 5_00_00000
                 ):
                     # trans=True is buggy as of ROCm 4.2.0
                     csrmv = cusparse.csrmv
-                elif (cusparse.check_availability('spmv')
-                        and not runtime.is_hip):
+                elif cusparse.check_availability("spmv") and not runtime.is_hip:
                     # trans=True is buggy as of ROCm 4.2.0
                     # (I got HIPSPARSE_STATUS_INTERNAL_ERROR...)
                     csrmv = cusparse.spmv
@@ -153,22 +147,18 @@ class csc_matrix(_compressed._compressed_sparse_matrix):
                 return csrmv(self.T, cupy.asfortranarray(other), transa=True)
             elif other.ndim == 2:
                 self.sum_duplicates()
-                if (
-                    cusparse.check_availability('csrmm2')
-                    and (
-                        not runtime.is_hip
-                        or driver.get_build_version() >= 5_00_00000
-                    )
+                if cusparse.check_availability("csrmm2") and (
+                    not runtime.is_hip or driver.get_build_version() >= 5_00_00000
                 ):
                     # trans=True is buggy as of ROCm 4.2.0
                     csrmm = cusparse.csrmm2
-                elif cusparse.check_availability('spmm'):
+                elif cusparse.check_availability("spmm"):
                     csrmm = cusparse.spmm
                 else:
                     raise AssertionError
                 return csrmm(self.T, cupy.asfortranarray(other), transa=True)
             else:
-                raise ValueError('could not interpret dimensions')
+                raise ValueError("could not interpret dimensions")
         else:
             return NotImplemented
 
@@ -219,7 +209,7 @@ class csc_matrix(_compressed._compressed_sparse_matrix):
         from cupyx import cusparse
 
         if order is None:
-            order = 'C'
+            order = "C"
         order = order.upper()
         if self.nnz == 0:
             return cupy.zeros(shape=self.shape, dtype=self.dtype, order=order)
@@ -227,25 +217,26 @@ class csc_matrix(_compressed._compressed_sparse_matrix):
         x = self.copy()
         x.has_canonical_format = False  # need to enforce sum_duplicates
         x.sum_duplicates()
-        if (cusparse.check_availability('sparseToDense')
-                and (not runtime.is_hip or x.nnz > 0)):
+        if cusparse.check_availability("sparseToDense") and (
+            not runtime.is_hip or x.nnz > 0
+        ):
             # On HIP, nnz=0 is problematic as of ROCm 4.2.0
             y = cusparse.sparseToDense(x)
-            if order == 'F':
+            if order == "F":
                 return y
-            elif order == 'C':
+            elif order == "C":
                 return cupy.ascontiguousarray(y)
             else:
-                raise ValueError('order not understood')
+                raise ValueError("order not understood")
         else:
             # csc2dense and csr2dense returns F-contiguous array.
-            if order == 'C':
+            if order == "C":
                 # To return C-contiguous array, it uses transpose.
                 return cusparse.csr2dense(x.T).T
-            elif order == 'F':
+            elif order == "F":
                 return cusparse.csc2dense(x)
             else:
-                raise ValueError('order not understood')
+                raise ValueError("order not understood")
 
     def _add_sparse(self, other, alpha, beta):
         from cupyx import cusparse
@@ -253,9 +244,9 @@ class csc_matrix(_compressed._compressed_sparse_matrix):
         self.sum_duplicates()
         other = other.tocsc().T
         other.sum_duplicates()
-        if cusparse.check_availability('csrgeam2'):
+        if cusparse.check_availability("csrgeam2"):
             csrgeam = cusparse.csrgeam2
-        elif cusparse.check_availability('csrgeam'):
+        elif cusparse.check_availability("csrgeam"):
             csrgeam = cusparse.csrgeam
         else:
             raise NotImplementedError
@@ -316,9 +307,9 @@ class csc_matrix(_compressed._compressed_sparse_matrix):
         from cupyx import cusparse
 
         # copy is ignored
-        if cusparse.check_availability('csc2csr'):
+        if cusparse.check_availability("csc2csr"):
             csc2csr = cusparse.csc2csr
-        elif cusparse.check_availability('csc2csrEx2'):
+        elif cusparse.check_availability("csc2csrEx2"):
             csc2csr = cusparse.csc2csrEx2
         else:
             raise NotImplementedError
@@ -326,8 +317,7 @@ class csc_matrix(_compressed._compressed_sparse_matrix):
         return csc2csr(self)
 
     def _tocsx(self):
-        """Inverts the format.
-        """
+        """Inverts the format."""
         return self.tocsr()
 
     # TODO(unno): Implement todia
@@ -348,12 +338,14 @@ class csc_matrix(_compressed._compressed_sparse_matrix):
         """
         if axes is not None:
             raise ValueError(
-                'Sparse matrices do not support an \'axes\' parameter because '
-                'swapping dimensions is the only logical permutation.')
+                "Sparse matrices do not support an 'axes' parameter because "
+                "swapping dimensions is the only logical permutation."
+            )
 
         shape = self.shape[1], self.shape[0]
         trans = cupyx.scipy.sparse.csr_matrix(
-            (self.data, self.indices, self.indptr), shape=shape, copy=copy)
+            (self.data, self.indices, self.indptr), shape=shape, copy=copy
+        )
         trans.has_canonical_format = self.has_canonical_format
         return trans
 

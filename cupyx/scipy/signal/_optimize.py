@@ -1,4 +1,5 @@
-""" A vendored copy of scipy.optimize.fminbound."""
+"""A vendored copy of scipy.optimize.fminbound."""
+
 from __future__ import annotations
 
 
@@ -6,21 +7,18 @@ import cupy
 
 
 # standard status messages of optimizers
-_status_message = {'success': 'Optimization terminated successfully.',
-                   'maxfev': 'Maximum number of function evaluations has '
-                              'been exceeded.',
-                   'maxiter': 'Maximum number of iterations has been '
-                              'exceeded.',
-                   'pr_loss': 'Desired error not necessarily achieved due '
-                              'to precision loss.',
-                   'nan': 'NaN result encountered.',
-                   'out_of_bounds': 'The result is outside of the provided '
-                                    'bounds.'}
+_status_message = {
+    "success": "Optimization terminated successfully.",
+    "maxfev": "Maximum number of function evaluations has " "been exceeded.",
+    "maxiter": "Maximum number of iterations has been " "exceeded.",
+    "pr_loss": "Desired error not necessarily achieved due " "to precision loss.",
+    "nan": "NaN result encountered.",
+    "out_of_bounds": "The result is outside of the provided " "bounds.",
+}
 
 
 class OptimizeResult(dict):
-    """ Represents the optimization result.
-    """
+    """Represents the optimization result."""
 
     def __getattr__(self, name):
         try:
@@ -32,21 +30,26 @@ class OptimizeResult(dict):
 def _endprint(x, flag, fval, maxfun, xtol, disp):
     if flag == 0:
         if disp > 1:
-            print("\nOptimization terminated successfully;\n"
-                  "The returned value satisfies the termination criteria\n"
-                  "(using xtol = ", xtol, ")")
+            print(
+                "\nOptimization terminated successfully;\n"
+                "The returned value satisfies the termination criteria\n"
+                "(using xtol = ",
+                xtol,
+                ")",
+            )
     if flag == 1:
         if disp:
-            print("\nMaximum number of function evaluations exceeded --- "
-                  "increase maxfun argument.\n")
+            print(
+                "\nMaximum number of function evaluations exceeded --- "
+                "increase maxfun argument.\n"
+            )
     if flag == 2:
         if disp:
-            print("\n{}".format(_status_message['nan']))
+            print("\n{}".format(_status_message["nan"]))
     return
 
 
-def fminbound(func, x1, x2, args=(), xtol=1e-5, maxfun=500,
-              full_output=0, disp=1):
+def fminbound(func, x1, x2, args=(), xtol=1e-5, maxfun=500, full_output=0, disp=1):
     """Bounded minimization for scalar functions.
 
     Parameters
@@ -111,20 +114,21 @@ def fminbound(func, x1, x2, args=(), xtol=1e-5, maxfun=500,
 
 
     """
-    options = {'xatol': xtol,
-               'maxiter': maxfun,
-               }
+    options = {
+        "xatol": xtol,
+        "maxiter": maxfun,
+    }
 
     res = _minimize_scalar_bounded(func, (x1, x2), args, **options)
     if full_output:
-        return res['x'], res['fun'], res['status'], res['nfev']
+        return res["x"], res["fun"], res["status"], res["nfev"]
     else:
-        return res['x']
+        return res["x"]
 
 
-def _minimize_scalar_bounded(func, bounds, args=(),
-                             xatol=1e-5, maxiter=500, disp=0,
-                             **unknown_options):
+def _minimize_scalar_bounded(
+    func, bounds, args=(), xatol=1e-5, maxiter=500, disp=0, **unknown_options
+):
     """
     Options
     -------
@@ -143,15 +147,15 @@ def _minimize_scalar_bounded(func, bounds, args=(),
     maxfun = maxiter
     # Test bounds are of correct form
     if len(bounds) != 2:
-        raise ValueError('bounds must have two elements.')
+        raise ValueError("bounds must have two elements.")
     x1, x2 = bounds
 
     if x1 > x2:
         raise ValueError("The lower bound exceeds the upper bound.")
 
     flag = 0
-    header = ' Func-count     x          f(x)          Procedure'
-    step = '       initial'
+    header = " Func-count     x          f(x)          Procedure"
+    step = "       initial"
 
     sqrt_eps = cupy.sqrt(2.2e-16)
     golden_mean = 0.5 * (3.0 - cupy.sqrt(5.0))
@@ -175,7 +179,7 @@ def _minimize_scalar_bounded(func, bounds, args=(),
         print(header)
         print("%5.0f   %12.6g %12.6g %s" % (fmin_data + (step,)))
 
-    while (cupy.abs(xf - xm) > (tol2 - 0.5 * (b - a))):
+    while cupy.abs(xf - xm) > (tol2 - 0.5 * (b - a)):
         golden = 1
         # Check for parabolic fit
         if cupy.abs(e) > tol1:
@@ -191,16 +195,19 @@ def _minimize_scalar_bounded(func, bounds, args=(),
             e = rat
 
             # Check for acceptability of parabola
-            if ((cupy.abs(p) < cupy.abs(0.5*q*r)) and (p > q*(a - xf)) and
-                    (p < q * (b - xf))):
+            if (
+                (cupy.abs(p) < cupy.abs(0.5 * q * r))
+                and (p > q * (a - xf))
+                and (p < q * (b - xf))
+            ):
                 rat = (p + 0.0) / q
                 x = xf + rat
-                step = '       parabolic'
+                step = "       parabolic"
 
                 if ((x - a) < tol2) or ((b - x) < tol2):
                     si = cupy.sign(xm - xf) + ((xm - xf) == 0)
                     rat = tol1 * si
-            else:      # do a golden-section step
+            else:  # do a golden-section step
                 golden = 1
 
         if golden:  # do a golden-section step
@@ -208,8 +215,8 @@ def _minimize_scalar_bounded(func, bounds, args=(),
                 e = a - xf
             else:
                 e = b - xf
-            rat = golden_mean*e
-            step = '       golden'
+            rat = golden_mean * e
+            step = "       golden"
 
         si = cupy.sign(rat) + (rat == 0)
         x = xf + si * cupy.maximum(cupy.abs(rat), tol1)
@@ -253,11 +260,18 @@ def _minimize_scalar_bounded(func, bounds, args=(),
     if disp > 0:
         _endprint(x, flag, fval, maxfun, xatol, disp)
 
-    result = OptimizeResult(fun=fval, status=flag, success=(flag == 0),
-                            message={0: 'Solution found.',
-                                     1: 'Maximum number of function calls '
-                                        'reached.',
-                                     2: _status_message['nan']}.get(flag, ''),
-                            x=xf, nfev=num, nit=num)
+    result = OptimizeResult(
+        fun=fval,
+        status=flag,
+        success=(flag == 0),
+        message={
+            0: "Solution found.",
+            1: "Maximum number of function calls " "reached.",
+            2: _status_message["nan"],
+        }.get(flag, ""),
+        x=xf,
+        nfev=num,
+        nit=num,
+    )
 
     return result

@@ -1,4 +1,3 @@
-
 """
 Signal processing B-Splines
 
@@ -25,6 +24,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 """
+
 from __future__ import annotations
 
 
@@ -59,9 +59,9 @@ def sepfir2d(input, hrow, hcol):
     .. seealso:: :func:`scipy.signal.sepfir2d`
     """
     if any(x.ndim != 1 or x.size % 2 == 0 for x in (hrow, hcol)):
-        raise ValueError('hrow and hcol must be 1 dimensional and odd length')
+        raise ValueError("hrow and hcol must be 1 dimensional and odd length")
     dtype = input.dtype
-    if dtype.kind == 'c':
+    if dtype.kind == "c":
         dtype = cupy.complex64 if dtype == cupy.complex64 else cupy.complex128
     elif dtype == cupy.float32 or dtype.itemsize <= 2:
         dtype = cupy.float32
@@ -73,13 +73,13 @@ def sepfir2d(input, hrow, hcol):
     filters = (hcol[::-1].conj(), hrow[::-1].conj())
     axes = (0, 1)
     return cupyx.scipy.ndimage._filters._run_1d_correlates(
-        input, axes, (0, 1), lambda i: filters[i], None, 'reflect', 0)
+        input, axes, (0, 1), lambda i: filters[i], None, "reflect", 0
+    )
 
 
 def _quadratic(x):
     x = abs(cupy.asarray(x, dtype=float))
-    b = BSpline.basis_element(
-        cupy.asarray([-1.5, -0.5, 0.5, 1.5]), extrapolate=False)
+    b = BSpline.basis_element(cupy.asarray([-1.5, -0.5, 0.5, 1.5]), extrapolate=False)
     out = b(x)
     out[(x < -1.5) | (x > 1.5)] = 0
     return out
@@ -87,8 +87,7 @@ def _quadratic(x):
 
 def _cubic(x):
     x = cupy.asarray(x, dtype=float)
-    b = BSpline.basis_element(
-        cupy.asarray([-2, -1, 0, 1, 2]), extrapolate=False)
+    b = BSpline.basis_element(cupy.asarray([-2, -1, 0, 1, 2]), extrapolate=False)
     out = b(x)
     out[(x < -2) | (x > 2)] = 0
     return out
@@ -99,25 +98,33 @@ def _coeff_smooth(lam):
     xi = 1 - 96 * lam + 24 * lam * cupy.sqrt(3 + 144 * lam)
     omeg = cupy.arctan2(cupy.sqrt(144 * lam - 1), cupy.sqrt(xi))
     rho = (24 * lam - 1 - cupy.sqrt(xi)) / (24 * lam)
-    rho = rho * cupy.sqrt(
-        (48 * lam + 24 * lam * cupy.sqrt(3 + 144 * lam)) / xi)
+    rho = rho * cupy.sqrt((48 * lam + 24 * lam * cupy.sqrt(3 + 144 * lam)) / xi)
     return rho, omeg
 
 
 @cupy.fuse()
 def _hc(k, cs, rho, omega):
-    return (cs / cupy.sin(omega) * (rho ** k) * cupy.sin(omega * (k + 1)) *
-            cupy.greater(k, -1))
+    return (
+        cs
+        / cupy.sin(omega)
+        * (rho**k)
+        * cupy.sin(omega * (k + 1))
+        * cupy.greater(k, -1)
+    )
 
 
 @cupy.fuse()
 def _hs(k, cs, rho, omega):
-    c0 = (cs * cs * (1 + rho * rho) / (1 - rho * rho) /
-          (1 - 2 * rho * rho * cupy.cos(2 * omega) + rho ** 4))
+    c0 = (
+        cs
+        * cs
+        * (1 + rho * rho)
+        / (1 - rho * rho)
+        / (1 - 2 * rho * rho * cupy.cos(2 * omega) + rho**4)
+    )
     gamma = (1 - rho * rho) / (1 + rho * rho) / cupy.tan(omega)
     ak = cupy.abs(k)
-    return c0 * rho ** ak * (
-        cupy.cos(omega * ak) + gamma * cupy.sin(omega * ak))
+    return c0 * rho**ak * (cupy.cos(omega * ak) + gamma * cupy.sin(omega * ak))
 
 
 def _cubic_smooth_coeff(signal, lamb):
@@ -127,11 +134,14 @@ def _cubic_smooth_coeff(signal, lamb):
     yp = cupy.zeros((K,), signal.dtype.char)
     k = cupy.arange(K)
 
-    state_0 = (_hc(0, cs, rho, omega) * signal[0] +
-               cupy.sum(_hc(k + 1, cs, rho, omega) * signal))
-    state_1 = (_hc(0, cs, rho, omega) * signal[0] +
-               _hc(1, cs, rho, omega) * signal[1] +
-               cupy.sum(_hc(k + 2, cs, rho, omega) * signal))
+    state_0 = _hc(0, cs, rho, omega) * signal[0] + cupy.sum(
+        _hc(k + 1, cs, rho, omega) * signal
+    )
+    state_1 = (
+        _hc(0, cs, rho, omega) * signal[0]
+        + _hc(1, cs, rho, omega) * signal[1]
+        + cupy.sum(_hc(k + 2, cs, rho, omega) * signal)
+    )
 
     zi = cupy.r_[0, 0, state_0, state_1]
     zi = cupy.atleast_2d(zi)
@@ -163,10 +173,12 @@ def _cubic_smooth_coeff(signal, lamb):
     #     y[n] = (cs * yp[n] + 2 * rho * cupy.cos(omega) * y[n + 1] -
     #             rho * rho * y[n + 2])
 
-    state_0 = cupy.sum((_hs(k, cs, rho, omega) +
-                        _hs(k + 1, cs, rho, omega)) * signal[::-1])
-    state_1 = cupy.sum((_hs(k - 1, cs, rho, omega) +
-                        _hs(k + 2, cs, rho, omega)) * signal[::-1])
+    state_0 = cupy.sum(
+        (_hs(k, cs, rho, omega) + _hs(k + 1, cs, rho, omega)) * signal[::-1]
+    )
+    state_1 = cupy.sum(
+        (_hs(k - 1, cs, rho, omega) + _hs(k + 2, cs, rho, omega)) * signal[::-1]
+    )
 
     zi = cupy.r_[0, 0, state_0, state_1]
     zi = cupy.atleast_2d(zi)
@@ -194,8 +206,9 @@ def _cubic_coeff(signal):
     # yplus[0] = signal[0] + zi * sum(powers * signal)
     # for k in range(1, K):
     #     yplus[k] = signal[k] + zi * yplus[k - 1]
-    yplus, _ = apply_iir_sos(signal, coef, zi=state, apply_fir=False,
-                             dtype=signal.dtype)
+    yplus, _ = apply_iir_sos(
+        signal, coef, zi=state, apply_fir=False, dtype=signal.dtype
+    )
 
     out_last = zi / (zi - 1) * yplus[K - 1]
     state = cupy.r_[0, 0, 0, out_last]
@@ -207,8 +220,7 @@ def _cubic_coeff(signal):
     # output[K - 1] = zi / (zi - 1) * yplus[K - 1]
     # for k in range(K - 2, -1, -1):
     #     output[k] = zi * (output[k + 1] - yplus[k])
-    output, _ = apply_iir_sos(
-        yplus[-2::-1], coef, zi=state, dtype=signal.dtype)
+    output, _ = apply_iir_sos(yplus[-2::-1], coef, zi=state, dtype=signal.dtype)
     output = cupy.r_[output[::-1], out_last]
     return output * 6.0
 
@@ -231,8 +243,9 @@ def _quadratic_coeff(signal):
     # yplus[0] = signal[0] + zi * cupy.sum(powers * signal)
     # for k in range(1, K):
     #     yplus[k] = signal[k] + zi * yplus[k - 1]
-    yplus, _ = apply_iir_sos(signal, coef, zi=state, apply_fir=False,
-                             dtype=signal.dtype)
+    yplus, _ = apply_iir_sos(
+        signal, coef, zi=state, apply_fir=False, dtype=signal.dtype
+    )
 
     out_last = zi / (zi - 1) * yplus[K - 1]
     state = cupy.r_[0, 0, 0, out_last]
@@ -244,8 +257,7 @@ def _quadratic_coeff(signal):
     # output[K - 1] = zi / (zi - 1) * yplus[K - 1]
     # for k in range(K - 2, -1, -1):
     #     output[k] = zi * (output[k + 1] - yplus[k])
-    output, _ = apply_iir_sos(
-        yplus[-2::-1], coef, zi=state, dtype=signal.dtype)
+    output, _ = apply_iir_sos(yplus[-2::-1], coef, zi=state, dtype=signal.dtype)
     output = cupy.r_[output[::-1], out_last]
     return output * 8.0
 
@@ -255,8 +267,12 @@ def compute_root_from_lambda(lamb):
     xi = 1 - 96 * lamb + 24 * lamb * tmp
     omega = np.arctan(np.sqrt((144 * lamb - 1.0) / xi))
     tmp2 = np.sqrt(xi)
-    r = ((24 * lamb - 1 - tmp2) / (24 * lamb) *
-         np.sqrt(48*lamb + 24 * lamb * tmp) / tmp2)
+    r = (
+        (24 * lamb - 1 - tmp2)
+        / (24 * lamb)
+        * np.sqrt(48 * lamb + 24 * lamb * tmp)
+        / tmp2
+    )
     return r, omega
 
 
@@ -464,10 +480,8 @@ def cspline2d(signal, lamb=0.0, precision=-1.0):
     if lamb <= 1 / 144.0:
         # Normal cubic spline
         r = -2 + np.sqrt(3.0)
-        out = _symiirorder1_nd(signal, -r * 6.0, r, precision=precision,
-                               axis=-1)
-        out = _symiirorder1_nd(out, -r * 6.0, r, precision=precision,
-                               axis=0)
+        out = _symiirorder1_nd(signal, -r * 6.0, r, precision=precision, axis=-1)
+        out = _symiirorder1_nd(out, -r * 6.0, r, precision=precision, axis=0)
         return out
 
     r, omega = compute_root_from_lambda(lamb)
@@ -500,7 +514,7 @@ def qspline2d(signal, lamb=0.0, precision=-1.0):
     """
 
     if lamb > 0:
-        raise ValueError('lambda must be negative or zero')
+        raise ValueError("lambda must be negative or zero")
 
     # normal quadratic spline
     r = -3 + 2 * np.sqrt(2.0)
@@ -530,15 +544,15 @@ def spline_filter(Iin, lmbda=5.0):
 
     """
     intype = Iin.dtype.char
-    hcol = cupy.asarray([1.0, 4.0, 1.0], 'f') / 6.0
-    if intype in ['F', 'D']:
-        Iin = Iin.astype('F')
+    hcol = cupy.asarray([1.0, 4.0, 1.0], "f") / 6.0
+    if intype in ["F", "D"]:
+        Iin = Iin.astype("F")
         ckr = cspline2d(Iin.real, lmbda)
         cki = cspline2d(Iin.imag, lmbda)
         outr = sepfir2d(ckr, hcol, hcol)
         outi = sepfir2d(cki, hcol, hcol)
         out = (outr + 1j * outi).astype(intype)
-    elif intype in ['f', 'd']:
+    elif intype in ["f", "d"]:
         ckr = cspline2d(Iin, lmbda)
         out = sepfir2d(ckr, hcol, hcol)
         out = out.astype(intype)

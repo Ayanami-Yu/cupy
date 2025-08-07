@@ -2,15 +2,16 @@ from __future__ import annotations
 
 import cupy
 import cupyx.scipy.sparse
+
 try:
     import pylibcugraph
+
     pylibcugraph_available = True
 except ModuleNotFoundError:
     pylibcugraph_available = False
 
 
-def connected_components(csgraph, directed=True, connection='weak',
-                         return_labels=True):
+def connected_components(csgraph, directed=True, connection="weak", return_labels=True):
     """Analyzes the connected components of a sparse graph
 
     Args:
@@ -34,31 +35,36 @@ def connected_components(csgraph, directed=True, connection='weak',
     .. seealso:: :func:`scipy.sparse.csgraph.connected_components`
     """
     if not pylibcugraph_available:
-        raise RuntimeError('pylibcugraph is not available')
+        raise RuntimeError("pylibcugraph is not available")
 
     connection = connection.lower()
-    if connection not in ('weak', 'strong'):
+    if connection not in ("weak", "strong"):
         raise ValueError("connection must be 'weak' or 'strong'")
 
     if not directed:
-        connection = 'weak'
+        connection = "weak"
 
     if csgraph.ndim != 2:
-        raise ValueError('graph should have two dimensions')
+        raise ValueError("graph should have two dimensions")
 
     if not cupyx.scipy.sparse.isspmatrix_csr(csgraph):
         csgraph = cupyx.scipy.sparse.csr_matrix(csgraph)
     m, m1 = csgraph.shape
     if m != m1:
-        raise ValueError('graph should be a square array')
+        raise ValueError("graph should be a square array")
     if csgraph.nnz == 0:
         return m, cupy.arange(m, dtype=csgraph.indices.dtype)
 
-    if connection == 'strong':
+    if connection == "strong":
         labels = cupy.empty(m, dtype=csgraph.indices.dtype)
         pylibcugraph.strongly_connected_components(
-            offsets=csgraph.indptr, indices=csgraph.indices, weights=None,
-            num_verts=m, num_edges=csgraph.nnz, labels=labels)
+            offsets=csgraph.indptr,
+            indices=csgraph.indices,
+            weights=None,
+            num_verts=m,
+            num_edges=csgraph.nnz,
+            labels=labels,
+        )
     else:
         csgraph += csgraph.T
         if not cupyx.scipy.sparse.isspmatrix_csr(csgraph):
@@ -84,9 +90,9 @@ def connected_components(csgraph, directed=True, connection='weak',
 
 
 _cupy_count_components = cupy.ElementwiseKernel(
-    '',
-    'raw I labels, raw int32 count, raw int32 root_labels',
-    '''
+    "",
+    "raw I labels, raw int32 count, raw int32 root_labels",
+    """
     int j = i;
     while (j != labels[j]) { j = labels[j]; }
     if (j != i) {
@@ -95,14 +101,15 @@ _cupy_count_components = cupy.ElementwiseKernel(
         int k = atomicAdd(&count[0], 1);
         root_labels[k] = i;
     }
-    ''',
-    '_cupy_count_components')
+    """,
+    "_cupy_count_components",
+)
 
 
 _cupy_adjust_labels = cupy.ElementwiseKernel(
-    'int32 n_root_labels, raw I root_labels',
-    'I labels',
-    '''
+    "int32 n_root_labels, raw I root_labels",
+    "I labels",
+    """
     int cur_label = labels;
     int j_min = 0;
     int j_max = n_root_labels - 1;
@@ -117,5 +124,6 @@ _cupy_adjust_labels = cupy.ElementwiseKernel(
         j = (j_min + j_max) / 2;
     }
     labels = j;
-    ''',
-    '_cupy_adjust_labels')
+    """,
+    "_cupy_adjust_labels",
+)

@@ -15,24 +15,28 @@ from cupy._core import _accelerator
 # as it casts an input array to intp.
 # And it does not support uint32, int64 and uint64 on 32-bit environment.
 _all_types = (
-    numpy.float16, numpy.float32, numpy.float64,
-    numpy.int8, numpy.int16, numpy.int32,
-    numpy.uint8, numpy.uint16,
-    numpy.bool_)
-_signed_types = (
-    numpy.int8, numpy.int16, numpy.int32,
-    numpy.bool_)
+    numpy.float16,
+    numpy.float32,
+    numpy.float64,
+    numpy.int8,
+    numpy.int16,
+    numpy.int32,
+    numpy.uint8,
+    numpy.uint16,
+    numpy.bool_,
+)
+_signed_types = (numpy.int8, numpy.int16, numpy.int32, numpy.bool_)
 
-if sys.maxsize > 2 ** 32:
+if sys.maxsize > 2**32:
     _all_types = _all_types + (numpy.int64, numpy.uint32)
     _signed_types = _signed_types + (numpy.int64,)
 
 
-def for_all_dtypes_bincount(name='dtype'):
+def for_all_dtypes_bincount(name="dtype"):
     return testing.for_dtypes(_all_types, name=name)
 
 
-def for_signed_dtypes_bincount(name='dtype'):
+def for_signed_dtypes_bincount(name="dtype"):
     return testing.for_dtypes(_signed_types, name=name)
 
 
@@ -50,7 +54,7 @@ class TestHistogram(unittest.TestCase):
         return y, bin_edges
 
     @testing.for_all_dtypes(no_bool=True, no_complex=True)
-    @testing.numpy_cupy_allclose(atol={numpy.float16: 1.5e-4, 'default': 1e-7})
+    @testing.numpy_cupy_allclose(atol={numpy.float16: 1.5e-4, "default": 1e-7})
     def test_histogram_same_value(self, xp, dtype):
         x = xp.zeros(10, dtype)
         y, bin_edges = xp.histogram(x, 3)
@@ -70,7 +74,7 @@ class TestHistogram(unittest.TestCase):
     @testing.numpy_cupy_array_equal()
     def test_histogram_range_lower_outliers(self, xp, dtype):
         # Check that lower outliers are not tallied
-        a = xp.arange(10, dtype=dtype) + .5
+        a = xp.arange(10, dtype=dtype) + 0.5
         h, b = xp.histogram(a, range=[0, 9])
         assert int(h.sum()) == 9
         return h, b
@@ -79,7 +83,7 @@ class TestHistogram(unittest.TestCase):
     @testing.numpy_cupy_array_equal()
     def test_histogram_range_upper_outliers(self, xp, dtype):
         # Check that upper outliers are not tallied
-        a = xp.arange(10, dtype=dtype) + .5
+        a = xp.arange(10, dtype=dtype) + 0.5
         h, b = xp.histogram(a, range=[1, 10])
         assert int(h.sum()) == 9
         return h, b
@@ -87,7 +91,7 @@ class TestHistogram(unittest.TestCase):
     @testing.for_float_dtypes()
     @testing.numpy_cupy_allclose()
     def test_histogram_range_with_density(self, xp, dtype):
-        a = xp.arange(10, dtype=dtype) + .5
+        a = xp.arange(10, dtype=dtype) + 0.5
         h, b = xp.histogram(a, range=[1, 9], density=True)
         # check normalization
         testing.assert_allclose(float((h * xp.diff(b)).sum()), 1)
@@ -96,8 +100,8 @@ class TestHistogram(unittest.TestCase):
     @testing.for_float_dtypes()
     @testing.numpy_cupy_allclose()
     def test_histogram_range_with_weights_and_density(self, xp, dtype):
-        a = xp.arange(10, dtype=dtype) + .5
-        w = xp.arange(10, dtype=dtype) + .5
+        a = xp.arange(10, dtype=dtype) + 0.5
+        w = xp.arange(10, dtype=dtype) + 0.5
         h, b = xp.histogram(a, range=[1, 9], weights=w, density=True)
         testing.assert_allclose(float((h * xp.diff(b)).sum()), 1)
         return h
@@ -116,8 +120,8 @@ class TestHistogram(unittest.TestCase):
     @testing.for_all_dtypes(no_bool=True, no_complex=True)
     def test_histogram_weights_mismatch(self, dtype):
         for xp in (numpy, cupy):
-            a = xp.arange(10, dtype=dtype) + .5
-            w = xp.arange(11, dtype=dtype) + .5
+            a = xp.arange(10, dtype=dtype) + 0.5
+            w = xp.arange(11, dtype=dtype) + 0.5
             with pytest.raises(ValueError):
                 xp.histogram(a, range=[1, 9], weights=w, density=True)
 
@@ -175,8 +179,7 @@ class TestHistogram(unittest.TestCase):
         v = xp.asarray([1, 2, 2, 4], dtype=dtype)
         w = xp.asarray([4, 3, 2, 1], dtype=dtype)
         wa, wb = xp.histogram(v, bins=4, weights=w, density=True)
-        testing.assert_array_almost_equal(
-            wa, xp.asarray([4, 5, 0, 1]) / 10. / 3. * 4)
+        testing.assert_array_almost_equal(wa, xp.asarray([4, 5, 0, 1]) / 10.0 / 3.0 * 4)
         return wb
 
     @testing.for_int_dtypes(no_bool=True)
@@ -187,8 +190,9 @@ class TestHistogram(unittest.TestCase):
             xp.arange(9, dtype=dtype),
             xp.asarray([0, 1, 3, 6, 10], dtype=dtype),
             weights=xp.asarray([2, 1, 1, 1, 1, 1, 1, 1, 1], dtype=dtype),
-            density=True)
-        testing.assert_array_almost_equal(a, [.2, .1, .1, .075])
+            density=True,
+        )
+        testing.assert_array_almost_equal(a, [0.2, 0.1, 0.1, 0.075])
         return a, b
 
     @testing.for_complex_dtypes()
@@ -197,8 +201,7 @@ class TestHistogram(unittest.TestCase):
         values = xp.asarray([1.3, 2.5, 2.3])
         weights = xp.asarray([1, -1, 2]) + 1j * xp.asarray([2, 1, 2])
         weights = weights.astype(dtype)
-        a, b = xp.histogram(
-            values, bins=2, weights=weights)
+        a, b = xp.histogram(values, bins=2, weights=weights)
         return a, b
 
     @testing.for_complex_dtypes()
@@ -207,8 +210,7 @@ class TestHistogram(unittest.TestCase):
         values = xp.asarray([1.3, 2.5, 2.3])
         weights = xp.asarray([1, -1, 2]) + 1j * xp.asarray([2, 1, 2])
         weights = weights.astype(dtype)
-        a, b = xp.histogram(
-            values, bins=xp.asarray([0, 2, 3]), weights=weights)
+        a, b = xp.histogram(values, bins=xp.asarray([0, 2, 3]), weights=weights)
         return a, b
 
     @testing.for_all_dtypes(no_bool=True, no_complex=True)
@@ -270,7 +272,7 @@ class TestHistogram(unittest.TestCase):
         x = xp.array([1, 2, 2, 1, 2, 4], dtype)
         return xp.bincount(x)
 
-    @for_all_dtypes_combination_bincount(names=['x_type', 'w_type'])
+    @for_all_dtypes_combination_bincount(names=["x_type", "w_type"])
     @testing.numpy_cupy_allclose(accept_error=TypeError)
     def test_bincount_with_weight(self, xp, x_type, w_type):
         x = testing.shaped_arange((3,), xp, x_type)
@@ -283,7 +285,7 @@ class TestHistogram(unittest.TestCase):
         x = testing.shaped_arange((3,), xp, dtype)
         return xp.bincount(x, minlength=5)
 
-    @for_all_dtypes_combination_bincount(names=['x_type', 'w_type'])
+    @for_all_dtypes_combination_bincount(names=["x_type", "w_type"])
     def test_bincount_invalid_weight_length(self, x_type, w_type):
         for xp in (numpy, cupy):
             x = testing.shaped_arange((1,), xp, x_type)
@@ -331,12 +333,12 @@ class TestHistogram(unittest.TestCase):
 
 
 # This class compares CUB results against NumPy's
-@unittest.skipUnless(cupy.cuda.cub.available, 'The CUB routine is not enabled')
+@unittest.skipUnless(cupy.cuda.cub.available, "The CUB routine is not enabled")
 class TestCubHistogram(unittest.TestCase):
 
     def setUp(self):
         self.old_accelerators = _accelerator.get_routine_accelerators()
-        _accelerator.set_routine_accelerators(['cub'])
+        _accelerator.set_routine_accelerators(["cub"])
 
     def tearDown(self):
         _accelerator.set_routine_accelerators(self.old_accelerators)
@@ -350,7 +352,7 @@ class TestCubHistogram(unittest.TestCase):
             return xp.histogram(x)
 
         # xp is cupy, first ensure we really use CUB
-        cub_func = 'cupy._statistics.histogram.cub.device_histogram'
+        cub_func = "cupy._statistics.histogram.cub.device_histogram"
         with testing.AssertFunctionIsCalled(cub_func):
             xp.histogram(x)
         # ...then perform the actual computation
@@ -364,8 +366,9 @@ class TestCubHistogram(unittest.TestCase):
         assert int(h.sum()) == 10
         return h, b
 
-    @testing.for_all_dtypes_combination(['dtype_a', 'dtype_b'],
-                                        no_bool=True, no_complex=True)
+    @testing.for_all_dtypes_combination(
+        ["dtype_a", "dtype_b"], no_bool=True, no_complex=True
+    )
     @testing.numpy_cupy_array_equal()
     def test_histogram_with_bins(self, xp, dtype_a, dtype_b):
         x = testing.shaped_arange((10,), xp, dtype_a)
@@ -375,14 +378,15 @@ class TestCubHistogram(unittest.TestCase):
             return xp.histogram(x, bins)[0]
 
         # xp is cupy, first ensure we really use CUB
-        cub_func = 'cupy._statistics.histogram.cub.device_histogram'
+        cub_func = "cupy._statistics.histogram.cub.device_histogram"
         with testing.AssertFunctionIsCalled(cub_func):
             xp.histogram(x, bins)
         # ...then perform the actual computation
         return xp.histogram(x, bins)[0]
 
-    @testing.for_all_dtypes_combination(['dtype_a', 'dtype_b'],
-                                        no_bool=True, no_complex=True)
+    @testing.for_all_dtypes_combination(
+        ["dtype_a", "dtype_b"], no_bool=True, no_complex=True
+    )
     @testing.numpy_cupy_array_equal()
     def test_histogram_with_bins2(self, xp, dtype_a, dtype_b):
         x = testing.shaped_arange((10,), xp, dtype_a)
@@ -392,7 +396,7 @@ class TestCubHistogram(unittest.TestCase):
             return xp.histogram(x, bins)[1]
 
         # xp is cupy, first ensure we really use CUB
-        cub_func = 'cupy._statistics.histogram.cub.device_histogram'
+        cub_func = "cupy._statistics.histogram.cub.device_histogram"
         with testing.AssertFunctionIsCalled(cub_func):
             xp.histogram(x, bins)
         # ...then perform the actual computation
@@ -403,12 +407,11 @@ class TestCubHistogram(unittest.TestCase):
     def test_no_oom(self, xp):
         # ensure the workaround for NVIDIA/cub#613 kicks in
         amax = 28854312
-        A = xp.linspace(0, amax, num=amax,
-                        endpoint=True, retstep=False, dtype=xp.int32)
+        A = xp.linspace(0, amax, num=amax, endpoint=True, retstep=False, dtype=xp.int32)
         out = xp.histogram(A, bins=amax, range=[0, amax])
         return out
 
-    @testing.for_int_dtypes('dtype', no_bool=True)
+    @testing.for_int_dtypes("dtype", no_bool=True)
     @testing.numpy_cupy_array_equal()
     def test_bincount_gh7698(self, xp, dtype):
         dtype = xp.dtype(dtype)
@@ -423,25 +426,29 @@ class TestCubHistogram(unittest.TestCase):
             return xp.bincount(x)
 
         # xp is cupy, first ensure we really use CUB
-        cub_func = 'cupy._statistics.histogram.cub.device_histogram'
+        cub_func = "cupy._statistics.histogram.cub.device_histogram"
         with testing.AssertFunctionIsCalled(cub_func):
             xp.bincount(x)
         # ...then perform the actual computation
         return xp.bincount(x)
 
 
-@testing.parameterize(*testing.product(
-    {'bins': [
-        # Test monotonically increasing with in-bounds values
-        [1.5, 2.5, 4.0, 6.0],
-        # Explicit out-of-bounds for x values
-        [-1.0, 1.0, 2.5, 4.0, 20.0],
-        # Repeated values should yield right-most or left-most indexes
-        [0.0, 1.0, 1.0, 4.0, 4.0, 10.0],
-    ],
-        'increasing': [True, False],
-        'right': [True, False],
-        'shape': [(), (10,), (6, 3, 3)]})
+@testing.parameterize(
+    *testing.product(
+        {
+            "bins": [
+                # Test monotonically increasing with in-bounds values
+                [1.5, 2.5, 4.0, 6.0],
+                # Explicit out-of-bounds for x values
+                [-1.0, 1.0, 2.5, 4.0, 20.0],
+                # Repeated values should yield right-most or left-most indexes
+                [0.0, 1.0, 1.0, 4.0, 4.0, 10.0],
+            ],
+            "increasing": [True, False],
+            "right": [True, False],
+            "shape": [(), (10,), (6, 3, 3)],
+        }
+    )
 )
 class TestDigitize:
 
@@ -454,80 +461,78 @@ class TestDigitize:
             bins = bins[::-1]
         bins = xp.array(bins)
         y = xp.digitize(x, bins, right=self.right)
-        return y,
+        return (y,)
 
 
-@testing.parameterize(
-    {'right': True},
-    {'right': False})
+@testing.parameterize({"right": True}, {"right": False})
 class TestDigitizeNanInf(unittest.TestCase):
 
     @testing.numpy_cupy_array_equal()
     def test_digitize_nan(self, xp):
         x = testing.shaped_arange((14,), xp, xp.float32)
-        x[5] = float('nan')
+        x[5] = float("nan")
         bins = xp.array([1.0, 3.0, 5.0, 8.0, 12.0], xp.float32)
         y = xp.digitize(x, bins, right=self.right)
-        return y,
+        return (y,)
 
     @testing.numpy_cupy_array_equal()
     def test_digitize_nan_bins(self, xp):
         x = testing.shaped_arange((14,), xp, xp.float32)
-        bins = xp.array([1.0, 3.0, 5.0, 8.0, float('nan')], xp.float32)
+        bins = xp.array([1.0, 3.0, 5.0, 8.0, float("nan")], xp.float32)
         y = xp.digitize(x, bins, right=self.right)
-        return y,
+        return (y,)
 
     @testing.numpy_cupy_array_equal()
     def test_digitize_nan_bins_repeated(self, xp):
         x = testing.shaped_arange((14,), xp, xp.float32)
-        x[5] = float('nan')
-        bins = [1.0, 3.0, 5.0, 8.0, float('nan'), float('nan')]
+        x[5] = float("nan")
+        bins = [1.0, 3.0, 5.0, 8.0, float("nan"), float("nan")]
         bins = xp.array(bins, xp.float32)
         y = xp.digitize(x, bins, right=self.right)
-        return y,
+        return (y,)
 
     @testing.numpy_cupy_array_equal()
     def test_digitize_nan_bins_decreasing(self, xp):
         x = testing.shaped_arange((14,), xp, xp.float32)
-        x[5] = float('nan')
-        bins = [float('nan'), 8.0, 5.0, 3.0, 1.0]
+        x[5] = float("nan")
+        bins = [float("nan"), 8.0, 5.0, 3.0, 1.0]
         bins = xp.array(bins, xp.float32)
         y = xp.digitize(x, bins, right=self.right)
-        return y,
+        return (y,)
 
     @testing.numpy_cupy_array_equal()
     def test_digitize_nan_bins_decreasing_repeated(self, xp):
         x = testing.shaped_arange((14,), xp, xp.float32)
-        x[5] = float('nan')
-        bins = [float('nan'), float('nan'), float('nan'), 5.0, 3.0, 1.0]
+        x[5] = float("nan")
+        bins = [float("nan"), float("nan"), float("nan"), 5.0, 3.0, 1.0]
         bins = xp.array(bins, xp.float32)
         y = xp.digitize(x, bins, right=self.right)
-        return y,
+        return (y,)
 
     @testing.numpy_cupy_array_equal()
     def test_digitize_all_nan_bins(self, xp):
         x = testing.shaped_arange((14,), xp, xp.float32)
-        x[5] = float('nan')
-        bins = [float('nan'), float('nan'), float('nan'), float('nan')]
+        x[5] = float("nan")
+        bins = [float("nan"), float("nan"), float("nan"), float("nan")]
         bins = xp.array(bins, xp.float32)
         y = xp.digitize(x, bins, right=self.right)
-        return y,
+        return (y,)
 
     @testing.numpy_cupy_array_equal()
     def test_searchsorted_inf(self, xp):
         x = testing.shaped_arange((14,), xp, xp.float64)
-        x[5] = float('inf')
+        x[5] = float("inf")
         bins = xp.array([0, 1, 2, 4, 10])
         y = xp.digitize(x, bins, right=self.right)
-        return y,
+        return (y,)
 
     @testing.numpy_cupy_array_equal()
     def test_searchsorted_minf(self, xp):
         x = testing.shaped_arange((14,), xp, xp.float64)
-        x[5] = float('-inf')
+        x[5] = float("-inf")
         bins = xp.array([0, 1, 2, 4, 10])
         y = xp.digitize(x, bins, right=self.right)
-        return y,
+        return (y,)
 
 
 class TestDigitizeInvalid(unittest.TestCase):
@@ -549,12 +554,20 @@ class TestDigitizeInvalid(unittest.TestCase):
 
 @testing.parameterize(
     *testing.product(
-        {'weights': [None, 1, 2],
-         'weights_dtype': [numpy.int32, numpy.float64],
-         'density': [True, False],
-         'bins': [10, (8, 16, 12), (16, 8, 12), (16, 12, 8), (12, 8, 16),
-                  'array_list'],
-         'range': [None, ((20, 50), (10, 100), (0, 40))]}
+        {
+            "weights": [None, 1, 2],
+            "weights_dtype": [numpy.int32, numpy.float64],
+            "density": [True, False],
+            "bins": [
+                10,
+                (8, 16, 12),
+                (16, 8, 12),
+                (16, 12, 8),
+                (12, 8, 16),
+                "array_list",
+            ],
+            "range": [None, ((20, 50), (10, 100), (0, 40))],
+        }
     )
 )
 class TestHistogramdd:
@@ -563,19 +576,20 @@ class TestHistogramdd:
     @testing.numpy_cupy_allclose(atol=1e-7, rtol=1e-7)
     def test_histogramdd(self, xp, dtype):
         x = testing.shaped_random((100, 3), xp, dtype, scale=100)
-        if self.bins == 'array_list':
-            bins = [xp.arange(0, 100, 4),
-                    xp.arange(0, 100, 10),
-                    xp.arange(25)]
+        if self.bins == "array_list":
+            bins = [xp.arange(0, 100, 4), xp.arange(0, 100, 10), xp.arange(25)]
         else:
             bins = self.bins
         if self.weights is not None:
             weights = xp.ones((x.shape[0],), dtype=self.weights_dtype)
         else:
             weights = None
-        y, bin_edges = xp.histogramdd(x, bins=bins, range=self.range,
-                                      weights=weights, density=self.density)
-        return [y, ] + [e for e in bin_edges]
+        y, bin_edges = xp.histogramdd(
+            x, bins=bins, range=self.range, weights=weights, density=self.density
+        )
+        return [
+            y,
+        ] + [e for e in bin_edges]
 
 
 class TestHistogramddErrors(unittest.TestCase):
@@ -583,7 +597,9 @@ class TestHistogramddErrors(unittest.TestCase):
     def test_histogramdd_invalid_bins(self):
         for xp in (numpy, cupy):
             x = testing.shaped_random((16, 2), xp, scale=100)
-            bins = [xp.arange(0, 100, 10), ] * 3
+            bins = [
+                xp.arange(0, 100, 10),
+            ] * 3
             with pytest.raises(ValueError):
                 y, bin_edges = xp.histogramdd(x, bins)
 
@@ -624,11 +640,13 @@ class TestHistogramddErrors(unittest.TestCase):
 
 @testing.parameterize(
     *testing.product(
-        {'weights': [None, 1, 2],
-         'weights_dtype': [numpy.int32, numpy.float64],
-         'density': [True, False],
-         'bins': [10, (8, 16), (16, 8), 'array_list', 'array'],
-         'range': [None, ((20, 50), (10, 100))]}
+        {
+            "weights": [None, 1, 2],
+            "weights_dtype": [numpy.int32, numpy.float64],
+            "density": [True, False],
+            "bins": [10, (8, 16), (16, 8), "array_list", "array"],
+            "range": [None, ((20, 50), (10, 100))],
+        }
     )
 )
 class TestHistogram2d:
@@ -636,12 +654,12 @@ class TestHistogram2d:
     @testing.for_all_dtypes(no_bool=True, no_complex=True)
     @testing.numpy_cupy_allclose(atol=1e-2, rtol=1e-7)
     def test_histogram2d(self, xp, dtype):
-        x = testing.shaped_random((100, ), xp, dtype, scale=100)
-        y = testing.shaped_random((100, ), xp, dtype, scale=100)
+        x = testing.shaped_random((100,), xp, dtype, scale=100)
+        y = testing.shaped_random((100,), xp, dtype, scale=100)
 
-        if self.bins == 'array_list':
+        if self.bins == "array_list":
             bins = [xp.arange(0, 100, 4), xp.arange(0, 100, 10)]
-        elif self.bins == 'array':
+        elif self.bins == "array":
             bins = xp.arange(0, 100, 4)
         else:
             bins = self.bins
@@ -649,17 +667,17 @@ class TestHistogram2d:
             weights = xp.ones((x.shape[0],), dtype=self.weights_dtype)
         else:
             weights = None
-        y, edges0, edges1 = xp.histogram2d(x, y, bins=bins,
-                                           range=self.range, weights=weights,
-                                           density=self.density)
+        y, edges0, edges1 = xp.histogram2d(
+            x, y, bins=bins, range=self.range, weights=weights, density=self.density
+        )
         return y, edges0, edges1
 
 
 class TestHistogram2dErrors(unittest.TestCase):
 
     def test_histogram2d_disallow_arraylike_bins(self):
-        x = testing.shaped_random((16, ), cupy, scale=100)
-        y = testing.shaped_random((16, ), cupy, scale=100)
+        x = testing.shaped_random((16,), cupy, scale=100)
+        y = testing.shaped_random((16,), cupy, scale=100)
         bins = [0, 10, 20, 50, 90]
         with pytest.raises(ValueError):
             y, bin_edges = cupy.histogram2d(x, y, bins=bins)

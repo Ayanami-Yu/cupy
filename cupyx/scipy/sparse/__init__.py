@@ -29,6 +29,7 @@ from cupyx.scipy.sparse._construct import vstack  # NOQA
 
 from cupyx.scipy.sparse._construct import kron  # NOQA
 from cupyx.scipy.sparse._construct import kronsum  # NOQA
+
 # TODO(unno): implement diags
 # TODO(unno): implement block_diag
 

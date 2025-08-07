@@ -8,6 +8,7 @@ from cupyx.scipy.sparse._base import spmatrix as _spmatrix
 
 try:
     import scipy as _scipy
+
     _scipy_available = True
 except ImportError:
     _scipy_available = False

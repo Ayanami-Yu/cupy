@@ -22,6 +22,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 """
+
 from __future__ import annotations
 
 
@@ -29,7 +30,8 @@ import cupy
 
 
 _convolve1d2o_kernel = cupy.ElementwiseKernel(
-    'raw T in1, raw T in2, int32 W, int32 H', 'T out',
+    "raw T in1, raw T in2, int32 W, int32 H",
+    "T out",
     """
     T temp {};
     for (int x = 0; x < W; x++) {
@@ -52,7 +54,7 @@ def _convolve1d2o(in1, in2, mode):
     return out
 
 
-def convolve1d2o(in1, in2, mode='valid', method='direct'):
+def convolve1d2o(in1, in2, mode="valid", method="direct"):
     """
     Convolve a 1-dimensional arrays with a 2nd order filter.
     This results in a second order convolution.
@@ -118,9 +120,9 @@ def convolve1d2o(in1, in2, mode='valid', method='direct'):
     """
 
     if in1.ndim != 1:
-        raise ValueError('in1 should have one dimension')
+        raise ValueError("in1 should have one dimension")
     if in2.ndim != 2:
-        raise ValueError('in2 should have three dimension')
+        raise ValueError("in2 should have three dimension")
 
     if mode in ["same", "full"]:
         raise NotImplementedError("Mode == {} not implemented".format(mode))
@@ -132,7 +134,8 @@ def convolve1d2o(in1, in2, mode='valid', method='direct'):
 
 
 _convolve1d3o_kernel = cupy.ElementwiseKernel(
-    'raw T in1, raw T in2, int32 W, int32 H, int32 D', 'T out',
+    "raw T in1, raw T in2, int32 W, int32 H, int32 D",
+    "T out",
     """
     T temp {};
     for (int x = 0; x < W; x++) {
@@ -158,7 +161,7 @@ def _convolve1d3o(in1, in2, mode):
     return out
 
 
-def convolve1d3o(in1, in2, mode='valid', method='direct'):
+def convolve1d3o(in1, in2, mode="valid", method="direct"):
     """
     Convolve a 1-dimensional array with a 3rd order filter.
     This results in a third order convolution.
@@ -212,9 +215,9 @@ def convolve1d3o(in1, in2, mode='valid', method='direct'):
     """
 
     if in1.ndim != 1:
-        raise ValueError('in1 should have one dimension')
+        raise ValueError("in1 should have one dimension")
     if in2.ndim != 3:
-        raise ValueError('in2 should have three dimension')
+        raise ValueError("in2 should have three dimension")
 
     if mode in ["same", "full"]:
         raise NotImplementedError("Mode == {} not implemented".format(mode))

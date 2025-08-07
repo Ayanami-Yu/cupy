@@ -3,7 +3,10 @@ from inspect import getfullargspec
 from numpy.testing import assert_raises
 
 from cupy.array_api import asarray, _elementwise_functions
-from cupy.array_api._elementwise_functions import bitwise_left_shift, bitwise_right_shift
+from cupy.array_api._elementwise_functions import (
+    bitwise_left_shift,
+    bitwise_right_shift,
+)
 from cupy.array_api._dtypes import (
     _dtype_categories,
     _boolean_dtypes,

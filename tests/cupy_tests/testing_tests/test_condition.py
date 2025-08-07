@@ -5,7 +5,7 @@ import unittest
 from cupy.testing import _condition
 
 
-SKIP_REASON = 'test skip reason'
+SKIP_REASON = "test skip reason"
 
 
 # The test fixtures of this TestCase is used to be decorated by
@@ -59,11 +59,10 @@ class MockUnitTest(unittest.TestCase):
 def _should_fail(self, f):
     try:
         f(self.unit_test)
-        self.fail(
-            'AssertionError is expected to be raised, but none is raised')
+        self.fail("AssertionError is expected to be raised, but none is raised")
     except AssertionError as e:
         # check if the detail is included in the error object
-        assert 'first error message:' in str(e)
+        assert "first error message:" in str(e)
 
 
 def _should_pass(self, f):
@@ -73,8 +72,7 @@ def _should_pass(self, f):
 def _should_skip(self, f):
     try:
         f(self.unit_test)
-        self.fail(
-            'SkipTest is expected to be raised, but none is raised')
+        self.fail("SkipTest is expected to be raised, but none is raised")
     except unittest.SkipTest as e:
         assert SKIP_REASON in str(e)
 
@@ -82,8 +80,7 @@ def _should_skip(self, f):
 class TestRepeatWithSuccessAtLeast(unittest.TestCase):
 
     def _decorate(self, f, times, min_success):
-        return _condition.repeat_with_success_at_least(
-            times, min_success)(f)
+        return _condition.repeat_with_success_at_least(times, min_success)(f)
 
     def setUp(self):
         self.unit_test = MockUnitTest()
@@ -109,9 +106,9 @@ class TestRepeatWithSuccessAtLeast(unittest.TestCase):
         assert self.unit_test.success_case_counter == 10
 
     def test_all_trials_succeed2(self):
-        self.assertRaises(AssertionError,
-                          _condition.repeat_with_success_at_least,
-                          10, 11)
+        self.assertRaises(
+            AssertionError, _condition.repeat_with_success_at_least, 10, 11
+        )
 
     def test_half_of_trials_succeed(self):
         f = self._decorate(MockUnitTest.probabilistic_case, 10, 5)

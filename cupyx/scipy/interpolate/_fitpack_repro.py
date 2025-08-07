@@ -1,24 +1,25 @@
-""" Replicate FITPACK's logic for smoothing spline functions and curves.
+"""Replicate FITPACK's logic for smoothing spline functions and curves.
 
-    Currently provides analogs of splrep and splprep python routines, i.e.
-    curfit.f and parcur.f routines (the drivers are fpcurf.f and fppara.f,
-    respectively)
+Currently provides analogs of splrep and splprep python routines, i.e.
+curfit.f and parcur.f routines (the drivers are fpcurf.f and fppara.f,
+respectively)
 
-    The Fortran sources are from
-    https://github.com/scipy/scipy/blob/maintenance/1.11.x/scipy/interpolate/fitpack/
+The Fortran sources are from
+https://github.com/scipy/scipy/blob/maintenance/1.11.x/scipy/interpolate/fitpack/
 
-    .. [1] P. Dierckx, "Algorithms for smoothing data with periodic and
-        parametric splines, Computer Graphics and Image Processing",
-        20 (1982) 171-184.
-        :doi:`10.1016/0146-664X(82)90043-0`.
-    .. [2] P. Dierckx, "Curve and surface fitting with splines", Monographs on
-         Numerical Analysis, Oxford University Press, 1993.
-    .. [3] P. Dierckx, "An algorithm for smoothing, differentiation and
-         integration of experimental data using spline functions",
-         Journal of Computational and Applied Mathematics, vol. I, no 3,
-         p. 165 (1975).
-         https://doi.org/10.1016/0771-050X(75)90034-0
+.. [1] P. Dierckx, "Algorithms for smoothing data with periodic and
+    parametric splines, Computer Graphics and Image Processing",
+    20 (1982) 171-184.
+    :doi:`10.1016/0146-664X(82)90043-0`.
+.. [2] P. Dierckx, "Curve and surface fitting with splines", Monographs on
+     Numerical Analysis, Oxford University Press, 1993.
+.. [3] P. Dierckx, "An algorithm for smoothing, differentiation and
+     integration of experimental data using spline functions",
+     Journal of Computational and Applied Mathematics, vol. I, no 3,
+     p. 165 (1975).
+     https://doi.org/10.1016/0771-050X(75)90034-0
 """
+
 from __future__ import annotations
 
 import warnings
@@ -28,12 +29,16 @@ import cupy
 from cupyx.scipy.interpolate import BSpline, make_interp_spline
 
 from cupyx.scipy.interpolate._bspline2 import (
-    fpback, _not_a_knot, _lsq_solve_qr, QR_MODULE, _get_module_func
+    fpback,
+    _not_a_knot,
+    _lsq_solve_qr,
+    QR_MODULE,
+    _get_module_func,
 )
 
 
 def fpcheck(x, t, k):
-    """ Check consistency of the data vector `x` and the knot vector `t`.
+    """Check consistency of the data vector `x` and the knot vector `t`.
 
     Return None if inputs are consistent, raises a ValueError otherwise.
     """
@@ -59,9 +64,7 @@ def fpcheck(x, t, k):
     t = cupy.asarray(t)
 
     if x.ndim != 1 or t.ndim != 1:
-        raise ValueError(
-            f"Expect `x` and `t` be 1D sequences. Got {x=} and {t=}"
-        )
+        raise ValueError(f"Expect `x` and `t` be 1D sequences. Got {x=} and {t=}")
 
     m = x.shape[0]
     n = t.shape[0]
@@ -70,28 +73,26 @@ def fpcheck(x, t, k):
     # check condition no 1
     # c      1) k+1 <= n-k-1 <= m
     if not (k + 1 <= nk1 <= m):
-        raise ValueError(
-            f"Need k+1 <= n-k-1 <= m. Got {m=}, {n=} and {k=}."
-        )
+        raise ValueError(f"Need k+1 <= n-k-1 <= m. Got {m=}, {n=} and {k=}.")
 
     # check condition no 2
     # c      2) t(1) <= t(2) <= ... <= t(k+1)
     # c         t(n-k) <= t(n-k+1) <= ... <= t(n)
-    if (t[:k+1] > t[1:k+2]).any():
+    if (t[: k + 1] > t[1 : k + 2]).any():
         raise ValueError(f"First k knots must be ordered; got {t=}.")
 
-    if (t[nk1:] < t[nk1-1:-1]).any():
+    if (t[nk1:] < t[nk1 - 1 : -1]).any():
         raise ValueError(f"Last k knots must be ordered; got {t=}.")
 
     # c  check condition no 3
     # c      3) t(k+1) < t(k+2) < ... < t(n-k)
-    if (t[k+1:n-k] <= t[k:n-k-1]).any():
+    if (t[k + 1 : n - k] <= t[k : n - k - 1]).any():
         raise ValueError(f"Internal knots must be distinct. Got {t=}.")
 
     # c  check condition no 4
     # c      4) t(k+1) <= x(i) <= t(n-k)
     # NB: FITPACK's fpchec only checks x[0] & x[-1], so we follow.
-    if (x[0] < t[k]) or (x[-1] > t[n-k-1]):
+    if (x[0] < t[k]) or (x[-1] > t[n - k - 1]):
         raise ValueError(f"Out of bounds: {x=} and {t=}.")
 
     # c  check condition no 5
@@ -101,20 +102,20 @@ def fpcheck(x, t, k):
     # c             t(j) < y(j) < t(j+k+1), j=1,2,...,n-k-1
     mesg = f"Schoenberg-Whitney condition is violated with {t =} and {x =}."
 
-    if (x[0] >= t[k+1]) or (x[-1] <= t[n-k-2]):
+    if (x[0] >= t[k + 1]) or (x[-1] <= t[n - k - 2]):
         raise ValueError(mesg)
 
     m = x.shape[0]
-    ll = k+1
+    ll = k + 1
     nk3 = n - k - 3
     if nk3 < 2:
         return
-    for j in range(1, nk3+1):
+    for j in range(1, nk3 + 1):
         tj = t[j]
         ll += 1
         tl = t[ll]
         i = cupy.argmax(x > tj)
-        if i >= m-1:
+        if i >= m - 1:
             raise ValueError(mesg)
         if x[i] >= tl:
             raise ValueError(mesg)
@@ -156,23 +157,22 @@ def _get_residuals(x, y, t, k, w):
 
 
 def _compute_residuals(w2, splx, y):
-    delta = ((splx - y)**2).sum(axis=1)
+    delta = ((splx - y) ** 2).sum(axis=1)
     return w2 * delta
 
 
 def _split(x, t, k, residuals):
-    """Split the knot interval into "runs".
-    """
+    """Split the knot interval into "runs"."""
     ix = cupy.searchsorted(x, t[k:-k])
     # sum half-open intervals
-    fparts = [residuals[ix[i]:ix[i+1]].sum() for i in range(len(ix)-1)]
+    fparts = [residuals[ix[i] : ix[i + 1]].sum() for i in range(len(ix) - 1)]
     carries = residuals[ix[1:-1]]
 
-    for i in range(len(carries)):     # split residuals at internal knots
+    for i in range(len(carries)):  # split residuals at internal knots
         carry = carries[i] / 2
         fparts[i] += carry
-        fparts[i+1] -= carry
-    fparts[-1] += residuals[-1]       # add the contribution of the last knot
+        fparts[i + 1] -= carry
+    fparts[-1] += residuals[-1]  # add the contribution of the last knot
 
     return fparts, ix
 
@@ -200,17 +200,15 @@ def add_knot(x, t, k, residuals):
     idx_max = -101
     fpart_max = -1e100
     for i in range(len(fparts)):
-        if ix[i+1] - ix[i] > 1 and fparts[i] > fpart_max:
+        if ix[i + 1] - ix[i] > 1 and fparts[i] > fpart_max:
             idx_max = i
             fpart_max = fparts[i]
 
     if idx_max == -101:
-        raise ValueError(
-            "Internal error, please report it to CuPy developers."
-        )
+        raise ValueError("Internal error, please report it to CuPy developers.")
 
     # round up, like Dierckx does? This is really arbitrary though.
-    idx_newknot = (ix[idx_max] + ix[idx_max+1] + 1) // 2
+    idx_newknot = (ix[idx_max] + ix[idx_max + 1] + 1) // 2
     new_knot = x[idx_newknot]
     idx_t = cupy.searchsorted(t, new_knot)
     t_new = cupy.r_[t[:idx_t], new_knot, t[idx_t:]]
@@ -218,8 +216,7 @@ def add_knot(x, t, k, residuals):
 
 
 def _validate_inputs(x, y, w, k, s, xb, xe, parametric):
-    """Common input validations for generate_knots and make_splrep.
-    """
+    """Common input validations for generate_knots and make_splrep."""
     x = cupy.asarray(x, dtype=float)
     y = cupy.asarray(y, dtype=float)
 
@@ -238,14 +235,10 @@ def _validate_inputs(x, y, w, k, s, xb, xe, parametric):
     parametric = bool(parametric)
     if parametric:
         if y.ndim != 2:
-            raise ValueError(
-                f"{y.ndim=} != 2 not supported with {parametric=}."
-            )
+            raise ValueError(f"{y.ndim=} != 2 not supported with {parametric=}.")
     else:
         if y.ndim != 1:
-            raise ValueError(
-                f"{y.ndim=} != 1 not supported with {parametric=}."
-            )
+            raise ValueError(f"{y.ndim=} != 1 not supported with {parametric=}.")
         # all _impl functions expect y.ndim = 2
         y = y[:, None]
 
@@ -253,9 +246,7 @@ def _validate_inputs(x, y, w, k, s, xb, xe, parametric):
         raise ValueError(f"Weights is incompatible: {w.shape=} != {x.shape}.")
 
     if x.shape[0] != y.shape[0]:
-        raise ValueError(
-            f"Data is incompatible: {x.shape=} and {y.shape=}."
-        )
+        raise ValueError(f"Data is incompatible: {x.shape=} and {y.shape=}.")
     if x.ndim != 1 or (x[1:] < x[:-1]).any():
         raise ValueError("Expect `x` to be an ordered 1D sequence.")
 
@@ -359,32 +350,27 @@ def generate_knots(x, y, *, w=None, xb=None, xe=None, k=3, s=0, nest=None):
         x, y, w, k, s, xb, xe, parametric=cupy.ndim(y) == 2
     )
 
-    yield from _generate_knots_impl(
-        x, y, w=w, xb=xb, xe=xe, k=k, s=s, nest=nest
-    )
+    yield from _generate_knots_impl(x, y, w=w, xb=xb, xe=xe, k=k, s=s, nest=nest)
 
 
-def _generate_knots_impl(x, y, *, w=None, xb=None, xe=None, k=3, s=0,
-                         nest=None):
+def _generate_knots_impl(x, y, *, w=None, xb=None, xe=None, k=3, s=0, nest=None):
 
     acc = s * TOL
-    m = x.size    # the number of data points
+    m = x.size  # the number of data points
 
     if nest is None:
         # the max number of knots. This is set in _fitpack_impl.py line 274
         # and fitpack.pyf line 198
-        nest = max(m + k + 1, 2*k + 3)
+        nest = max(m + k + 1, 2 * k + 3)
     else:
-        if nest < 2*(k + 1):
-            raise ValueError(
-                f"`nest` too small: {nest=} < 2*(k+1) = {2*(k+1)}."
-            )
+        if nest < 2 * (k + 1):
+            raise ValueError(f"`nest` too small: {nest=} < 2*(k+1) = {2*(k+1)}.")
 
-    nmin = 2*(k + 1)    # the number of knots for an LSQ polynomial approx
+    nmin = 2 * (k + 1)  # the number of knots for an LSQ polynomial approx
     nmax = m + k + 1  # the number of knots for the spline interpolation
 
     # start from no internal knots
-    t = cupy.asarray([xb]*(k+1) + [xe]*(k+1), dtype=float)
+    t = cupy.asarray([xb] * (k + 1) + [xe] * (k + 1), dtype=float)
     n = t.shape[0]
     fp = 0.0
     fpold = 0.0
@@ -413,8 +399,8 @@ def _generate_knots_impl(x, y, *, w=None, xb=None, xe=None, k=3, s=0,
             nplus = 1
         else:
             delta = fpold - fp
-            npl1 = int(nplus * fpms / delta) if delta > acc else nplus*2
-            nplus = min(nplus*2, max(npl1, nplus//2, 1))
+            npl1 = int(nplus * fpms / delta) if delta > acc else nplus * 2
+            nplus = min(nplus * 2, max(npl1, nplus // 2, 1))
 
         # actually add knots
         for j in range(nplus):
@@ -469,9 +455,9 @@ def _generate_knots_impl(x, y, *, w=None, xb=None, xe=None, k=3, s=0,
 
 def prodd(t, i, j, k):
     res = 1.0
-    for s in range(k+2):
+    for s in range(k + 2):
         if i + s != j:
-            res *= (t[j] - t[i+s])
+            res *= t[j] - t[i + s]
     return res
 
 
@@ -527,7 +513,7 @@ def disc(t, k):
     # the length of the base interval spanned by internal knots & the number
     # of subintervas between these internal knots
     delta = t[n - k - 1] - t[k]
-    nrint = n - 2*k - 1
+    nrint = n - 2 * k - 1
 
     matr = cupy.empty((nrint - 1, k + 2), dtype=float)
     for jj in range(nrint - 1):
@@ -541,16 +527,16 @@ def disc(t, k):
         # assert (matr[j-k-1, :] == row).all()
 
     # follow FITPACK
-    matr *= (delta / nrint)**k
+    matr *= (delta / nrint) ** k
 
     # make it packed
-    offset = cupy.array([i for i in range(nrint-1)])
+    offset = cupy.array([i for i in range(nrint - 1)])
     nc = n - k - 1
     return matr, offset, nc
 
 
 class F:
-    """ The r.h.s. of ``f(p) = s``.
+    """The r.h.s. of ``f(p) = s``.
 
     Given scalar `p`, we solve the system of equations in the LSQ sense:
 
@@ -588,8 +574,7 @@ class F:
         self.s = s
 
         if y.ndim != 2:
-            raise ValueError(
-                f"F: expected y.ndim == 2, got {y.ndim=} instead.")
+            raise ValueError(f"F: expected y.ndim == 2, got {y.ndim=} instead.")
 
         # ### precompute what we can ###
 
@@ -617,7 +602,7 @@ class F:
         self.YY = cupy.r_[Y[:nc], z]
 
         # l.h.s. of the augmented system
-        AA = cupy.zeros((nc + b.shape[0], self.k+2), dtype=float)
+        AA = cupy.zeros((nc + b.shape[0], self.k + 2), dtype=float)
         AA[:nc, :nz] = R[:nc, :]
         # AA[nc:, :] = b.a / p  # done in __call__(self, p)
         self.AA = AA
@@ -640,13 +625,10 @@ class F:
         QY = self.YY.copy()
 
         # heavy lifting happens here, in-place
-        qr_reduce = _get_module_func(QR_MODULE, 'qr_reduce')
-        qr_reduce((1,), (1,),
-                  (AB, AB.shape[0], AB.shape[1],
-                   offset,
-                   nc,
-                   QY, QY.shape[1], nc)
-                  )
+        qr_reduce = _get_module_func(QR_MODULE, "qr_reduce")
+        qr_reduce(
+            (1,), (1,), (AB, AB.shape[0], AB.shape[1], offset, nc, QY, QY.shape[1], nc)
+        )
 
         # solve for the coefficients
         c = fpback(AB, nc, QY)
@@ -655,7 +637,7 @@ class F:
         residuals = _compute_residuals(self.w**2, spl(self.x), self.y)
         fp = residuals.sum()
 
-        self.spl = spl   # store it
+        self.spl = spl  # store it
 
         return fp - self.s
 
@@ -675,8 +657,8 @@ def fprati(p1, f1, p2, f2, p3, f3):
     h2 = f2 * (f3 - f1)
     h3 = f3 * (f1 - f2)
     if p3 == cupy.inf:
-        return -(p2*h1 + p1*h2) / h3
-    return -(p1*p2*h3 + p2*p3*h1 + p1*p3*h2) / (p1*h1 + p2*h2 + p3*h3)
+        return -(p2 * h1 + p1 * h2) / h3
+    return -(p1 * p2 * h3 + p2 * p3 * h1 + p1 * p3 * h2) / (p1 * h1 + p2 * h2 + p3 * h3)
 
 
 class Bunch:
@@ -698,7 +680,7 @@ _iermesg = {
     there is an approximation returned but the corresponding
     weighted sum of squared residuals does not satisfy the
     condition abs(fp-s)/s < tol.
-    """
+    """,
 }
 
 
@@ -751,9 +733,9 @@ def root_rati(f, p0, bracket, acc):
                 # c  our initial choice of p is too large.
                 p3 = p2
                 f3 = f2
-                p = p*con4
+                p = p * con4
                 if p <= p1:
-                    p = p1*con9 + p2*con1
+                    p = p1 * con9 + p2 * con1
                 continue
             else:
                 if f2 < 0:
@@ -764,9 +746,9 @@ def root_rati(f, p0, bracket, acc):
                 # c  our initial choice of p is too small
                 p1 = p2
                 f1 = f2
-                p = p/con4
+                p = p / con4
                 if p3 != cupy.inf and p <= p3:
-                    p = p2*con1 + p3*con9
+                    p = p2 * con1 + p3 * con9
                 continue
             else:
                 if f2 > 0:
@@ -798,28 +780,23 @@ def root_rati(f, p0, bracket, acc):
     return Bunch(converged=converged, root=p, iterations=it, ier=ier)
 
 
-def _make_splrep_impl(x, y, *, w=None, xb=None, xe=None, k=3, s=0, t=None,
-                      nest=None):
-    """Shared infra for make_splrep and make_splprep.
-    """
+def _make_splrep_impl(x, y, *, w=None, xb=None, xe=None, k=3, s=0, t=None, nest=None):
+    """Shared infra for make_splrep and make_splprep."""
     acc = s * TOL
-    m = x.size    # the number of data points
+    m = x.size  # the number of data points
 
     if nest is None:
         # the max number of knots. This is set in _fitpack_impl.py line 274
         # and fitpack.pyf line 198
-        nest = max(m + k + 1, 2*k + 3)
+        nest = max(m + k + 1, 2 * k + 3)
     else:
-        if nest < 2*(k + 1):
-            raise ValueError(
-                f"`nest` too small: {nest=} < 2*(k+1) = {2*(k+1)}."
-            )
+        if nest < 2 * (k + 1):
+            raise ValueError(f"`nest` too small: {nest=} < 2*(k+1) = {2*(k+1)}.")
         if t is not None:
             raise ValueError("Either supply `t` or `nest`.")
 
     if t is None:
-        gen = _generate_knots_impl(x, y, w=w, k=k, s=s, xb=xb, xe=xe,
-                                   nest=nest)
+        gen = _generate_knots_impl(x, y, w=w, k=k, s=s, xb=xb, xe=xe, nest=nest)
         t = list(gen)[-1]
     else:
         fpcheck(x, t, k)
@@ -847,7 +824,7 @@ def _make_splrep_impl(x, y, *, w=None, xb=None, xe=None, k=3, s=0, t=None,
     fpinf = fp - s
 
     # f(p=0): LSQ spline without internal knots
-    residuals = _get_residuals(x, y, cupy.array([xb]*(k+1) + [xe]*(k+1)), k, w)
+    residuals = _get_residuals(x, y, cupy.array([xb] * (k + 1) + [xe] * (k + 1)), k, w)
     fp0 = residuals.sum()
     fp0 = fp0 - s
 
@@ -860,8 +837,7 @@ def _make_splrep_impl(x, y, *, w=None, xb=None, xe=None, k=3, s=0, t=None,
     return f.spl, res
 
 
-def make_splrep(x, y, *, w=None, xb=None, xe=None, k=3, s=0, t=None,
-                nest=None):
+def make_splrep(x, y, *, w=None, xb=None, xe=None, k=3, s=0, t=None, nest=None):
     r"""Find the B-spline representation of a 1D function.
 
     Given the set of data points ``(x[i], y[i])``, determine a smooth spline
@@ -990,13 +966,9 @@ def make_splrep(x, y, *, w=None, xb=None, xe=None, k=3, s=0, t=None,
         make_splrep._res = res
         return make_interp_spline(x, y, k=k)
 
-    x, y, w, k, s, xb, xe = _validate_inputs(
-        x, y, w, k, s, xb, xe, parametric=False
-    )
+    x, y, w, k, s, xb, xe = _validate_inputs(x, y, w, k, s, xb, xe, parametric=False)
 
-    spl, res = _make_splrep_impl(
-        x, y, w=w, xb=xb, xe=xe, k=k, s=s, t=t, nest=nest
-    )
+    spl, res = _make_splrep_impl(x, y, w=w, xb=xb, xe=xe, k=k, s=s, t=t, nest=nest)
 
     # ugly: attach the optimization bunch with ier status
     make_splrep._res = res
@@ -1007,9 +979,7 @@ def make_splrep(x, y, *, w=None, xb=None, xe=None, k=3, s=0, t=None,
     return spl
 
 
-def make_splprep(
-        x, *, w=None, u=None, ub=None, ue=None, k=3, s=0, t=None, nest=None
-):
+def make_splprep(x, *, w=None, u=None, ub=None, ue=None, k=3, s=0, t=None, nest=None):
     r"""
     Find a smoothed B-spline representation of a parametric N-D curve.
 
@@ -1138,7 +1108,7 @@ def make_splprep(
 
     # construct the default parametrization of the curve
     if u is None:
-        dp = (x[1:, :] - x[:-1, :])**2
+        dp = (x[1:, :] - x[:-1, :]) ** 2
         u = cupy.sqrt((dp).sum(axis=1)).cumsum()
         u = cupy.r_[0, u / u[-1]]
 
@@ -1147,13 +1117,9 @@ def make_splprep(
             raise ValueError("s==0 is for interpolation only")
         return make_interp_spline(u, x.T, k=k, axis=1), u
 
-    u, x, w, k, s, ub, ue = _validate_inputs(
-        u, x, w, k, s, ub, ue, parametric=True
-    )
+    u, x, w, k, s, ub, ue = _validate_inputs(u, x, w, k, s, ub, ue, parametric=True)
 
-    spl, res = _make_splrep_impl(
-        u, x, w=w, xb=ub, xe=ue, k=k, s=s, t=t, nest=nest
-    )
+    spl, res = _make_splrep_impl(u, x, w=w, xb=ub, xe=ue, k=k, s=s, t=t, nest=nest)
 
     # posprocess: `axis=1` so that spl(u).shape == cupy.shape(x)
     # when `x` is a list of 1D arrays (cf original splPrep)
@@ -1166,10 +1132,16 @@ def make_splprep(
 # #################### Public FITPACK interface, OOP ################
 
 # UnivariateSpline, ext parameter can be an int or a string
-_extrap_modes = {0: 0, 'extrapolate': 0,
-                 1: 1, 'zeros': 1,
-                 2: 2, 'raise': 2,
-                 3: 3, 'const': 3}
+_extrap_modes = {
+    0: 0,
+    "extrapolate": 0,
+    1: 1,
+    "zeros": 1,
+    2: 2,
+    "raise": 2,
+    3: 3,
+    "const": 3,
+}
 
 
 class UnivariateSpline:
@@ -1235,13 +1207,11 @@ class UnivariateSpline:
     scipy.interpolate.UnivariateSpline
     """
 
-    def __init__(self, x, y, w=None, bbox=[None]*2, k=3, s=None, ext=0):
+    def __init__(self, x, y, w=None, bbox=[None] * 2, k=3, s=None, ext=0):
         # NB removed the checkfinite arg: it requires .any()
 
         if w is not None:
-            raise NotImplementedError(
-                "weighted spline fitting is not implemented"
-            )
+            raise NotImplementedError("weighted spline fitting is not implemented")
 
         x = cupy.asarray(x, dtype=float)
         y = cupy.asarray(y, dtype=float)
@@ -1293,15 +1263,18 @@ class UnivariateSpline:
 
     def _set_class(self, cls):
         self._spline_class = cls
-        if self.__class__ in (UnivariateSpline, InterpolatedUnivariateSpline,
-                              LSQUnivariateSpline):
+        if self.__class__ in (
+            UnivariateSpline,
+            InterpolatedUnivariateSpline,
+            LSQUnivariateSpline,
+        ):
             self.__class__ = cls
         else:
             # It's an unknown subclass -- don't change class. cf. #731
             pass
 
     def set_smoothing_factor(self, s, t=None):
-        """ Continue spline computation with the given smoothing
+        """Continue spline computation with the given smoothing
         factor s and with the knots found at the last call.
 
         This routine modifies the spline in place.
@@ -1357,19 +1330,19 @@ class UnivariateSpline:
         # default is to extrapolate, do extra work for other modes
         if ext != 0:
             xb, xe = self._xb, self._xe
-            if ext == 1:   # "zeros"
-                result[(x < xb) | (x > xe)] = 0.
-            elif ext == 2:   # raise
+            if ext == 1:  # "zeros"
+                result[(x < xb) | (x > xe)] = 0.0
+            elif ext == 2:  # raise
                 if any((x < xb) | (x > xe)):
                     raise ValueError(f"Out of bounds {x=} with ext='raise'.")
-            elif ext == 3:   # "const"
+            elif ext == 3:  # "const"
                 result[x < xb] = self._spl(xb)
                 result[x > xe] = self._spl(xe)
 
         return result
 
     def get_knots(self):
-        """ Return positions of interior knots of the spline.
+        """Return positions of interior knots of the spline.
 
         Internally, the knot vector contains ``2*k`` additional boundary knots.
         """
@@ -1383,14 +1356,14 @@ class UnivariateSpline:
     def get_residual(self):
         """Return weighted sum of squared residuals of the spline approx.
 
-           This is equivalent to::
+        This is equivalent to::
 
-                sum((w[i] * (y[i]-spl(x[i])))**2, axis=0
+             sum((w[i] * (y[i]-spl(x[i])))**2, axis=0
         """
         return self._residual
 
     def integral(self, a, b):
-        """ Return definite integral of the spline between two given points.
+        """Return definite integral of the spline between two given points.
 
         Parameters
         ----------
@@ -1404,10 +1377,9 @@ class UnivariateSpline:
         integral : float
             The value of the definite integral of the spline between limits.
         """
-        cond = ((a <= self._xb and b <= self._xb) or
-                (a >= self._xe and b >= self._xe))
+        cond = (a <= self._xb and b <= self._xb) or (a >= self._xe and b >= self._xe)
         if cond:
-            return cupy.array(0.)
+            return cupy.array(0.0)
         return self._spl.integrate(a, b)
 
     def derivatives(self, x):
@@ -1424,7 +1396,7 @@ class UnivariateSpline:
             Derivatives of the orders 0 to k.
         """
         # return _fitpack_impl.spalde(x, self._eval_args)
-        lst = [self._spl(x, nu) for nu in range(self._spl.k+1)]
+        lst = [self._spl(x, nu) for nu in range(self._spl.k + 1)]
         return cupy.r_[lst]
 
     def derivative(self, n=1):
@@ -1468,8 +1440,7 @@ class UnivariateSpline:
         # return UnivariateSpline._from_tck(tck, self.ext)
         spl = self._spl.antiderivative(n)
         return UnivariateSpline._from_spl(
-            spl, ext=self.ext, residual=self._residual,
-            xb=self._xb, xe=self._xe
+            spl, ext=self.ext, residual=self._residual, xb=self._xb, xe=self._xe
         )
 
 
@@ -1512,7 +1483,7 @@ class InterpolatedUnivariateSpline(UnivariateSpline):
     scipy.interpolate.InterpolatedUnivariateSpline
     """
 
-    def __init__(self, x, y, w=None, bbox=[None]*2, k=3, ext=0):
+    def __init__(self, x, y, w=None, bbox=[None] * 2, k=3, ext=0):
         super().__init__(x, y, s=0, w=w, bbox=bbox, k=k, ext=ext)
 
 
@@ -1564,12 +1535,10 @@ class LSQUnivariateSpline(UnivariateSpline):
     scipy.interpolate.LSQUnivariateSpline
     """
 
-    def __init__(self, x, y, t, w=None, bbox=[None]*2, k=3, ext=0):
+    def __init__(self, x, y, t, w=None, bbox=[None] * 2, k=3, ext=0):
         # NB cannot call UnivariateSpline.__init__ : has no `t` arg
         if w is not None:
-            raise NotImplementedError(
-                "weighted spline fitting is not implemented"
-            )
+            raise NotImplementedError("weighted spline fitting is not implemented")
 
         x = cupy.asarray(x, dtype=float)
         y = cupy.asarray(y, dtype=float)

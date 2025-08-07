@@ -18,7 +18,8 @@ def _next_fast_len_impl(n, primes):
             p = primes[0]
             result = min(
                 _next_fast_len_impl((n + p - 1) // p, primes) * p,
-                _next_fast_len_impl(n, primes[1:]))
+                _next_fast_len_impl(n, primes[1:]),
+            )
         _next_fast_len_cache[(n, primes)] = result
     return result
 

@@ -4,9 +4,7 @@ import cupy
 
 
 def _first(arr, axis):
-    """Return arr[..., 0:1, ...] where 0:1 is in the `axis` position
-
-    """
+    """Return arr[..., 0:1, ...] where 0:1 is in the `axis` position"""
 
     return cupy.take_along_axis(arr, cupy.array(0, ndmin=arr.ndim), axis)
 
@@ -25,7 +23,7 @@ def _isconst(x):
         return (y[0] == y).all(keepdims=True)
 
 
-def zscore(a, axis=0, ddof=0, nan_policy='propagate'):
+def zscore(a, axis=0, ddof=0, nan_policy="propagate"):
     """Compute the z-score.
 
     Compute the z-score of each value in the sample, relative to
@@ -61,7 +59,7 @@ def zscore(a, axis=0, ddof=0, nan_policy='propagate'):
     return zmap(a, a, axis=axis, ddof=ddof, nan_policy=nan_policy)
 
 
-def zmap(scores, compare, axis=0, ddof=0, nan_policy='propagate'):
+def zmap(scores, compare, axis=0, ddof=0, nan_policy="propagate"):
     """Calculate the relative z-scores.
 
     Return an array of z-scores, i.e., scores that are standardized
@@ -97,25 +95,26 @@ def zmap(scores, compare, axis=0, ddof=0, nan_policy='propagate'):
 
     """
 
-    policies = ['propagate', 'raise', 'omit']
+    policies = ["propagate", "raise", "omit"]
 
     if nan_policy not in policies:
-        raise ValueError("nan_policy must be one of {%s}" %
-                         ', '.join("'%s'" % s for s in policies))
+        raise ValueError(
+            "nan_policy must be one of {%s}" % ", ".join("'%s'" % s for s in policies)
+        )
 
     a = compare
 
     if a.size == 0:
-        dtype = a.dtype if a.dtype.kind in 'fc' else cupy.float64
+        dtype = a.dtype if a.dtype.kind in "fc" else cupy.float64
         return cupy.empty(a.shape, dtype)
 
-    if nan_policy == 'raise':
+    if nan_policy == "raise":
         contains_nan = cupy.isnan(cupy.sum(a))
 
         if contains_nan:  # synchronize!
             raise ValueError("The input contains nan values")
 
-    if nan_policy == 'omit':
+    if nan_policy == "omit":
         if axis is None:
             mn = cupy.nanmean(a.ravel())
             std = cupy.nanstd(a.ravel(), ddof=ddof)

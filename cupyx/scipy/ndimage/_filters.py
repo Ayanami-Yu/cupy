@@ -11,8 +11,9 @@ from cupyx.scipy.ndimage import _filters_core
 from cupyx.scipy.ndimage import _filters_generic
 
 
-def correlate(input, weights, output=None, mode='reflect', cval=0.0, origin=0,
-              *, axes=None):
+def correlate(
+    input, weights, output=None, mode="reflect", cval=0.0, origin=0, *, axes=None
+):
     """Multi-dimensional correlate.
 
     The array is correlated with the given kernel.
@@ -53,8 +54,9 @@ def correlate(input, weights, output=None, mode='reflect', cval=0.0, origin=0,
     )
 
 
-def convolve(input, weights, output=None, mode='reflect', cval=0.0, origin=0,
-             *, axes=None):
+def convolve(
+    input, weights, output=None, mode="reflect", cval=0.0, origin=0, *, axes=None
+):
     """Multi-dimensional convolution.
 
     The array is convolved with the given kernel.
@@ -95,8 +97,9 @@ def convolve(input, weights, output=None, mode='reflect', cval=0.0, origin=0,
     )
 
 
-def correlate1d(input, weights, axis=-1, output=None, mode="reflect", cval=0.0,
-                origin=0):
+def correlate1d(
+    input, weights, axis=-1, output=None, mode="reflect", cval=0.0, origin=0
+):
     """One-dimensional correlate.
 
     The array is correlated with the given kernel.
@@ -126,13 +129,13 @@ def correlate1d(input, weights, axis=-1, output=None, mode="reflect", cval=0.0,
         and input is integral) the results may not perfectly match the results
         from SciPy due to floating-point rounding of intermediate results.
     """
-    weights, origins = _filters_core._convert_1d_args(input.ndim, weights,
-                                                      origin, axis)
+    weights, origins = _filters_core._convert_1d_args(input.ndim, weights, origin, axis)
     return _correlate_or_convolve(input, weights, output, mode, cval, origins)
 
 
-def convolve1d(input, weights, axis=-1, output=None, mode="reflect", cval=0.0,
-               origin=0):
+def convolve1d(
+    input, weights, axis=-1, output=None, mode="reflect", cval=0.0, origin=0
+):
     """One-dimensional convolution.
 
     The array is convolved with the given kernel.
@@ -161,16 +164,16 @@ def convolve1d(input, weights, axis=-1, output=None, mode="reflect", cval=0.0,
         and input is integral) the results may not perfectly match the results
         from SciPy due to floating-point rounding of intermediate results.
     """
-    weights, origins = _filters_core._convert_1d_args(input.ndim, weights,
-                                                      origin, axis)
-    return _correlate_or_convolve(input, weights, output, mode, cval, origins,
-                                  True)
+    weights, origins = _filters_core._convert_1d_args(input.ndim, weights, origin, axis)
+    return _correlate_or_convolve(input, weights, output, mode, cval, origins, True)
 
 
-def _correlate_or_convolve(input, weights, output, mode, cval, origin,
-                           convolution=False, axes=None):
+def _correlate_or_convolve(
+    input, weights, output, mode, cval, origin, convolution=False, axes=None
+):
     axes, weights, origins, modes, int_type = _filters_core._check_nd_args(
-        input, weights, mode, origin, axes=axes)
+        input, weights, mode, origin, axes=axes
+    )
     if weights.size == 0:
         return cupy.zeros_like(input)
 
@@ -190,25 +193,30 @@ def _correlate_or_convolve(input, weights, output, mode, cval, origin,
         weights = weights.conj()
     weights_dtype = _util._get_weights_dtype(input, weights)
     offsets = _filters_core._origins_to_offsets(origins, weights.shape)
-    kernel = _get_correlate_kernel(modes, weights.shape, int_type,
-                                   offsets, cval)
-    output = _filters_core._call_kernel(kernel, input, weights, output,
-                                        weights_dtype=weights_dtype)
+    kernel = _get_correlate_kernel(modes, weights.shape, int_type, offsets, cval)
+    output = _filters_core._call_kernel(
+        kernel, input, weights, output, weights_dtype=weights_dtype
+    )
     return output
 
 
 @cupy._util.memoize(for_each_device=True)
 def _get_correlate_kernel(modes, w_shape, int_type, offsets, cval):
     return _filters_core._generate_nd_kernel(
-        'correlate',
-        'W sum = (W)0;',
-        'sum += cast<W>({value}) * wval;',
-        'y = cast<Y>(sum);',
-        modes, w_shape, int_type, offsets, cval, ctype='W')
+        "correlate",
+        "W sum = (W)0;",
+        "sum += cast<W>({value}) * wval;",
+        "y = cast<Y>(sum);",
+        modes,
+        w_shape,
+        int_type,
+        offsets,
+        cval,
+        ctype="W",
+    )
 
 
-def _run_1d_correlates(input, axes, params, get_weights, output, modes, cval,
-                       origin=0):
+def _run_1d_correlates(input, axes, params, get_weights, output, modes, cval, origin=0):
     """
     Enhanced version of _run_1d_filters that uses correlate1d as the filter
     function. The params are a list of values to pass to the get_weights
@@ -223,11 +231,19 @@ def _run_1d_correlates(input, axes, params, get_weights, output, modes, cval,
     wghts = [wghts[param] for param in params]
     return _filters_core._run_1d_filters(
         [None if w is None else correlate1d for w in wghts],
-        input, axes, wghts, output, modes, cval, origin)
+        input,
+        axes,
+        wghts,
+        output,
+        modes,
+        cval,
+        origin,
+    )
 
 
-def uniform_filter1d(input, size, axis=-1, output=None, mode="reflect",
-                     cval=0.0, origin=0):
+def uniform_filter1d(
+    input, size, axis=-1, output=None, mode="reflect", cval=0.0, origin=0
+):
     """One-dimensional uniform filter along the given axis.
 
     The lines of the array along the given axis are filtered with a uniform
@@ -263,8 +279,9 @@ def uniform_filter1d(input, size, axis=-1, output=None, mode="reflect",
     return correlate1d(input, weights, axis, output, mode, cval, origin)
 
 
-def uniform_filter(input, size=3, output=None, mode="reflect", cval=0.0,
-                   origin=0, axes=None):
+def uniform_filter(
+    input, size=3, output=None, mode="reflect", cval=0.0, origin=0, axes=None
+):
     """Multi-dimensional uniform filter.
 
     Args:
@@ -305,21 +322,21 @@ def uniform_filter(input, size=3, output=None, mode="reflect", cval=0.0,
     """
     axes = _util._check_axes(axes, input.ndim)
     num_axes = len(axes)
-    sizes = _util._fix_sequence_arg(size, num_axes, 'size', int)
-    origins = _util._fix_sequence_arg(origin, num_axes, 'origin', int)
-    modes = _util._fix_sequence_arg(mode, num_axes, 'mode', str)
+    sizes = _util._fix_sequence_arg(size, num_axes, "size", int)
+    origins = _util._fix_sequence_arg(origin, num_axes, "origin", int)
+    modes = _util._fix_sequence_arg(mode, num_axes, "mode", str)
 
     weights_dtype = _util._init_weights_dtype(input)
 
     def get(size, dtype=weights_dtype):
         return None if size <= 1 else cupy.full(size, 1 / size, dtype=dtype)
 
-    return _run_1d_correlates(input, axes, sizes, get, output, modes, cval,
-                              origins)
+    return _run_1d_correlates(input, axes, sizes, get, output, modes, cval, origins)
 
 
-def gaussian_filter1d(input, sigma, axis=-1, order=0, output=None,
-                      mode="reflect", cval=0.0, truncate=4.0):
+def gaussian_filter1d(
+    input, sigma, axis=-1, order=0, output=None, mode="reflect", cval=0.0, truncate=4.0
+):
     """One-dimensional Gaussian filter along the given axis.
 
     The lines of the array along the given axis are filtered with a Gaussian
@@ -358,14 +375,21 @@ def gaussian_filter1d(input, sigma, axis=-1, order=0, output=None,
     """
     radius = int(float(truncate) * float(sigma) + 0.5)
     weights_dtype = _util._init_weights_dtype(input)
-    weights = _gaussian_kernel1d(
-        sigma, int(order), radius, dtype=weights_dtype
-    )
+    weights = _gaussian_kernel1d(sigma, int(order), radius, dtype=weights_dtype)
     return correlate1d(input, weights, axis, output, mode, cval)
 
 
-def gaussian_filter(input, sigma, order=0, output=None, mode="reflect",
-                    cval=0.0, truncate=4.0, radius=None, axes=None):
+def gaussian_filter(
+    input,
+    sigma,
+    order=0,
+    output=None,
+    mode="reflect",
+    cval=0.0,
+    truncate=4.0,
+    radius=None,
+    axes=None,
+):
     """Multi-dimensional Gaussian filter.
 
     Args:
@@ -417,7 +441,7 @@ def gaussian_filter(input, sigma, order=0, output=None, mode="reflect",
     """
     axes = _util._check_axes(axes, input.ndim)
     num_axes = len(axes)
-    sigmas = _util._fix_sequence_arg(sigma, num_axes, 'sigma', float)
+    sigmas = _util._fix_sequence_arg(sigma, num_axes, "sigma", float)
     sigma_threshold = 1e-15
     if num_axes == 0 or all(s < sigma_threshold for s in sigmas):
         if output is None:
@@ -426,15 +450,18 @@ def gaussian_filter(input, sigma, order=0, output=None, mode="reflect",
             output = _util._get_output(output, input)
             output[:] = input
             return output
-    orders = _util._fix_sequence_arg(order, num_axes, 'order', int)
-    modes = _util._fix_sequence_arg(mode, num_axes, 'mode', str)
-    radiuses = _util._fix_sequence_arg(radius, num_axes, 'radius')
+    orders = _util._fix_sequence_arg(order, num_axes, "order", int)
+    modes = _util._fix_sequence_arg(mode, num_axes, "mode", str)
+    radiuses = _util._fix_sequence_arg(radius, num_axes, "radius")
     truncate = float(truncate)
     weights_dtype = _util._init_weights_dtype(input)
 
     # omit any axes with sigma ~= 0.0
-    params = [(axes[ii], sigmas[ii], orders[ii], modes[ii], radiuses[ii])
-              for ii in range(num_axes) if sigmas[ii] > 1e-15]
+    params = [
+        (axes[ii], sigmas[ii], orders[ii], modes[ii], radiuses[ii])
+        for ii in range(num_axes)
+        if sigmas[ii] > 1e-15
+    ]
     # update arguments in case any were filtered out due to sigma ~= 0.0
     axes, sigmas, orders, modes, radiuses = zip(*params)
 
@@ -454,10 +481,10 @@ def _gaussian_kernel1d(sigma, order, radius, dtype=cupy.float64):
     Computes a 1-D Gaussian correlation kernel.
     """
     if order < 0:
-        raise ValueError('order must be non-negative')
+        raise ValueError("order must be non-negative")
     sigma2 = sigma * sigma
-    x = numpy.arange(-radius, radius+1)
-    phi_x = numpy.exp(-0.5 / sigma2 * x ** 2)
+    x = numpy.arange(-radius, radius + 1)
+    phi_x = numpy.exp(-0.5 / sigma2 * x**2)
     phi_x /= phi_x.sum()
 
     if order == 0:
@@ -472,7 +499,7 @@ def _gaussian_kernel1d(sigma, order, radius, dtype=cupy.float64):
     q = numpy.zeros(order + 1)
     q[0] = 1
     D = numpy.diag(exponent_range[1:], 1)  # D @ q(x) = q'(x)
-    P = numpy.diag(numpy.ones(order)/-sigma2, -1)  # P @ q(x) = q(x) * p'(x)
+    P = numpy.diag(numpy.ones(order) / -sigma2, -1)  # P @ q(x) = q(x) * p'(x)
     Q_deriv = D + P
     for _ in range(order):
         q = Q_deriv.dot(q)
@@ -534,26 +561,37 @@ def sobel(input, axis=-1, output=None, mode="reflect", cval=0.0):
         from SciPy due to floating-point rounding of intermediate results.
     """
     weights_dtype = _util._init_weights_dtype(input)
-    return _prewitt_or_sobel(input, axis, output, mode, cval,
-                             cupy.array([1, 2, 1], dtype=weights_dtype))
+    return _prewitt_or_sobel(
+        input, axis, output, mode, cval, cupy.array([1, 2, 1], dtype=weights_dtype)
+    )
 
 
 def _prewitt_or_sobel(input, axis, output, mode, cval, weights):
     axis = internal._normalize_axis_index(axis, input.ndim)
 
     def get(is_diff):
-        return cupy.array([-1, 0, 1], dtype=weights.dtype) if is_diff else weights  # noqa
+        return (
+            cupy.array([-1, 0, 1], dtype=weights.dtype) if is_diff else weights
+        )  # noqa
 
     axes = tuple(range(input.ndim))
     modes = (mode,) * input.ndim
-    return _run_1d_correlates(input, axes,
-                              [a == axis for a in range(input.ndim)], get,
-                              output, modes, cval)
+    return _run_1d_correlates(
+        input, axes, [a == axis for a in range(input.ndim)], get, output, modes, cval
+    )
 
 
-def generic_laplace(input, derivative2, output=None, mode="reflect",
-                    cval=0.0, extra_arguments=(), extra_keywords=None, *,
-                    axes=None):
+def generic_laplace(
+    input,
+    derivative2,
+    output=None,
+    mode="reflect",
+    cval=0.0,
+    extra_arguments=(),
+    extra_keywords=None,
+    *,
+    axes=None,
+):
     """Multi-dimensional Laplace filter using a provided second derivative
     function.
 
@@ -600,15 +638,22 @@ def generic_laplace(input, derivative2, output=None, mode="reflect",
     num_axes = len(axes)
     output = _util._get_output(output, input)
     if num_axes > 0:
-        modes = _util._fix_sequence_arg(mode, num_axes, 'mode',
-                                        _util._check_mode)
-        derivative2(input, axes[0], output, modes[0], cval,
-                    *extra_arguments, **extra_keywords)
+        modes = _util._fix_sequence_arg(mode, num_axes, "mode", _util._check_mode)
+        derivative2(
+            input, axes[0], output, modes[0], cval, *extra_arguments, **extra_keywords
+        )
         if num_axes > 1:
             tmp = _util._get_output(output.dtype, input)
             for i in range(1, num_axes):
-                derivative2(input, axes[i], tmp, modes[i], cval,
-                            *extra_arguments, **extra_keywords)
+                derivative2(
+                    input,
+                    axes[i],
+                    tmp,
+                    modes[i],
+                    cval,
+                    *extra_arguments,
+                    **extra_keywords,
+                )
                 output += tmp
     else:
         _core.elementwise_copy(input, output)
@@ -651,8 +696,9 @@ def laplace(input, output=None, mode="reflect", cval=0.0, *, axes=None):
     return generic_laplace(input, derivative2, output, mode, cval, axes=axes)
 
 
-def gaussian_laplace(input, sigma, output=None, mode="reflect",
-                     cval=0.0, *, axes=None, **kwargs):
+def gaussian_laplace(
+    input, sigma, output=None, mode="reflect", cval=0.0, *, axes=None, **kwargs
+):
     """Multi-dimensional Laplace filter using Gaussian second derivatives.
 
     Args:
@@ -682,31 +728,47 @@ def gaussian_laplace(input, sigma, output=None, mode="reflect",
         and input is integral) the results may not perfectly match the results
         from SciPy due to floating-point rounding of intermediate results.
     """
+
     def derivative2(input, axis, output, mode, cval, sigma, **kwargs):
         order = [0] * input.ndim
         order[axis] = 2
-        return gaussian_filter(input, sigma, order, output, mode, cval,
-                               **kwargs)
+        return gaussian_filter(input, sigma, order, output, mode, cval, **kwargs)
 
     axes = _util._check_axes(axes, input.ndim)
     num_axes = len(axes)
     sigma = _util._fix_sequence_arg(sigma, num_axes, "sigma", float)
     if num_axes < input.ndim:
         # set sigma = 0 for any axes not being filtered
-        sigma_temp = [0,] * input.ndim
+        sigma_temp = [
+            0,
+        ] * input.ndim
         for s, ax in zip(sigma, axes):
             sigma_temp[ax] = s
         sigma = sigma_temp
 
-    return generic_laplace(input, derivative2, output, mode, cval,
-                           extra_arguments=(sigma,), extra_keywords=kwargs,
-                           axes=axes)
+    return generic_laplace(
+        input,
+        derivative2,
+        output,
+        mode,
+        cval,
+        extra_arguments=(sigma,),
+        extra_keywords=kwargs,
+        axes=axes,
+    )
 
 
-def generic_gradient_magnitude(input, derivative, output=None,
-                               mode="reflect", cval=0.0,
-                               extra_arguments=(), extra_keywords=None, *,
-                               axes=None):
+def generic_gradient_magnitude(
+    input,
+    derivative,
+    output=None,
+    mode="reflect",
+    cval=0.0,
+    extra_arguments=(),
+    extra_keywords=None,
+    *,
+    axes=None,
+):
     """Multi-dimensional gradient magnitude filter using a provided derivative
     function.
 
@@ -752,27 +814,29 @@ def generic_gradient_magnitude(input, derivative, output=None,
     ndim = input.ndim
     axes = _util._check_axes(axes, ndim)
     num_axes = len(axes)
-    modes = _util._fix_sequence_arg(mode, num_axes, 'mode',
-                                    _util._check_mode)
+    modes = _util._fix_sequence_arg(mode, num_axes, "mode", _util._check_mode)
     output = _util._get_output(output, input)
     if ndim == 0:
         _core.elementwise_copy(input, output)
         return output
-    derivative(input, axes[0], output, modes[0], cval,
-               *extra_arguments, **extra_keywords)
+    derivative(
+        input, axes[0], output, modes[0], cval, *extra_arguments, **extra_keywords
+    )
     output *= output
     if ndim > 1:
         tmp = _util._get_output(output.dtype, input)
         for i in range(1, num_axes):
-            derivative(input, axes[i], tmp, modes[i], cval,
-                       *extra_arguments, **extra_keywords)
+            derivative(
+                input, axes[i], tmp, modes[i], cval, *extra_arguments, **extra_keywords
+            )
             tmp *= tmp
             output += tmp
-    return cupy.sqrt(output, output, casting='unsafe')
+    return cupy.sqrt(output, output, casting="unsafe")
 
 
-def gaussian_gradient_magnitude(input, sigma, output=None, mode="reflect",
-                                cval=0.0, *, axes=None, **kwargs):
+def gaussian_gradient_magnitude(
+    input, sigma, output=None, mode="reflect", cval=0.0, *, axes=None, **kwargs
+):
     """Multi-dimensional gradient magnitude using Gaussian derivatives.
 
     Args:
@@ -802,17 +866,25 @@ def gaussian_gradient_magnitude(input, sigma, output=None, mode="reflect",
         and input is integral) the results may not perfectly match the results
         from SciPy due to floating-point rounding of intermediate results.
     """
+
     def derivative(input, axis, output, mode, cval):
         order = [0] * input.ndim
         order[axis] = 1
-        return gaussian_filter(input, sigma, order, output, mode, cval,
-                               **kwargs)
-    return generic_gradient_magnitude(input, derivative, output, mode, cval,
-                                      axes=axes)
+        return gaussian_filter(input, sigma, order, output, mode, cval, **kwargs)
+
+    return generic_gradient_magnitude(input, derivative, output, mode, cval, axes=axes)
 
 
-def minimum_filter(input, size=None, footprint=None, output=None,
-                   mode="reflect", cval=0.0, origin=0, axes=None):
+def minimum_filter(
+    input,
+    size=None,
+    footprint=None,
+    output=None,
+    mode="reflect",
+    cval=0.0,
+    origin=0,
+    axes=None,
+):
     """Multi-dimensional minimum filter.
 
     Args:
@@ -850,12 +922,21 @@ def minimum_filter(input, size=None, footprint=None, output=None,
 
     .. seealso:: :func:`scipy.ndimage.minimum_filter`
     """
-    return _min_or_max_filter(input, size, footprint, None, output, mode,
-                              cval, origin, 'min', axes)
+    return _min_or_max_filter(
+        input, size, footprint, None, output, mode, cval, origin, "min", axes
+    )
 
 
-def maximum_filter(input, size=None, footprint=None, output=None,
-                   mode="reflect", cval=0.0, origin=0, axes=None):
+def maximum_filter(
+    input,
+    size=None,
+    footprint=None,
+    output=None,
+    mode="reflect",
+    cval=0.0,
+    origin=0,
+    axes=None,
+):
     """Multi-dimensional maximum filter.
 
     Args:
@@ -893,12 +974,14 @@ def maximum_filter(input, size=None, footprint=None, output=None,
 
     .. seealso:: :func:`scipy.ndimage.maximum_filter`
     """
-    return _min_or_max_filter(input, size, footprint, None, output, mode,
-                              cval, origin, 'max', axes)
+    return _min_or_max_filter(
+        input, size, footprint, None, output, mode, cval, origin, "max", axes
+    )
 
 
-def _min_or_max_filter(input, size, ftprnt, structure, output, mode, cval,
-                       origin, func, axes):
+def _min_or_max_filter(
+    input, size, ftprnt, structure, output, mode, cval, origin, func, axes
+):
     # structure is used by morphology.grey_erosion() and grey_dilation()
     # and not by the regular min/max filters
 
@@ -907,20 +990,35 @@ def _min_or_max_filter(input, size, ftprnt, structure, output, mode, cval,
         ftprnt = None
 
     axes, ftprnt, origins, modes, int_type = _filters_core._check_nd_args(
-        input, ftprnt, mode, origin, 'footprint', sizes=size, axes=axes,
-        raise_on_zero_size_weight=True)
+        input,
+        ftprnt,
+        mode,
+        origin,
+        "footprint",
+        sizes=size,
+        axes=axes,
+        raise_on_zero_size_weight=True,
+    )
     num_axes = len(axes)
     sizes, ftprnt, structure = _filters_core._check_size_footprint_structure(
-        num_axes, size, ftprnt, structure)
+        num_axes, size, ftprnt, structure
+    )
     if cval is cupy.nan:
         raise NotImplementedError("NaN cval is unsupported")
 
     if sizes is not None:
         # Separable filter, run as a series of 1D filters
-        fltr = minimum_filter1d if func == 'min' else maximum_filter1d
+        fltr = minimum_filter1d if func == "min" else maximum_filter1d
         return _filters_core._run_1d_filters(
             [fltr if size > 1 else None for size in sizes],
-            input, axes, sizes, output, modes, cval, origins)
+            input,
+            axes,
+            sizes,
+            output,
+            modes,
+            cval,
+            origins,
+        )
 
     if ftprnt.size == 0:
         return cupy.zeros_like(input)
@@ -937,16 +1035,24 @@ def _min_or_max_filter(input, size, ftprnt, structure, output, mode, cval,
         )
 
     offsets = _filters_core._origins_to_offsets(origins, ftprnt.shape)
-    kernel = _get_min_or_max_kernel(modes, ftprnt.shape, func,
-                                    offsets, float(cval), int_type,
-                                    has_structure=structure is not None,
-                                    has_central_value=bool(ftprnt[offsets]))
-    return _filters_core._call_kernel(kernel, input, ftprnt, output,
-                                      structure, weights_dtype=bool)
+    kernel = _get_min_or_max_kernel(
+        modes,
+        ftprnt.shape,
+        func,
+        offsets,
+        float(cval),
+        int_type,
+        has_structure=structure is not None,
+        has_central_value=bool(ftprnt[offsets]),
+    )
+    return _filters_core._call_kernel(
+        kernel, input, ftprnt, output, structure, weights_dtype=bool
+    )
 
 
-def minimum_filter1d(input, size, axis=-1, output=None, mode="reflect",
-                     cval=0.0, origin=0):
+def minimum_filter1d(
+    input, size, axis=-1, output=None, mode="reflect", cval=0.0, origin=0
+):
     """Compute the minimum filter along a single axis.
 
     Args:
@@ -969,11 +1075,12 @@ def minimum_filter1d(input, size, axis=-1, output=None, mode="reflect",
 
     .. seealso:: :func:`scipy.ndimage.minimum_filter1d`
     """
-    return _min_or_max_1d(input, size, axis, output, mode, cval, origin, 'min')
+    return _min_or_max_1d(input, size, axis, output, mode, cval, origin, "min")
 
 
-def maximum_filter1d(input, size, axis=-1, output=None, mode="reflect",
-                     cval=0.0, origin=0):
+def maximum_filter1d(
+    input, size, axis=-1, output=None, mode="reflect", cval=0.0, origin=0
+):
     """Compute the maximum filter along a single axis.
 
     Args:
@@ -996,58 +1103,85 @@ def maximum_filter1d(input, size, axis=-1, output=None, mode="reflect",
 
     .. seealso:: :func:`scipy.ndimage.maximum_filter1d`
     """
-    return _min_or_max_1d(input, size, axis, output, mode, cval, origin, 'max')
+    return _min_or_max_1d(input, size, axis, output, mode, cval, origin, "max")
 
 
-def _min_or_max_1d(input, size, axis=-1, output=None, mode="reflect", cval=0.0,
-                   origin=0, func='min'):
+def _min_or_max_1d(
+    input, size, axis=-1, output=None, mode="reflect", cval=0.0, origin=0, func="min"
+):
     ftprnt = cupy.ones(size, dtype=bool)
-    ftprnt, origin = _filters_core._convert_1d_args(input.ndim, ftprnt,
-                                                    origin, axis)
+    ftprnt, origin = _filters_core._convert_1d_args(input.ndim, ftprnt, origin, axis)
     axes, ftprnt, origins, modes, int_type = _filters_core._check_nd_args(
-        input, ftprnt, mode, origin, 'footprint', axes=None)
+        input, ftprnt, mode, origin, "footprint", axes=None
+    )
     offsets = _filters_core._origins_to_offsets(origins, ftprnt.shape)
-    kernel = _get_min_or_max_kernel(modes, ftprnt.shape, func, offsets,
-                                    float(cval), int_type, has_weights=False)
-    return _filters_core._call_kernel(kernel, input, None, output,
-                                      weights_dtype=bool)
+    kernel = _get_min_or_max_kernel(
+        modes, ftprnt.shape, func, offsets, float(cval), int_type, has_weights=False
+    )
+    return _filters_core._call_kernel(kernel, input, None, output, weights_dtype=bool)
 
 
 @cupy._util.memoize(for_each_device=True)
-def _get_min_or_max_kernel(modes, w_shape, func, offsets, cval, int_type,
-                           has_weights=True, has_structure=False,
-                           has_central_value=True):
+def _get_min_or_max_kernel(
+    modes,
+    w_shape,
+    func,
+    offsets,
+    cval,
+    int_type,
+    has_weights=True,
+    has_structure=False,
+    has_central_value=True,
+):
     # When there are no 'weights' (the footprint, for the 1D variants) then
     # we need to make sure intermediate results are stored as doubles for
     # consistent results with scipy.
-    ctype = 'X' if has_weights else 'double'
-    value = '{value}'
+    ctype = "X" if has_weights else "double"
+    value = "{value}"
     if not has_weights:
-        value = 'cast<double>({})'.format(value)
+        value = "cast<double>({})".format(value)
 
     # Having a non-flat structure biases the values
     if has_structure:
-        value += ('-' if func == 'min' else '+') + 'cast<X>(sval)'
+        value += ("-" if func == "min" else "+") + "cast<X>(sval)"
 
     if has_central_value:
-        pre = '{} value = x[i];'
-        found = 'value = {func}({value}, value);'
+        pre = "{} value = x[i];"
+        found = "value = {func}({value}, value);"
     else:
         # If the central pixel is not included in the footprint we cannot
         # assume `x[i]` is not below the min or above the max and thus cannot
         # seed with that value. Instead we keep track of having set `value`.
-        pre = '{} value; bool set = false;'
-        found = 'value = set ? {func}({value}, value) : {value}; set=true;'
+        pre = "{} value; bool set = false;"
+        found = "value = set ? {func}({value}, value) : {value}; set=true;"
 
     return _filters_core._generate_nd_kernel(
-        func, pre.format(ctype),
-        found.format(func=func, value=value), 'y = cast<Y>(value);',
-        modes, w_shape, int_type, offsets, cval, ctype=ctype,
-        has_weights=has_weights, has_structure=has_structure)
+        func,
+        pre.format(ctype),
+        found.format(func=func, value=value),
+        "y = cast<Y>(value);",
+        modes,
+        w_shape,
+        int_type,
+        offsets,
+        cval,
+        ctype=ctype,
+        has_weights=has_weights,
+        has_structure=has_structure,
+    )
 
 
-def rank_filter(input, rank, size=None, footprint=None, output=None,
-                mode="reflect", cval=0.0, origin=0, axes=None):
+def rank_filter(
+    input,
+    rank,
+    size=None,
+    footprint=None,
+    output=None,
+    mode="reflect",
+    cval=0.0,
+    origin=0,
+    axes=None,
+):
     """Multi-dimensional rank filter.
 
     Args:
@@ -1084,12 +1218,29 @@ def rank_filter(input, rank, size=None, footprint=None, output=None,
     .. seealso:: :func:`scipy.ndimage.rank_filter`
     """
     rank = int(rank)
-    return _rank_filter(input, lambda fs: rank+fs if rank < 0 else rank,
-                        size, footprint, output, mode, cval, origin, axes)
+    return _rank_filter(
+        input,
+        lambda fs: rank + fs if rank < 0 else rank,
+        size,
+        footprint,
+        output,
+        mode,
+        cval,
+        origin,
+        axes,
+    )
 
 
-def median_filter(input, size=None, footprint=None, output=None,
-                  mode="reflect", cval=0.0, origin=0, axes=None):
+def median_filter(
+    input,
+    size=None,
+    footprint=None,
+    output=None,
+    mode="reflect",
+    cval=0.0,
+    origin=0,
+    axes=None,
+):
     """Multi-dimensional median filter.
 
     Args:
@@ -1123,13 +1274,22 @@ def median_filter(input, size=None, footprint=None, output=None,
 
     .. seealso:: :func:`scipy.ndimage.median_filter`
     """
-    return _rank_filter(input, lambda fs: fs//2,
-                        size, footprint, output, mode, cval, origin, axes)
+    return _rank_filter(
+        input, lambda fs: fs // 2, size, footprint, output, mode, cval, origin, axes
+    )
 
 
-def percentile_filter(input, percentile, size=None, footprint=None,
-                      output=None, mode="reflect", cval=0.0, origin=0,
-                      axes=None):
+def percentile_filter(
+    input,
+    percentile,
+    size=None,
+    footprint=None,
+    output=None,
+    mode="reflect",
+    cval=0.0,
+    origin=0,
+    axes=None,
+):
     """Multi-dimensional percentile filter.
 
     Args:
@@ -1169,52 +1329,72 @@ def percentile_filter(input, percentile, size=None, footprint=None,
     if percentile < 0.0:
         percentile += 100.0
     if percentile < 0.0 or percentile > 100.0:
-        raise RuntimeError('invalid percentile')
+        raise RuntimeError("invalid percentile")
     if percentile == 100.0:
+
         def get_rank(fs):
             return fs - 1
+
     else:
+
         def get_rank(fs):
             return int(float(fs) * percentile / 100.0)
-    return _rank_filter(input, get_rank,
-                        size, footprint, output, mode, cval, origin, axes)
+
+    return _rank_filter(
+        input, get_rank, size, footprint, output, mode, cval, origin, axes
+    )
 
 
-def _rank_filter(input, get_rank, size=None, footprint=None, output=None,
-                 mode="reflect", cval=0.0, origin=0, axes=None):
+def _rank_filter(
+    input,
+    get_rank,
+    size=None,
+    footprint=None,
+    output=None,
+    mode="reflect",
+    cval=0.0,
+    origin=0,
+    axes=None,
+):
     if cval is cupy.nan:
         raise NotImplementedError("NaN cval is unsupported")
     axes = _util._check_axes(axes, input.ndim)
     # generate explicit footprint matching axes size
     default_footprint = footprint is None
     _, footprint, _ = _filters_core._check_size_footprint_structure(
-        len(axes), size, footprint, None, force_footprint=True)
+        len(axes), size, footprint, None, force_footprint=True
+    )
     if footprint.size == 0:
         return cupy.zeros_like(input)
     # check remaining arguments and update based on axes
     axes, footprint, origins, modes, int_type = _filters_core._check_nd_args(
-        input, footprint, mode, origin, 'footprint', axes=axes)
+        input, footprint, mode, origin, "footprint", axes=axes
+    )
     if default_footprint:
         filter_size = footprint.size
     else:
         filter_size = int(footprint.sum())  # synchronize
     rank = get_rank(filter_size)
     if rank < 0 or rank >= filter_size:
-        raise RuntimeError('rank not within filter footprint size')
+        raise RuntimeError("rank not within filter footprint size")
     if rank == 0:
-        return _min_or_max_filter(input, None, footprint, None, output, modes,
-                                  cval, origins, 'min', axes)
+        return _min_or_max_filter(
+            input, None, footprint, None, output, modes, cval, origins, "min", axes
+        )
     if rank == filter_size - 1:
-        return _min_or_max_filter(input, None, footprint, None, output, modes,
-                                  cval, origins, 'max', axes)
+        return _min_or_max_filter(
+            input, None, footprint, None, output, modes, cval, origins, "max", axes
+        )
     offsets = _filters_core._origins_to_offsets(origins, footprint.shape)
-    kernel = _get_rank_kernel(filter_size, rank, modes, footprint.shape,
-                              offsets, float(cval), int_type)
-    return _filters_core._call_kernel(kernel, input, footprint, output,
-                                      weights_dtype=bool)
+    kernel = _get_rank_kernel(
+        filter_size, rank, modes, footprint.shape, offsets, float(cval), int_type
+    )
+    return _filters_core._call_kernel(
+        kernel, input, footprint, output, weights_dtype=bool
+    )
 
 
-__SHELL_SORT = '''
+__SHELL_SORT = """
 __device__ void sort(X *array, int size) {{
     int gap = {gap};
     while (gap > 1) {{
@@ -1229,20 +1409,19 @@ __device__ void sort(X *array, int size) {{
             array[j + gap] = value;
         }}
     }}
-}}'''
+}}"""
 
 
 @cupy._util.memoize()
 def _get_shell_gap(filter_size):
     gap = 1
     while gap < filter_size:
-        gap = 3*gap+1
+        gap = 3 * gap + 1
     return gap
 
 
 @cupy._util.memoize(for_each_device=True)
-def _get_rank_kernel(filter_size, rank, modes, w_shape, offsets, cval,
-                     int_type):
+def _get_rank_kernel(filter_size, rank, modes, w_shape, offsets, cval, int_type):
     s_rank = min(rank, filter_size - rank - 1)
     # The threshold was set based on the measurements on a V100
     # TODO(leofang, anaruse): Use Optuna to automatically tune the threshold,
@@ -1253,11 +1432,11 @@ def _get_rank_kernel(filter_size, rank, modes, w_shape, offsets, cval,
         # selection sort approach is faster than general sorting approach
         # using shell sort.
         if s_rank == rank:
-            comp_op = '<'
+            comp_op = "<"
         else:
-            comp_op = '>'
+            comp_op = ">"
         array_size = s_rank + 2
-        found_post = f'''
+        found_post = f"""
             if (iv > {s_rank} + 1) {{{{
                 int target_iv = 0;
                 X target_val = values[0];
@@ -1271,32 +1450,48 @@ def _get_rank_kernel(filter_size, rank, modes, w_shape, offsets, cval,
                     values[target_iv] = values[{s_rank} + 1];
                 }}}}
                 iv = {s_rank} + 1;
-            }}}}'''
-        post = f'''
+            }}}}"""
+        post = f"""
             X target_val = values[0];
             for (int jv = 1; jv <= {s_rank}; jv++) {{
                 if (target_val {comp_op} values[jv]) {{
                     target_val = values[jv];
                 }}
             }}
-            y=cast<Y>(target_val);'''
-        sorter = ''
+            y=cast<Y>(target_val);"""
+        sorter = ""
     else:
         array_size = filter_size
-        found_post = ''
-        post = f'sort(values,{filter_size});\ny=cast<Y>(values[{rank}]);'
+        found_post = ""
+        post = f"sort(values,{filter_size});\ny=cast<Y>(values[{rank}]);"
         sorter = __SHELL_SORT.format(gap=_get_shell_gap(filter_size))
 
     return _filters_core._generate_nd_kernel(
-        f'rank_{filter_size}_{rank}',
-        f'int iv = 0;\nX values[{array_size}];',
-        'values[iv++] = {value};' + found_post, post,
-        modes, w_shape, int_type, offsets, cval, preamble=sorter)
+        f"rank_{filter_size}_{rank}",
+        f"int iv = 0;\nX values[{array_size}];",
+        "values[iv++] = {value};" + found_post,
+        post,
+        modes,
+        w_shape,
+        int_type,
+        offsets,
+        cval,
+        preamble=sorter,
+    )
 
 
-def generic_filter(input, function, size=None, footprint=None,
-                   output=None, mode="reflect", cval=0.0, origin=0, *,
-                   axes=None):
+def generic_filter(
+    input,
+    function,
+    size=None,
+    footprint=None,
+    output=None,
+    mode="reflect",
+    cval=0.0,
+    origin=0,
+    *,
+    axes=None,
+):
     """Compute a multi-dimensional filter using the provided raw kernel or
     reduction kernel.
 
@@ -1351,29 +1546,40 @@ def generic_filter(input, function, size=None, footprint=None,
     axes = _util._check_axes(axes, input.ndim)
     num_axes = len(axes)
     _, footprint, _ = _filters_core._check_size_footprint_structure(
-        num_axes, size, footprint, None, 2, True)
+        num_axes, size, footprint, None, 2, True
+    )
     filter_size = int(footprint.sum())
     axes, footprint, origins, _, int_type = _filters_core._check_nd_args(
-        input, footprint, mode, origin, 'footprint', axes=axes)
+        input, footprint, mode, origin, "footprint", axes=axes
+    )
     in_dtype = input.dtype
     sub = _filters_generic._get_sub_kernel(function)
     if footprint.size == 0:
         return cupy.zeros_like(input)
     output = _util._get_output(output, input)
     offsets = _filters_core._origins_to_offsets(origins, footprint.shape)
-    args = (filter_size, mode, footprint.shape,
-            offsets, float(cval), int_type)
+    args = (filter_size, mode, footprint.shape, offsets, float(cval), int_type)
     if isinstance(sub, cupy.RawKernel):
         kernel = _filters_generic._get_generic_filter_raw(sub, *args)
     elif isinstance(sub, cupy.ReductionKernel):
         kernel = _filters_generic._get_generic_filter_red(
-            sub, in_dtype, output.dtype, *args)
-    return _filters_core._call_kernel(kernel, input, footprint, output,
-                                      weights_dtype=bool)
+            sub, in_dtype, output.dtype, *args
+        )
+    return _filters_core._call_kernel(
+        kernel, input, footprint, output, weights_dtype=bool
+    )
 
 
-def generic_filter1d(input, function, filter_size, axis=-1, output=None,
-                     mode="reflect", cval=0.0, origin=0):
+def generic_filter1d(
+    input,
+    function,
+    filter_size,
+    axis=-1,
+    output=None,
+    mode="reflect",
+    cval=0.0,
+    origin=0,
+):
     """Compute a 1D filter along the given axis using the provided raw kernel.
 
     Unlike the scipy.ndimage function, this does not support the
@@ -1414,12 +1620,12 @@ def generic_filter1d(input, function, filter_size, axis=-1, output=None,
     # It is also likely fairly terrible, but only so much can be done when
     # matching the scipy interface of having the sub-kernel work on entire
     # lines of data.
-    if input.dtype.kind == 'c':
-        raise TypeError('Complex type not supported')
+    if input.dtype.kind == "c":
+        raise TypeError("Complex type not supported")
     if not isinstance(function, cupy.RawKernel):
-        raise TypeError('bad function type')
+        raise TypeError("bad function type")
     if filter_size < 1:
-        raise RuntimeError('invalid filter size')
+        raise RuntimeError("invalid filter size")
     axis = internal._normalize_axis_index(axis, input.ndim)
     origin = _util._check_origin(origin, filter_size)
     _util._check_mode(mode)
@@ -1429,10 +1635,20 @@ def generic_filter1d(input, function, filter_size, axis=-1, output=None,
     int_type = _util._get_inttype(input)
     n_lines = input.size // input.shape[axis]
     kernel = _filters_generic._get_generic_filter1d(
-        function, input.shape[axis], n_lines, filter_size,
-        origin, mode, float(cval), in_ctype, out_ctype, int_type)
+        function,
+        input.shape[axis],
+        n_lines,
+        filter_size,
+        origin,
+        mode,
+        float(cval),
+        in_ctype,
+        out_ctype,
+        int_type,
+    )
     data = cupy.array(
         (axis, input.ndim) + input.shape + input.strides + output.strides,
-        dtype=cupy.int32 if int_type == 'int' else cupy.int64)
-    kernel(((n_lines+128-1) // 128,), (128,), (input, output, data))
+        dtype=cupy.int32 if int_type == "int" else cupy.int64,
+    )
+    kernel(((n_lines + 128 - 1) // 128,), (128,), (input, output, data))
     return output

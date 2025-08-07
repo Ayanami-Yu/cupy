@@ -1,4 +1,5 @@
 """IIR filter design APIs"""
+
 from __future__ import annotations
 
 from math import pi
@@ -7,23 +8,48 @@ import math
 import cupy
 
 from cupyx.scipy.signal._iir_filter_conversions import (
-    lp2bp_zpk, lp2lp_zpk, lp2hp_zpk, lp2bs_zpk, bilinear_zpk, zpk2tf, zpk2sos)
+    lp2bp_zpk,
+    lp2lp_zpk,
+    lp2hp_zpk,
+    lp2bs_zpk,
+    bilinear_zpk,
+    zpk2tf,
+    zpk2sos,
+)
 from cupyx.scipy.signal._iir_filter_conversions import (
-    buttap, cheb1ap, cheb2ap, ellipap, buttord, ellipord, cheb1ord, cheb2ord,
-    _validate_gpass_gstop)
+    buttap,
+    cheb1ap,
+    cheb2ap,
+    ellipap,
+    buttord,
+    ellipord,
+    cheb1ord,
+    cheb2ord,
+    _validate_gpass_gstop,
+)
 
 
 # FIXME
+
 
 def besselap():
     raise NotImplementedError
 
 
-bessel_norms = {'fix': 'me'}
+bessel_norms = {"fix": "me"}
 
 
-def iirfilter(N, Wn, rp=None, rs=None, btype='band', analog=False,
-              ftype='butter', output='ba', fs=None):
+def iirfilter(
+    N,
+    Wn,
+    rp=None,
+    rs=None,
+    btype="band",
+    analog=False,
+    ftype="butter",
+    output="ba",
+    fs=None,
+):
     """
     IIR digital and analog filter design given order and critical points.
 
@@ -122,21 +148,19 @@ def iirfilter(N, Wn, rp=None, rs=None, btype='band', analog=False,
     if fs is not None:
         if analog:
             raise ValueError("fs cannot be specified for an analog filter")
-        Wn = 2*Wn/fs
+        Wn = 2 * Wn / fs
 
     try:
         btype = band_dict[btype]
     except KeyError as e:
-        raise ValueError(
-            "'%s' is an invalid bandtype for filter." % btype) from e
+        raise ValueError("'%s' is an invalid bandtype for filter." % btype) from e
 
     try:
         typefunc = filter_dict[ftype][0]
     except KeyError as e:
-        raise ValueError(
-            "'%s' is not a valid basic IIR filter." % ftype) from e
+        raise ValueError("'%s' is not a valid basic IIR filter." % ftype) from e
 
-    if output not in ['ba', 'zpk', 'sos']:
+    if output not in ["ba", "zpk", "sos"]:
         raise ValueError("'%s' is not a valid output form." % output)
 
     if rp is not None and rp < 0:
@@ -152,18 +176,23 @@ def iirfilter(N, Wn, rp=None, rs=None, btype='band', analog=False,
         z, p, k = typefunc(N, norm=bessel_norms[ftype])
     elif typefunc == cheb1ap:
         if rp is None:
-            raise ValueError("passband ripple (rp) must be provided to "
-                             "design a Chebyshev I filter.")
+            raise ValueError(
+                "passband ripple (rp) must be provided to "
+                "design a Chebyshev I filter."
+            )
         z, p, k = typefunc(N, rp)
     elif typefunc == cheb2ap:
         if rs is None:
-            raise ValueError("stopband attenuation (rs) must be provided to "
-                             "design an Chebyshev II filter.")
+            raise ValueError(
+                "stopband attenuation (rs) must be provided to "
+                "design an Chebyshev II filter."
+            )
         z, p, k = typefunc(N, rs)
     elif typefunc == ellipap:
         if rs is None or rp is None:
-            raise ValueError("Both rp and rs must be provided to design an "
-                             "elliptic filter.")
+            raise ValueError(
+                "Both rp and rs must be provided to design an " "elliptic filter."
+            )
         z, p, k = typefunc(N, rp, rs)
     else:
         raise NotImplementedError("'%s' not implemented in iirfilter." % ftype)
@@ -172,36 +201,43 @@ def iirfilter(N, Wn, rp=None, rs=None, btype='band', analog=False,
     if not analog:
         if cupy.any(Wn <= 0) or cupy.any(Wn >= 1):
             if fs is not None:
-                raise ValueError("Digital filter critical frequencies must "
-                                 f"be 0 < Wn < fs/2 (fs={fs} -> fs/2={fs/2})")
-            raise ValueError("Digital filter critical frequencies "
-                             "must be 0 < Wn < 1")
+                raise ValueError(
+                    "Digital filter critical frequencies must "
+                    f"be 0 < Wn < fs/2 (fs={fs} -> fs/2={fs/2})"
+                )
+            raise ValueError(
+                "Digital filter critical frequencies " "must be 0 < Wn < 1"
+            )
         fs = 2.0
         warped = 2 * fs * cupy.tan(pi * Wn / fs)
     else:
         warped = Wn
 
     # transform to lowpass, bandpass, highpass, or bandstop
-    if btype in ('lowpass', 'highpass'):
+    if btype in ("lowpass", "highpass"):
         if cupy.size(Wn) != 1:
-            raise ValueError('Must specify a single critical frequency Wn '
-                             'for lowpass or highpass filter')
+            raise ValueError(
+                "Must specify a single critical frequency Wn "
+                "for lowpass or highpass filter"
+            )
 
-        if btype == 'lowpass':
+        if btype == "lowpass":
             z, p, k = lp2lp_zpk(z, p, k, wo=warped)
-        elif btype == 'highpass':
+        elif btype == "highpass":
             z, p, k = lp2hp_zpk(z, p, k, wo=warped)
-    elif btype in ('bandpass', 'bandstop'):
+    elif btype in ("bandpass", "bandstop"):
         try:
             bw = warped[1] - warped[0]
             wo = cupy.sqrt(warped[0] * warped[1])
         except IndexError as e:
-            raise ValueError('Wn must specify start and stop frequencies for '
-                             'bandpass or bandstop filter') from e
+            raise ValueError(
+                "Wn must specify start and stop frequencies for "
+                "bandpass or bandstop filter"
+            ) from e
 
-        if btype == 'bandpass':
+        if btype == "bandpass":
             z, p, k = lp2bp_zpk(z, p, k, wo=wo, bw=bw)
-        elif btype == 'bandstop':
+        elif btype == "bandstop":
             z, p, k = lp2bs_zpk(z, p, k, wo=wo, bw=bw)
     else:
         raise NotImplementedError("'%s' not implemented in iirfilter." % btype)
@@ -211,15 +247,15 @@ def iirfilter(N, Wn, rp=None, rs=None, btype='band', analog=False,
         z, p, k = bilinear_zpk(z, p, k, fs=fs)
 
     # Transform to proper out type (pole-zero, state-space, numer-denom)
-    if output == 'zpk':
+    if output == "zpk":
         return z, p, k
-    elif output == 'ba':
+    elif output == "ba":
         return zpk2tf(z, p, k)
-    elif output == 'sos':
+    elif output == "sos":
         return zpk2sos(z, p, k, analog=analog)
 
 
-def butter(N, Wn, btype='low', analog=False, output='ba', fs=None):
+def butter(N, Wn, btype="low", analog=False, output="ba", fs=None):
     """
     Butterworth digital and analog filter design.
 
@@ -296,11 +332,12 @@ def butter(N, Wn, btype='low', analog=False, output='ba', fs=None):
         characteristics `freqz` or designing the filters with second-order
         sections via ``output='sos'``.
     """
-    return iirfilter(N, Wn, btype=btype, analog=analog,
-                     output=output, ftype='butter', fs=fs)
+    return iirfilter(
+        N, Wn, btype=btype, analog=analog, output=output, ftype="butter", fs=fs
+    )
 
 
-def cheby1(N, rp, Wn, btype='low', analog=False, output='ba', fs=None):
+def cheby1(N, rp, Wn, btype="low", analog=False, output="ba", fs=None):
     """
     Chebyshev type I digital and analog filter design.
 
@@ -368,11 +405,12 @@ def cheby1(N, rp, Wn, btype='low', analog=False, output='ba', fs=None):
     5th-order filter has 3 maxima and 2 minima). Consequently, the DC gain is
     unity for odd-order filters, or -rp dB for even-order filters.
     """
-    return iirfilter(N, Wn, rp=rp, btype=btype, analog=analog,
-                     output=output, ftype='cheby1', fs=fs)
+    return iirfilter(
+        N, Wn, rp=rp, btype=btype, analog=analog, output=output, ftype="cheby1", fs=fs
+    )
 
 
-def cheby2(N, rs, Wn, btype='low', analog=False, output='ba', fs=None):
+def cheby2(N, rs, Wn, btype="low", analog=False, output="ba", fs=None):
     """
     Chebyshev type II digital and analog filter design.
 
@@ -435,11 +473,12 @@ def cheby2(N, rs, Wn, btype='low', analog=False, output='ba', fs=None):
 
     Type II filters do not roll off as fast as Type I (`cheby1`).
     """
-    return iirfilter(N, Wn, rs=rs, btype=btype, analog=analog,
-                     output=output, ftype='cheby2', fs=fs)
+    return iirfilter(
+        N, Wn, rs=rs, btype=btype, analog=analog, output=output, ftype="cheby2", fs=fs
+    )
 
 
-def ellip(N, rp, rs, Wn, btype='low', analog=False, output='ba', fs=None):
+def ellip(N, rp, rs, Wn, btype="low", analog=False, output="ba", fs=None):
     """
     Elliptic (Cauer) digital and analog filter design.
 
@@ -513,12 +552,20 @@ def ellip(N, rp, rs, Wn, btype='low', analog=False, output='ba', fs=None):
     5th-order filter has 3 maxima and 2 minima). Consequently, the DC gain is
     unity for odd-order filters, or -rp dB for even-order filters.
     """
-    return iirfilter(N, Wn, rs=rs, rp=rp, btype=btype, analog=analog,
-                     output=output, ftype='elliptic', fs=fs)
+    return iirfilter(
+        N,
+        Wn,
+        rs=rs,
+        rp=rp,
+        btype=btype,
+        analog=analog,
+        output=output,
+        ftype="elliptic",
+        fs=fs,
+    )
 
 
-def iirdesign(wp, ws, gpass, gstop, analog=False, ftype='ellip', output='ba',
-              fs=None):
+def iirdesign(wp, ws, gpass, gstop, analog=False, ftype="ellip", output="ba", fs=None):
     """Complete IIR digital and analog filter design.
 
     Given passband and stopband frequencies and gains, construct an analog or
@@ -610,8 +657,9 @@ def iirdesign(wp, ws, gpass, gstop, analog=False, ftype='ellip', output='ba',
     except KeyError as e:
         raise ValueError("Invalid IIR filter type: %s" % ftype) from e
     except IndexError as e:
-        raise ValueError(("%s does not have order selection. Use "
-                          "iirfilter function.") % ftype) from e
+        raise ValueError(
+            ("%s does not have order selection. Use " "iirfilter function.") % ftype
+        ) from e
 
     _validate_gpass_gstop(gpass, gstop)
 
@@ -619,9 +667,10 @@ def iirdesign(wp, ws, gpass, gstop, analog=False, ftype='ellip', output='ba',
     ws = cupy.atleast_1d(ws)
 
     if wp.shape[0] != ws.shape[0] or wp.shape not in [(1,), (2,)]:
-        raise ValueError("wp and ws must have one or two elements each, and"
-                         "the same shape, got %s and %s"
-                         % (wp.shape, ws.shape))
+        raise ValueError(
+            "wp and ws must have one or two elements each, and"
+            "the same shape, got %s and %s" % (wp.shape, ws.shape)
+        )
 
     if any(wp <= 0) or any(ws <= 0):
         raise ValueError("Values for wp, ws must be greater than 0")
@@ -630,30 +679,40 @@ def iirdesign(wp, ws, gpass, gstop, analog=False, ftype='ellip', output='ba',
         if fs is None:
             if any(wp >= 1) or any(ws >= 1):
                 raise ValueError("Values for wp, ws must be less than 1")
-        elif any(wp >= fs/2) or any(ws >= fs/2):
-            raise ValueError("Values for wp, ws must be less than fs/2"
-                             " (fs={} -> fs/2={})".format(fs, fs/2))
+        elif any(wp >= fs / 2) or any(ws >= fs / 2):
+            raise ValueError(
+                "Values for wp, ws must be less than fs/2"
+                " (fs={} -> fs/2={})".format(fs, fs / 2)
+            )
 
     if wp.shape[0] == 2:
-        if not ((ws[0] < wp[0] and wp[1] < ws[1]) or
-                (wp[0] < ws[0] and ws[1] < wp[1])):
-            raise ValueError("Passband must lie strictly inside stopband"
-                             " or vice versa")
+        if not ((ws[0] < wp[0] and wp[1] < ws[1]) or (wp[0] < ws[0] and ws[1] < wp[1])):
+            raise ValueError(
+                "Passband must lie strictly inside stopband" " or vice versa"
+            )
 
     band_type = 2 * (len(wp) - 1)
     band_type += 1
     if wp[0] >= ws[0]:
         band_type += 1
 
-    btype = {1: 'lowpass', 2: 'highpass',
-             3: 'bandstop', 4: 'bandpass'}[band_type]
+    btype = {1: "lowpass", 2: "highpass", 3: "bandstop", 4: "bandpass"}[band_type]
 
     N, Wn = ordfunc(wp, ws, gpass, gstop, analog=analog, fs=fs)
-    return iirfilter(N, Wn, rp=gpass, rs=gstop, analog=analog, btype=btype,
-                     ftype=ftype, output=output, fs=fs)
+    return iirfilter(
+        N,
+        Wn,
+        rp=gpass,
+        rs=gstop,
+        analog=analog,
+        btype=btype,
+        ftype=ftype,
+        output=output,
+        fs=fs,
+    )
 
 
-def iircomb(w0, Q, ftype='notch', fs=2.0, *, pass_zero=False):
+def iircomb(w0, Q, ftype="notch", fs=2.0, *, pass_zero=False):
     """
     Design IIR notching or peaking digital comb filter.
 
@@ -728,17 +787,18 @@ def iircomb(w0, Q, ftype='notch', fs=2.0, *, pass_zero=False):
     # Check for invalid cutoff frequency or filter type
     ftype = ftype.lower()
     if not 0 < w0 < fs / 2:
-        raise ValueError("w0 must be between 0 and {}"
-                         " (nyquist), but given {}.".format(fs / 2, w0))
-    if ftype not in ('notch', 'peak'):
-        raise ValueError('ftype must be either notch or peak.')
+        raise ValueError(
+            "w0 must be between 0 and {}" " (nyquist), but given {}.".format(fs / 2, w0)
+        )
+    if ftype not in ("notch", "peak"):
+        raise ValueError("ftype must be either notch or peak.")
 
     # Compute the order of the filter
     N = round(fs / w0)
 
     # Check for cutoff frequency divisibility
-    if abs(w0 - fs/N)/fs > 1e-14:
-        raise ValueError('fs must be divisible by w0.')
+    if abs(w0 - fs / N) / fs > 1e-14:
+        raise ValueError("fs must be divisible by w0.")
 
     # Compute frequency in radians and filter bandwidth
     # Eq. 11.3.1 (p. 574) from reference [1]
@@ -748,16 +808,15 @@ def iircomb(w0, Q, ftype='notch', fs=2.0, *, pass_zero=False):
     # Define base gain values depending on notch or peak filter
     # Compute -3dB attenuation
     # Eqs. 11.4.1 and 11.4.2 (p. 582) from reference [1]
-    if ftype == 'notch':
+    if ftype == "notch":
         G0, G = 1, 0
-    elif ftype == 'peak':
+    elif ftype == "peak":
         G0, G = 0, 1
     GB = 1 / math.sqrt(2)
 
     # Compute beta
     # Eq. 11.5.3 (p. 591) from reference [1]
-    beta = math.sqrt((GB**2 - G0**2) / (G**2 - GB**2)) * \
-        math.tan(N * w_delta / 4)
+    beta = math.sqrt((GB**2 - G0**2) / (G**2 - GB**2)) * math.tan(N * w_delta / 4)
 
     # Compute filter coefficients
     # Eq 11.5.1 (p. 590) variables a, b, c from reference [1]
@@ -767,8 +826,9 @@ def iircomb(w0, Q, ftype='notch', fs=2.0, *, pass_zero=False):
 
     # Last coefficients are negative to get peaking comb that passes zero or
     # notching comb that doesn't.
-    negative_coef = ((ftype == 'peak' and pass_zero) or
-                     (ftype == 'notch' and not pass_zero))
+    negative_coef = (ftype == "peak" and pass_zero) or (
+        ftype == "notch" and not pass_zero
+    )
 
     # Compute numerator coefficients
     # Eq 11.5.1 (p. 590) or Eq 11.5.4 (p. 591) from reference [1]
@@ -953,44 +1013,39 @@ def _design_notch_peak_filter(w0, Q, ftype, fs=2.0):
     return b, a
 
 
-filter_dict = {'butter': [buttap, buttord],
-               'butterworth': [buttap, buttord],
+filter_dict = {
+    "butter": [buttap, buttord],
+    "butterworth": [buttap, buttord],
+    "cauer": [ellipap, ellipord],
+    "elliptic": [ellipap, ellipord],
+    "ellip": [ellipap, ellipord],
+    "bessel": [besselap],
+    "bessel_phase": [besselap],
+    "bessel_delay": [besselap],
+    "bessel_mag": [besselap],
+    "cheby1": [cheb1ap, cheb1ord],
+    "chebyshev1": [cheb1ap, cheb1ord],
+    "chebyshevi": [cheb1ap, cheb1ord],
+    "cheby2": [cheb2ap, cheb2ord],
+    "chebyshev2": [cheb2ap, cheb2ord],
+    "chebyshevii": [cheb2ap, cheb2ord],
+}
 
-               'cauer': [ellipap, ellipord],
-               'elliptic': [ellipap, ellipord],
-               'ellip': [ellipap, ellipord],
-
-               'bessel': [besselap],
-               'bessel_phase': [besselap],
-               'bessel_delay': [besselap],
-               'bessel_mag': [besselap],
-
-               'cheby1': [cheb1ap, cheb1ord],
-               'chebyshev1': [cheb1ap, cheb1ord],
-               'chebyshevi': [cheb1ap, cheb1ord],
-
-               'cheby2': [cheb2ap, cheb2ord],
-               'chebyshev2': [cheb2ap, cheb2ord],
-               'chebyshevii': [cheb2ap, cheb2ord],
-               }
-
-band_dict = {'band': 'bandpass',
-             'bandpass': 'bandpass',
-             'pass': 'bandpass',
-             'bp': 'bandpass',
-
-             'bs': 'bandstop',
-             'bandstop': 'bandstop',
-             'bands': 'bandstop',
-             'stop': 'bandstop',
-
-             'l': 'lowpass',
-             'low': 'lowpass',
-             'lowpass': 'lowpass',
-             'lp': 'lowpass',
-
-             'high': 'highpass',
-             'highpass': 'highpass',
-             'h': 'highpass',
-             'hp': 'highpass',
-             }
+band_dict = {
+    "band": "bandpass",
+    "bandpass": "bandpass",
+    "pass": "bandpass",
+    "bp": "bandpass",
+    "bs": "bandstop",
+    "bandstop": "bandstop",
+    "bands": "bandstop",
+    "stop": "bandstop",
+    "l": "lowpass",
+    "low": "lowpass",
+    "lowpass": "lowpass",
+    "lp": "lowpass",
+    "high": "highpass",
+    "highpass": "highpass",
+    "h": "highpass",
+    "hp": "highpass",
+}

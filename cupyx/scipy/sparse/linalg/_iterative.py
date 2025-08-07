@@ -11,8 +11,7 @@ from cupyx.scipy.sparse import _csr
 from cupyx.scipy.sparse.linalg import _interface
 
 
-def cg(A, b, x0=None, *, rtol=1e-5, atol=0.0, maxiter=None, M=None,
-       callback=None):
+def cg(A, b, x0=None, *, rtol=1e-5, atol=0.0, maxiter=None, M=None, callback=None):
     """Uses Conjugate Gradient iteration to solve ``Ax = b``.
 
     Args:
@@ -87,8 +86,19 @@ def cg(A, b, x0=None, *, rtol=1e-5, atol=0.0, maxiter=None, M=None,
     return x, info
 
 
-def gmres(A, b, x0=None, *, rtol=1e-5, atol=0.0, restart=None, maxiter=None,
-          M=None, callback=None, callback_type=None):
+def gmres(
+    A,
+    b,
+    x0=None,
+    *,
+    rtol=1e-5,
+    atol=0.0,
+    restart=None,
+    maxiter=None,
+    M=None,
+    callback=None,
+    callback_type=None,
+):
     """Uses Generalized Minimal RESidual iteration to solve ``Ax = b``.
 
     Args:
@@ -144,15 +154,15 @@ def gmres(A, b, x0=None, *, rtol=1e-5, atol=0.0, restart=None, maxiter=None,
         restart = 20
     restart = min(restart, n)
     if callback_type is None:
-        callback_type = 'pr_norm'
-    if callback_type not in ('x', 'pr_norm'):
-        raise ValueError('Unknown callback_type: {}'.format(callback_type))
+        callback_type = "pr_norm"
+    if callback_type not in ("x", "pr_norm"):
+        raise ValueError("Unknown callback_type: {}".format(callback_type))
     if callback is None:
         callback_type = None
 
-    V = cupy.empty((n, restart), dtype=A.dtype, order='F')
-    H = cupy.zeros((restart+1, restart), dtype=A.dtype, order='F')
-    e = numpy.zeros((restart+1,), dtype=A.dtype)
+    V = cupy.empty((n, restart), dtype=A.dtype, order="F")
+    H = cupy.zeros((restart + 1, restart), dtype=A.dtype, order="F")
+    e = numpy.zeros((restart + 1,), dtype=A.dtype)
 
     compute_hu = _make_compute_hu(V)
 
@@ -161,9 +171,9 @@ def gmres(A, b, x0=None, *, rtol=1e-5, atol=0.0, restart=None, maxiter=None,
         mx = psolve(x)
         r = b - matvec(mx)
         r_norm = cublas.nrm2(r)
-        if callback_type == 'x':
+        if callback_type == "x":
             callback(mx)
-        elif callback_type == 'pr_norm' and iters > 0:
+        elif callback_type == "pr_norm" and iters > 0:
             callback(r_norm / b_norm)
         if r_norm <= atol or iters >= maxiter:
             break
@@ -175,11 +185,11 @@ def gmres(A, b, x0=None, *, rtol=1e-5, atol=0.0, restart=None, maxiter=None,
         for j in range(restart):
             z = psolve(v)
             u = matvec(z)
-            H[:j+1, j], u = compute_hu(u, j)
-            cublas.nrm2(u, out=H[j+1, j])
-            if j+1 < restart:
-                v = u / H[j+1, j]
-                V[:, j+1] = v
+            H[: j + 1, j], u = compute_hu(u, j)
+            cublas.nrm2(u, out=H[j + 1, j])
+            if j + 1 < restart:
+                v = u / H[j + 1, j]
+                V[:, j + 1] = v
 
         # Note: The least-square solution to equation Hy = e is computed on CPU
         # because it is faster if the matrix size is small.
@@ -194,8 +204,7 @@ def gmres(A, b, x0=None, *, rtol=1e-5, atol=0.0, restart=None, maxiter=None,
     return mx, info
 
 
-def cgs(A, b, x0=None, *, rtol=1e-5, atol=0.0, maxiter=None, M=None,
-        callback=None):
+def cgs(A, b, x0=None, *, rtol=1e-5, atol=0.0, maxiter=None, M=None, callback=None):
     """Use Conjugate Gradient Squared iteration to solve ``Ax = b``.
 
     Args:
@@ -308,21 +317,22 @@ def _make_system(A, M, x0, b):
     fast_matvec = _make_fast_matvec(A)
     A = _interface.aslinearoperator(A)
     if fast_matvec is not None:
-        A = _interface.LinearOperator(A.shape, matvec=fast_matvec,
-                                      rmatvec=A.rmatvec, dtype=A.dtype)
+        A = _interface.LinearOperator(
+            A.shape, matvec=fast_matvec, rmatvec=A.rmatvec, dtype=A.dtype
+        )
     if A.shape[0] != A.shape[1]:
-        raise ValueError('expected square matrix (shape: {})'.format(A.shape))
-    if A.dtype.char not in 'fdFD':
-        raise TypeError('unsupprted dtype (actual: {})'.format(A.dtype))
+        raise ValueError("expected square matrix (shape: {})".format(A.shape))
+    if A.dtype.char not in "fdFD":
+        raise TypeError("unsupprted dtype (actual: {})".format(A.dtype))
     n = A.shape[0]
     if not (b.shape == (n,) or b.shape == (n, 1)):
-        raise ValueError('b has incompatible dimensions')
+        raise ValueError("b has incompatible dimensions")
     b = b.astype(A.dtype).ravel()
     if x0 is None:
         x = cupy.zeros((n,), dtype=A.dtype)
     else:
         if not (x0.shape == (n,) or x0.shape == (n, 1)):
-            raise ValueError('x0 has incompatible dimensions')
+            raise ValueError("x0 has incompatible dimensions")
         x = x0.astype(A.dtype).ravel()
     if M is None:
         M = _interface.IdentityOperator(shape=A.shape, dtype=A.dtype)
@@ -330,10 +340,11 @@ def _make_system(A, M, x0, b):
         fast_matvec = _make_fast_matvec(M)
         M = _interface.aslinearoperator(M)
         if fast_matvec is not None:
-            M = _interface.LinearOperator(M.shape, matvec=fast_matvec,
-                                          rmatvec=M.rmatvec, dtype=M.dtype)
+            M = _interface.LinearOperator(
+                M.shape, matvec=fast_matvec, rmatvec=M.rmatvec, dtype=M.dtype
+            )
         if A.shape != M.shape:
-            raise ValueError('matrix and preconditioner have different shapes')
+            raise ValueError("matrix and preconditioner have different shapes")
     return A, M, x, b
 
 
@@ -341,7 +352,7 @@ def _make_fast_matvec(A):
     from cupy_backends.cuda.libs import cusparse as _cusparse
     from cupyx import cusparse
 
-    if _csr.isspmatrix_csr(A) and cusparse.check_availability('spmv'):
+    if _csr.isspmatrix_csr(A) and cusparse.check_availability("spmv"):
         handle = device.get_cusparse_handle()
         op_a = _cusparse.CUSPARSE_OPERATION_NON_TRANSPOSE
         alpha = numpy.array(1.0, A.dtype)
@@ -354,8 +365,16 @@ def _make_fast_matvec(A):
         desc_x = cusparse.DnVecDescriptor.create(x)
         desc_y = cusparse.DnVecDescriptor.create(y)
         buff_size = _cusparse.spMV_bufferSize(
-            handle, op_a, alpha.ctypes.data, desc_A.desc, desc_x.desc,
-            beta.ctypes.data, desc_y.desc, cuda_dtype, alg)
+            handle,
+            op_a,
+            alpha.ctypes.data,
+            desc_A.desc,
+            desc_x.desc,
+            beta.ctypes.data,
+            desc_y.desc,
+            cuda_dtype,
+            alg,
+        )
         buff = cupy.empty(buff_size, cupy.int8)
         del x, desc_x, y, desc_y
 
@@ -364,8 +383,17 @@ def _make_fast_matvec(A):
             desc_x = cusparse.DnVecDescriptor.create(x)
             desc_y = cusparse.DnVecDescriptor.create(y)
             _cusparse.spMV(
-                handle, op_a, alpha.ctypes.data, desc_A.desc, desc_x.desc,
-                beta.ctypes.data, desc_y.desc, cuda_dtype, alg, buff.data.ptr)
+                handle,
+                op_a,
+                alpha.ctypes.data,
+                desc_A.desc,
+                desc_x.desc,
+                beta.ctypes.data,
+                desc_y.desc,
+                cuda_dtype,
+                alg,
+                buff.data.ptr,
+            )
             return y
 
         return matvec
@@ -374,13 +402,13 @@ def _make_fast_matvec(A):
 
 def _make_compute_hu(V):
     handle = device.get_cublas_handle()
-    if V.dtype.char == 'f':
+    if V.dtype.char == "f":
         gemv = _cublas.sgemv
-    elif V.dtype.char == 'd':
+    elif V.dtype.char == "d":
         gemv = _cublas.dgemv
-    elif V.dtype.char == 'F':
+    elif V.dtype.char == "F":
         gemv = _cublas.cgemv
-    elif V.dtype.char == 'D':
+    elif V.dtype.char == "D":
         gemv = _cublas.zgemv
     n = V.shape[0]
     one = numpy.array(1.0, V.dtype)
@@ -390,10 +418,35 @@ def _make_compute_hu(V):
     def compute_hu(u, j):
         # h = V[:, :j+1].conj().T @ u
         # u -= V[:, :j+1] @ h
-        h = cupy.empty((j+1,), dtype=V.dtype)
-        gemv(handle, _cublas.CUBLAS_OP_C, n, j+1, one.ctypes.data, V.data.ptr,
-             n, u.data.ptr, 1, zero.ctypes.data, h.data.ptr, 1)
-        gemv(handle, _cublas.CUBLAS_OP_N, n, j+1, mone.ctypes.data, V.data.ptr,
-             n, h.data.ptr, 1, one.ctypes.data, u.data.ptr, 1)
+        h = cupy.empty((j + 1,), dtype=V.dtype)
+        gemv(
+            handle,
+            _cublas.CUBLAS_OP_C,
+            n,
+            j + 1,
+            one.ctypes.data,
+            V.data.ptr,
+            n,
+            u.data.ptr,
+            1,
+            zero.ctypes.data,
+            h.data.ptr,
+            1,
+        )
+        gemv(
+            handle,
+            _cublas.CUBLAS_OP_N,
+            n,
+            j + 1,
+            mone.ctypes.data,
+            V.data.ptr,
+            n,
+            h.data.ptr,
+            1,
+            one.ctypes.data,
+            u.data.ptr,
+            1,
+        )
         return h, u
+
     return compute_hu

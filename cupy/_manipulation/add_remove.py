@@ -86,15 +86,15 @@ def append(arr, values, axis=None):
     arr = cupy.asarray(arr)
     values = cupy.asarray(values)
     if axis is None:
-        return _core.concatenate_method(
-            (arr.ravel(), values.ravel()), 0).ravel()
+        return _core.concatenate_method((arr.ravel(), values.ravel()), 0).ravel()
     return _core.concatenate_method((arr, values), axis)
 
 
 _resize_kernel = _core.ElementwiseKernel(
-    'raw T x, int64 size', 'T y',
-    'y = x[i % size]',
-    'cupy_resize',
+    "raw T x, int64 size",
+    "T y",
+    "y = x[i % size]",
+    "cupy_resize",
 )
 
 
@@ -129,17 +129,17 @@ def resize(a, new_shape):
 
 
 _first_nonzero_krnl = _core.ReductionKernel(
-    'T data, int64 len',
-    'int64 y',
-    'data == T(0) ? len : _j',
-    'min(a, b)',
-    'y = a',
-    'len',
-    'first_nonzero'
+    "T data, int64 len",
+    "int64 y",
+    "data == T(0) ? len : _j",
+    "min(a, b)",
+    "y = a",
+    "len",
+    "first_nonzero",
 )
 
 
-def trim_zeros(filt, trim='fb'):
+def trim_zeros(filt, trim="fb"):
     """Trim the leading and/or trailing zeros from a 1-D array or sequence.
 
     Returns the trimmed array
@@ -160,13 +160,13 @@ def trim_zeros(filt, trim='fb'):
     if filt.ndim == 0:
         return filt
     if filt.ndim > 1:
-        raise NotImplementedError('Multi-dimensional trim is not supported')
+        raise NotImplementedError("Multi-dimensional trim is not supported")
     start = 0
     end = filt.size
     trim = trim.upper()
-    if 'F' in trim:
+    if "F" in trim:
         start = _first_nonzero_krnl(filt, filt.size).item()
-    if 'B' in trim:
+    if "B" in trim:
         end = filt.size - _first_nonzero_krnl(filt[::-1], filt.size).item()
     return filt[start:end]
 
@@ -177,8 +177,15 @@ def _unique_update_mask_equal_nan(mask, x0):
     mask[:] = cupy.logical_and(mask, mask1)
 
 
-def unique(ar, return_index=False, return_inverse=False,
-           return_counts=False, axis=None, *, equal_nan=True):
+def unique(
+    ar,
+    return_index=False,
+    return_inverse=False,
+    return_counts=False,
+    axis=None,
+    *,
+    equal_nan=True,
+):
     """Find the unique elements of an array.
 
     Returns the sorted unique elements of an array. There are three optional
@@ -234,10 +241,14 @@ def unique(ar, return_index=False, return_inverse=False,
     .. seealso:: :func:`numpy.unique`
     """
     if axis is None:
-        ret = _unique_1d(ar, return_index=return_index,
-                         return_inverse=return_inverse,
-                         return_counts=return_counts,
-                         equal_nan=equal_nan, inverse_shape=ar.shape)
+        ret = _unique_1d(
+            ar,
+            return_index=return_index,
+            return_inverse=return_inverse,
+            return_counts=return_counts,
+            equal_nan=equal_nan,
+            inverse_shape=ar.shape,
+        )
         return ret
 
     ar = cupy.moveaxis(ar, axis, 0)
@@ -256,7 +267,7 @@ def unique(ar, return_index=False, return_inverse=False,
 
     def compare_axis_elems(idx1, idx2):
         left, right = ar_cmp[idx1], ar_cmp[idx2]
-        comp = cupy.trim_zeros(left - right, 'f')
+        comp = cupy.trim_zeros(left - right, "f")
         if comp.shape[0] > 0:
             diff = comp[0]
             if is_complex and cupy.isnan(diff):
@@ -308,28 +319,34 @@ def unique(ar, return_index=False, return_inverse=False,
     ar = ar.reshape(mask.sum().item(), *orig_shape[1:])
     ar = cupy.moveaxis(ar, 0, axis)
 
-    ret = ar,
+    ret = (ar,)
     if return_index:
-        ret += sorted_indices[mask],
+        ret += (sorted_indices[mask],)
     if return_inverse:
         imask = cupy.cumsum(mask) - 1
         inv_idx = cupy.empty(mask.shape, dtype=cupy.intp)
         inv_idx[sorted_indices] = imask
-        ret += inv_idx,
+        ret += (inv_idx,)
     if return_counts:
         nonzero = cupy.nonzero(mask)[0]  # may synchronize
         idx = cupy.empty((nonzero.size + 1,), nonzero.dtype)
         idx[:-1] = nonzero
         idx[-1] = mask.size
-        ret += idx[1:] - idx[:-1],
+        ret += (idx[1:] - idx[:-1],)
 
     if len(ret) == 1:
         ret = ret[0]
     return ret
 
 
-def _unique_1d(ar, return_index=False, return_inverse=False,
-               return_counts=False, equal_nan=True, inverse_shape=None):
+def _unique_1d(
+    ar,
+    return_index=False,
+    return_inverse=False,
+    return_counts=False,
+    equal_nan=True,
+    inverse_shape=None,
+):
     ar = cupy.asarray(ar).flatten()
 
     if return_index or return_inverse:
@@ -348,24 +365,25 @@ def _unique_1d(ar, return_index=False, return_inverse=False,
     if not return_index and not return_inverse and not return_counts:
         return ret
 
-    ret = ret,
+    ret = (ret,)
     if return_index:
-        ret += perm[mask],
+        ret += (perm[mask],)
     if return_inverse:
         imask = cupy.cumsum(mask) - 1
         inv_idx = cupy.empty(mask.shape, dtype=cupy.intp)
         inv_idx[perm] = imask
-        ret += inv_idx.reshape(inverse_shape),
+        ret += (inv_idx.reshape(inverse_shape),)
     if return_counts:
         nonzero = cupy.nonzero(mask)[0]  # may synchronize
         idx = cupy.empty((nonzero.size + 1,), nonzero.dtype)
         idx[:-1] = nonzero
         idx[-1] = mask.size
-        ret += idx[1:] - idx[:-1],
+        ret += (idx[1:] - idx[:-1],)
     return ret
 
 
 # Array API compatible unique_XXX wrappers
+
 
 class UniqueAllResult(NamedTuple):
     values: cupy.ndarray
@@ -418,11 +436,7 @@ def unique_all(x):
 
     """
     result = unique(
-        x,
-        return_index=True,
-        return_inverse=True,
-        return_counts=True,
-        equal_nan=False
+        x, return_index=True, return_inverse=True, return_counts=True, equal_nan=False
     )
     return UniqueAllResult(*result)
 
@@ -457,11 +471,7 @@ def unique_counts(x):
 
     """
     result = unique(
-        x,
-        return_index=False,
-        return_inverse=False,
-        return_counts=True,
-        equal_nan=False
+        x, return_index=False, return_inverse=False, return_counts=True, equal_nan=False
     )
     return UniqueCountsResult(*result)
 
@@ -497,11 +507,7 @@ def unique_inverse(x):
 
     """
     result = unique(
-        x,
-        return_index=False,
-        return_inverse=True,
-        return_counts=False,
-        equal_nan=False
+        x, return_index=False, return_inverse=True, return_counts=False, equal_nan=False
     )
     return UniqueInverseResult(*result)
 
@@ -537,5 +543,5 @@ def unique_values(x):
         return_index=False,
         return_inverse=False,
         return_counts=False,
-        equal_nan=False
+        equal_nan=False,
     )

@@ -10,9 +10,24 @@ from cupyx.scipy.sparse import _sputils
 
 
 _ufuncs = [
-    'arcsin', 'arcsinh', 'arctan', 'arctanh', 'ceil', 'deg2rad', 'expm1',
-    'floor', 'log1p', 'rad2deg', 'rint', 'sign', 'sin', 'sinh', 'sqrt', 'tan',
-    'tanh', 'trunc',
+    "arcsin",
+    "arcsinh",
+    "arctan",
+    "arctanh",
+    "ceil",
+    "deg2rad",
+    "expm1",
+    "floor",
+    "log1p",
+    "rad2deg",
+    "rint",
+    "sign",
+    "sin",
+    "sinh",
+    "sqrt",
+    "tan",
+    "tanh",
+    "trunc",
 ]
 
 
@@ -127,9 +142,8 @@ def _find_missing_index(ind, n):
     positions = cupy.arange(ind.size)
     diff = ind != positions
     return cupy.where(
-        diff.any(),
-        diff.argmax(),
-        cupy.asarray(ind.size if ind.size < n else -1))
+        diff.any(), diff.argmax(), cupy.asarray(ind.size if ind.size < n else -1)
+    )
 
 
 def _non_zero_cmp(mat, am, zero, m):
@@ -139,10 +153,7 @@ def _non_zero_cmp(mat, am, zero, m):
     else:
         ind = mat.row * mat.shape[1] + mat.col
         zero_ind = _find_missing_index(ind, size)
-        return cupy.where(
-            m == zero,
-            cupy.minimum(zero_ind, am),
-            zero_ind)
+        return cupy.where(m == zero, cupy.minimum(zero_ind, am), zero_ind)
 
 
 class _minmax_mixin:
@@ -171,16 +182,19 @@ class _minmax_mixin:
         if axis == 0:
             return _coo.coo_matrix(
                 (value, (cupy.zeros(len(value)), major_index)),
-                dtype=self.dtype, shape=(1, M))
+                dtype=self.dtype,
+                shape=(1, M),
+            )
         else:
             return _coo.coo_matrix(
                 (value, (major_index, cupy.zeros(len(value)))),
-                dtype=self.dtype, shape=(M, 1))
+                dtype=self.dtype,
+                shape=(M, 1),
+            )
 
     def _min_or_max(self, axis, out, min_or_max, explicit):
         if out is not None:
-            raise ValueError("Sparse matrices do not support "
-                             "an 'out' parameter.")
+            raise ValueError("Sparse matrices do not support " "an 'out' parameter.")
 
         _sputils.validateaxis(axis)
 
@@ -211,8 +225,9 @@ class _minmax_mixin:
 
     def _arg_min_or_max_axis(self, axis, op):
         if self.shape[axis] == 0:
-            raise ValueError("Can't apply the operation along a zero-sized "
-                             "dimension.")
+            raise ValueError(
+                "Can't apply the operation along a zero-sized " "dimension."
+            )
 
         mat = self.tocsc() if axis == 0 else self.tocsr()
         mat.sum_duplicates()
@@ -227,15 +242,13 @@ class _minmax_mixin:
 
     def _arg_min_or_max(self, axis, out, op, compare):
         if out is not None:
-            raise ValueError("Sparse matrices do not support "
-                             "an 'out' parameter.")
+            raise ValueError("Sparse matrices do not support " "an 'out' parameter.")
 
         _sputils.validateaxis(axis)
 
         if axis is None:
             if 0 in self.shape:
-                raise ValueError("Can't apply the operation to "
-                                 "an empty matrix.")
+                raise ValueError("Can't apply the operation to " "an empty matrix.")
 
             if self.nnz == 0:
                 return 0
@@ -249,8 +262,10 @@ class _minmax_mixin:
                 m = mat.data[am]
 
                 return cupy.where(
-                    compare(m, zero), mat.row[am] * mat.shape[1] + mat.col[am],
-                    _non_zero_cmp(mat, am, zero, m))
+                    compare(m, zero),
+                    mat.row[am] * mat.shape[1] + mat.col[am],
+                    _non_zero_cmp(mat, am, zero, m),
+                )
 
         if axis < 0:
             axis += 2
@@ -288,8 +303,9 @@ class _minmax_mixin:
 
         """
         if explicit:
-            api_name = 'explicit of cupyx.scipy.sparse.{}.max'.format(
-                self.__class__.__name__)
+            api_name = "explicit of cupyx.scipy.sparse.{}.max".format(
+                self.__class__.__name__
+            )
             _util.experimental(api_name)
         return self._min_or_max(axis, out, cupy.max, explicit)
 
@@ -324,8 +340,9 @@ class _minmax_mixin:
 
         """
         if explicit:
-            api_name = 'explicit of cupyx.scipy.sparse.{}.min'.format(
-                self.__class__.__name__)
+            api_name = "explicit of cupyx.scipy.sparse.{}.min".format(
+                self.__class__.__name__
+            )
             _util.experimental(api_name)
         return self._min_or_max(axis, out, cupy.min, explicit)
 
@@ -392,7 +409,7 @@ def _install_ufunc(func_name):
         result = ufunc(self.data)
         return self._with_data(result)
 
-    f.__doc__ = 'Elementwise %s.' % func_name
+    f.__doc__ = "Elementwise %s." % func_name
     f.__name__ = func_name
 
     setattr(_data_matrix, func_name, f)

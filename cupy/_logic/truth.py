@@ -8,10 +8,10 @@ from cupy import _util
 
 
 _setxorkernel = cupy._core.ElementwiseKernel(
-    'raw T X, int64 len',
-    'bool z',
-    'z = (i == 0 || X[i] != X[i-1]) && (i == len - 1 || X[i] != X[i+1])',
-    'setxorkernel'
+    "raw T X, int64 len",
+    "bool z",
+    "z = (i == 0 || X[i] != X[i-1]) && (i == len - 1 || X[i] != X[i+1])",
+    "setxorkernel",
 )
 
 
@@ -43,11 +43,11 @@ def all(a, axis=None, out=None, keepdims=False):
     if _fusion_thread_local.is_fusing():
         if keepdims:
             raise NotImplementedError(
-                'cupy.all does not support `keepdims` in fusion yet.')
-        return _fusion_thread_local.call_reduction(
-            _logic.all, a, axis=axis, out=out)
+                "cupy.all does not support `keepdims` in fusion yet."
+            )
+        return _fusion_thread_local.call_reduction(_logic.all, a, axis=axis, out=out)
 
-    _util.check_array(a, arg_name='a')
+    _util.check_array(a, arg_name="a")
 
     return a.all(axis=axis, out=out, keepdims=keepdims)
 
@@ -80,11 +80,11 @@ def any(a, axis=None, out=None, keepdims=False):
     if _fusion_thread_local.is_fusing():
         if keepdims:
             raise NotImplementedError(
-                'cupy.any does not support `keepdims` in fusion yet.')
-        return _fusion_thread_local.call_reduction(
-            _logic.any, a, axis=axis, out=out)
+                "cupy.any does not support `keepdims` in fusion yet."
+            )
+        return _fusion_thread_local.call_reduction(_logic.any, a, axis=axis, out=out)
 
-    _util.check_array(a, arg_name='a')
+    _util.check_array(a, arg_name="a")
 
     return a.any(axis=axis, out=out, keepdims=keepdims)
 
@@ -177,8 +177,7 @@ def intersect1d(arr1, arr2, assume_unique=False, return_indices=False):
         mask = _search._exists_kernel(arr1, arr2, arr2.size, False)
         return arr1[mask]
 
-    mask, v1 = _search._exists_and_searchsorted_kernel(
-        arr1, arr2, arr2.size, False)
+    mask, v1 = _search._exists_and_searchsorted_kernel(arr1, arr2, arr2.size, False)
     int1d = arr1[mask]
     arr1_indices = cupy.flatnonzero(mask)
     arr2_indices = v1[mask]
@@ -218,8 +217,9 @@ def isin(element, test_elements, assume_unique=False, invert=False):
         are in ``test_elements``.
 
     """
-    return in1d(element, test_elements, assume_unique=assume_unique,
-                invert=invert).reshape(element.shape)
+    return in1d(
+        element, test_elements, assume_unique=assume_unique, invert=invert
+    ).reshape(element.shape)
 
 
 def setdiff1d(ar1, ar2, assume_unique=False):
@@ -290,8 +290,7 @@ def setxor1d(ar1, ar2, assume_unique=False):
 
     aux.sort()
 
-    return aux[_setxorkernel(aux, aux.size,
-                             cupy.zeros(aux.size, dtype=cupy.bool_))]
+    return aux[_setxorkernel(aux, aux.size, cupy.zeros(aux.size, dtype=cupy.bool_))]
 
 
 def union1d(arr1, arr2):

@@ -30,7 +30,7 @@ class TestRounding(unittest.TestCase):
             with pytest.raises(TypeError):
                 getattr(xp, name)(a)
 
-    @testing.for_dtypes(['?', 'b', 'h', 'i', 'q', 'e', 'f', 'd'])
+    @testing.for_dtypes(["?", "b", "h", "i", "q", "e", "f", "d"])
     @testing.numpy_cupy_allclose(atol=1e-5)
     def check_unary_negative(self, name, xp, dtype):
         a = xp.array([-3, -2, -1, 1, 2, 3], dtype=dtype)
@@ -39,49 +39,53 @@ class TestRounding(unittest.TestCase):
     @testing.for_complex_dtypes()
     @testing.numpy_cupy_allclose(atol=1e-5)
     def check_unary_negative_complex(self, name, xp, dtype):
-        a = xp.array([-3-3j, -2-2j, -1-1j, 1+1j, 2+2j, 3+3j], dtype=dtype)
+        a = xp.array([-3 - 3j, -2 - 2j, -1 - 1j, 1 + 1j, 2 + 2j, 3 + 3j], dtype=dtype)
         return getattr(xp, name)(a)
 
     def test_rint(self):
-        self.check_unary('rint')
-        self.check_unary_complex('rint')
+        self.check_unary("rint")
+        self.check_unary_complex("rint")
 
     def test_rint_negative(self):
-        self.check_unary_negative('rint')
-        self.check_unary_negative_complex('rint')
+        self.check_unary_negative("rint")
+        self.check_unary_negative_complex("rint")
 
     @testing.with_requires("numpy>=2.1")
     def test_floor(self):
-        self.check_unary('floor')
-        self.check_unary_complex_unsupported('floor')
+        self.check_unary("floor")
+        self.check_unary_complex_unsupported("floor")
 
     @testing.with_requires("numpy>=2.1")
     def test_ceil(self):
-        self.check_unary('ceil')
-        self.check_unary_complex_unsupported('ceil')
+        self.check_unary("ceil")
+        self.check_unary_complex_unsupported("ceil")
 
     @testing.with_requires("numpy>=2.1")
     def test_trunc(self):
-        self.check_unary('trunc')
-        self.check_unary_complex_unsupported('trunc')
+        self.check_unary("trunc")
+        self.check_unary_complex_unsupported("trunc")
 
     @testing.with_requires("numpy>=2.1")
     def test_fix(self):
-        self.check_unary('fix')
-        self.check_unary_complex_unsupported('fix')
+        self.check_unary("fix")
+        self.check_unary_complex_unsupported("fix")
 
     def test_around(self):
-        self.check_unary('around')
-        self.check_unary_complex('around')
+        self.check_unary("around")
+        self.check_unary_complex("around")
 
     def test_round(self):
-        self.check_unary('round')
-        self.check_unary_complex('round')
+        self.check_unary("round")
+        self.check_unary_complex("round")
 
 
-@testing.parameterize(*testing.product({
-    'decimals': [-2, -1, 0, 1, 2],
-}))
+@testing.parameterize(
+    *testing.product(
+        {
+            "decimals": [-2, -1, 0, 1, 2],
+        }
+    )
+)
 class TestRound(unittest.TestCase):
 
     shape = (20,)
@@ -102,15 +106,19 @@ class TestRound(unittest.TestCase):
 
     @testing.numpy_cupy_array_equal()
     def test_round_out(self, xp):
-        a = testing.shaped_random(self.shape, xp, scale=100, dtype='d')
+        a = testing.shaped_random(self.shape, xp, scale=100, dtype="d")
         out = xp.empty_like(a)
         xp.around(a, self.decimals, out)
         return out
 
 
-@testing.parameterize(*testing.product({
-    'decimals': [-100, -99, -90, 0, 90, 99, 100],
-}))
+@testing.parameterize(
+    *testing.product(
+        {
+            "decimals": [-100, -99, -90, 0, 90, 99, 100],
+        }
+    )
+)
 class TestRoundExtreme(unittest.TestCase):
 
     shape = (20,)
@@ -128,19 +136,23 @@ class TestRoundExtreme(unittest.TestCase):
         return xp.around(a, self.decimals)
 
 
-@testing.parameterize(*testing.product({
-    'value': [
-        (14, -1),
-        (15, -1),
-        (16, -1),
-        (14.0, -1),
-        (15.0, -1),
-        (16.0, -1),
-        (1.4, 0),
-        (1.5, 0),
-        (1.6, 0),
-    ]
-}))
+@testing.parameterize(
+    *testing.product(
+        {
+            "value": [
+                (14, -1),
+                (15, -1),
+                (16, -1),
+                (14.0, -1),
+                (15.0, -1),
+                (16.0, -1),
+                (1.4, 0),
+                (1.5, 0),
+                (1.6, 0),
+            ]
+        }
+    )
+)
 class TestRoundBorder(unittest.TestCase):
 
     @testing.numpy_cupy_allclose(atol=1e-5)

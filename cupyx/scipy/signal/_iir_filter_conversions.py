@@ -1,7 +1,8 @@
-""" IIR filter conversion utilities.
+"""IIR filter conversion utilities.
 
 Split off _filter_design.py
 """
+
 from __future__ import annotations
 
 import warnings
@@ -19,24 +20,25 @@ from cupyx.scipy.signal._lti_conversion import abcd_normalize
 
 class BadCoefficients(UserWarning):
     """Warning about badly conditioned filter coefficients"""
+
     pass
 
 
-def _trim_zeros(filt, trim='fb'):
+def _trim_zeros(filt, trim="fb"):
     # https://github.com/numpy/numpy/blob/v1.24.0/numpy/lib/function_base.py#L1800-L1850
 
     first = 0
-    if 'f' in trim:
+    if "f" in trim:
         for i in filt:
-            if i != 0.:
+            if i != 0.0:
                 break
             else:
                 first = first + 1
 
     last = len(filt)
-    if 'b' in trim:
+    if "b" in trim:
         for i in filt[::-1]:
-            if i != 0.:
+            if i != 0.0:
                 break
             else:
                 last = last - 1
@@ -80,19 +82,21 @@ def _align_nums(nums):
 
         # Create numerators with padded zeros
         for index, num in enumerate(nums):
-            aligned_nums[index, -num.size:] = num
+            aligned_nums[index, -num.size :] = num
 
         return aligned_nums
 
 
 def _polycoeffs_from_zeros(zeros, tol=10):
     # a clone of numpy.poly, simplified
-    dtyp = (cupy.complex128
-            if cupy.issubdtype(zeros.dtype, cupy.complexfloating)
-            else cupy.float64)
+    dtyp = (
+        cupy.complex128
+        if cupy.issubdtype(zeros.dtype, cupy.complexfloating)
+        else cupy.float64
+    )
     a = cupy.ones(1, dtype=dtyp)
     for z in zeros:
-        a = cupy.convolve(a, cupy.r_[1, -z], mode='full')
+        a = cupy.convolve(a, cupy.r_[1, -z], mode="full")
 
     # Use real output if possible.
     if dtyp == cupy.complex128:
@@ -117,13 +121,13 @@ def _polycoeffs_from_zeros(zeros, tol=10):
 
 def _nearest_real_complex_idx(fro, to, which):
     """Get the next closest real or complex element based on distance"""
-    assert which in ('real', 'complex', 'any')
+    assert which in ("real", "complex", "any")
     order = cupy.argsort(cupy.abs(fro - to))
-    if which == 'any':
+    if which == "any":
         return order[0]
     else:
         mask = cupy.isreal(fro[order])
-        if which == 'complex':
+        if which == "complex":
             mask = ~mask
         return order[cupy.nonzero(mask)[0][0]]
 
@@ -132,8 +136,8 @@ def _single_zpksos(z, p, k):
     """Create one second-order section from up to two zeros and poles"""
     sos = cupy.zeros(6)
     b, a = zpk2tf(cupy.asarray(z), cupy.asarray(p), k)
-    sos[3-len(b):3] = b
-    sos[6-len(a):6] = a
+    sos[3 - len(b) : 3] = b
+    sos[6 - len(a) : 6] = a
     return sos
 
 
@@ -170,37 +174,38 @@ def zpk2sos(z, p, k, pairing=None, *, analog=False):
 
     """
     if pairing is None:
-        pairing = 'minimal' if analog else 'nearest'
+        pairing = "minimal" if analog else "nearest"
 
-    valid_pairings = ['nearest', 'keep_odd', 'minimal']
+    valid_pairings = ["nearest", "keep_odd", "minimal"]
     if pairing not in valid_pairings:
-        raise ValueError('pairing must be one of %s, not %s'
-                         % (valid_pairings, pairing))
+        raise ValueError(
+            "pairing must be one of %s, not %s" % (valid_pairings, pairing)
+        )
 
-    if analog and pairing != 'minimal':
-        raise ValueError('for analog zpk2sos conversion, '
-                         'pairing must be "minimal"')
+    if analog and pairing != "minimal":
+        raise ValueError("for analog zpk2sos conversion, " 'pairing must be "minimal"')
 
     if len(z) == len(p) == 0:
         if not analog:
-            return cupy.array([[k, 0., 0., 1., 0., 0.]])
+            return cupy.array([[k, 0.0, 0.0, 1.0, 0.0, 0.0]])
         else:
-            return cupy.array([[0., 0., k, 0., 0., 1.]])
+            return cupy.array([[0.0, 0.0, k, 0.0, 0.0, 1.0]])
 
-    if pairing != 'minimal':
+    if pairing != "minimal":
         # ensure we have the same number of poles and zeros, and make copies
         p = cupy.concatenate((p, cupy.zeros(max(len(z) - len(p), 0))))
         z = cupy.concatenate((z, cupy.zeros(max(len(p) - len(z), 0))))
         n_sections = (max(len(p), len(z)) + 1) // 2
 
-        if len(p) % 2 == 1 and pairing == 'nearest':
+        if len(p) % 2 == 1 and pairing == "nearest":
             p = cupy.concatenate((p, cupy.zeros(1)))
             z = cupy.concatenate((z, cupy.zeros(1)))
         assert len(p) == len(z)
     else:
         if len(p) < len(z):
-            raise ValueError('for analog zpk2sos conversion, '
-                             'must have len(p)>=len(z)')
+            raise ValueError(
+                "for analog zpk2sos conversion, " "must have len(p)>=len(z)"
+            )
 
         n_sections = (len(p) + 1) // 2
 
@@ -209,13 +214,14 @@ def zpk2sos(z, p, k, pairing=None, *, analog=False):
     z = cupy.concatenate(_cplxreal(z))
     p = cupy.concatenate(_cplxreal(p))
     if not cupy.isreal(k):
-        raise ValueError('k must be real')
+        raise ValueError("k must be real")
     k = k.real
 
     if not analog:
         # digital: "worst" is the closest to the unit circle
         def idx_worst(p):
             return cupy.argmin(cupy.abs(1 - cupy.abs(p)))
+
     else:
         # analog: "worst" is the closest to the imaginary axis
         def idx_worst(p):
@@ -224,7 +230,7 @@ def zpk2sos(z, p, k, pairing=None, *, analog=False):
     sos = cupy.zeros((n_sections, 6))
 
     # Construct the system, reversing order so the "worst" are last
-    for si in range(n_sections-1, -1, -1):
+    for si in range(n_sections - 1, -1, -1):
         # Select the next "worst" pole
         p1_idx = idx_worst(p)
         p1 = p[p1_idx]
@@ -234,33 +240,34 @@ def zpk2sos(z, p, k, pairing=None, *, analog=False):
 
         if cupy.isreal(p1) and cupy.isreal(p).sum() == 0:
             # Special case (1): last remaining real pole
-            if pairing != 'minimal':
-                z1_idx = _nearest_real_complex_idx(z, p1, 'real')
+            if pairing != "minimal":
+                z1_idx = _nearest_real_complex_idx(z, p1, "real")
                 z1 = z[z1_idx]
                 z = cupy.delete(z, z1_idx)
                 sos[si] = _single_zpksos(cupy.r_[z1, 0], cupy.r_[p1, 0], 1)
             elif len(z) > 0:
-                z1_idx = _nearest_real_complex_idx(z, p1, 'real')
+                z1_idx = _nearest_real_complex_idx(z, p1, "real")
                 z1 = z[z1_idx]
                 z = cupy.delete(z, z1_idx)
                 sos[si] = _single_zpksos([z1], [p1], 1)
             else:
                 sos[si] = _single_zpksos([], [p1], 1)
 
-        elif (len(p) + 1 == len(z)
-              and not cupy.isreal(p1)
-              and cupy.isreal(p).sum() == 1
-              and cupy.isreal(z).sum() == 1):
+        elif (
+            len(p) + 1 == len(z)
+            and not cupy.isreal(p1)
+            and cupy.isreal(p).sum() == 1
+            and cupy.isreal(z).sum() == 1
+        ):
 
             # Special case (2): there's one real pole and one real zero
             # left, and an equal number of poles and zeros to pair up.
             # We *must* pair with a complex zero
 
-            z1_idx = _nearest_real_complex_idx(z, p1, 'complex')
+            z1_idx = _nearest_real_complex_idx(z, p1, "complex")
             z1 = z[z1_idx]
             z = cupy.delete(z, z1_idx)
-            sos[si] = _single_zpksos(
-                cupy.r_[z1, z1.conj()], cupy.r_[p1, p1.conj()], 1)
+            sos[si] = _single_zpksos(cupy.r_[z1, z1.conj()], cupy.r_[p1, p1.conj()], 1)
 
         else:
             if cupy.isreal(p1):
@@ -273,16 +280,15 @@ def zpk2sos(z, p, k, pairing=None, *, analog=False):
 
             # find closest zero
             if len(z) > 0:
-                z1_idx = _nearest_real_complex_idx(z, p1, 'any')
+                z1_idx = _nearest_real_complex_idx(z, p1, "any")
                 z1 = z[z1_idx]
                 z = cupy.delete(z, z1_idx)
 
                 if not cupy.isreal(z1):
-                    sos[si] = _single_zpksos(
-                        cupy.r_[z1, z1.conj()], cupy.r_[p1, p2], 1)
+                    sos[si] = _single_zpksos(cupy.r_[z1, z1.conj()], cupy.r_[p1, p2], 1)
                 else:
                     if len(z) > 0:
-                        z2_idx = _nearest_real_complex_idx(z, p1, 'real')
+                        z2_idx = _nearest_real_complex_idx(z, p1, "real")
                         z2 = z[z2_idx]
                         assert cupy.isreal(z2)
                         z = cupy.delete(z, z2_idx)
@@ -355,7 +361,7 @@ def _cplxreal(z, tol=None):
     if z.size == 0:
         return z, z
     elif z.ndim != 1:
-        raise ValueError('_cplxreal only accepts 1-D input')
+        raise ValueError("_cplxreal only accepts 1-D input")
 
     if tol is None:
         # Get tolerance from dtype of input
@@ -378,8 +384,7 @@ def _cplxreal(z, tol=None):
     zn = z[z.imag < 0]
 
     if len(zp) != len(zn):
-        raise ValueError('Array contains complex value with no matching '
-                         'conjugate.')
+        raise ValueError("Array contains complex value with no matching " "conjugate.")
 
     # Find runs of (approximately) the same real part
     same_real = cupy.diff(zp.real) <= tol * abs(zp[:-1])
@@ -396,8 +401,7 @@ def _cplxreal(z, tol=None):
 
     # Check that negatives match positives
     if any(abs(zp - zn.conj()) > tol * abs(zn)):
-        raise ValueError('Array contains complex value with no matching '
-                         'conjugate.')
+        raise ValueError("Array contains complex value with no matching " "conjugate.")
 
     # Average out numerical inaccuracy in real vs imag parts of pairs
     zc = (zp + zn.conj()) / 2
@@ -446,13 +450,12 @@ def normalize(b, a):
     if den.ndim != 1:
         raise ValueError("Denominator polynomial must be rank-1 array.")
     if num.ndim > 2:
-        raise ValueError("Numerator polynomial must be rank-1 or"
-                         " rank-2 array.")
+        raise ValueError("Numerator polynomial must be rank-1 or" " rank-2 array.")
     if cupy.all(den == 0):
         raise ValueError("Denominator must have at least on nonzero element.")
 
     # Trim leading zeros in denominator, leave at least one.
-    den = _trim_zeros(den, 'f')
+    den = _trim_zeros(den, "f")
 
     # Normalize transfer function
     num, den = num / den[0], den / den[0]
@@ -467,8 +470,11 @@ def normalize(b, a):
 
     # Trim leading zeros of numerator
     if leading_zeros > 0:
-        warnings.warn("Badly conditioned filter coefficients (numerator): the "
-                      "results may be meaningless", BadCoefficients)
+        warnings.warn(
+            "Badly conditioned filter coefficients (numerator): the "
+            "results may be meaningless",
+            BadCoefficients,
+        )
         # Make sure at least one column remains
         if leading_zeros == num.shape[1]:
             leading_zeros -= 1
@@ -487,8 +493,9 @@ def _relative_degree(z, p):
     """
     degree = len(p) - len(z)
     if degree < 0:
-        raise ValueError("Improper transfer function. "
-                         "Must have at least as many poles as zeros.")
+        raise ValueError(
+            "Improper transfer function. " "Must have at least as many poles as zeros."
+        )
     else:
         return degree
 
@@ -723,18 +730,20 @@ def lp2bp_zpk(z, p, k, wo=1.0, bw=1.0):
     degree = _relative_degree(z, p)
 
     # Scale poles and zeros to desired bandwidth
-    z_lp = z * bw/2
-    p_lp = p * bw/2
+    z_lp = z * bw / 2
+    p_lp = p * bw / 2
 
     # Square root needs to produce complex result, not NaN
     z_lp = z_lp.astype(complex)
     p_lp = p_lp.astype(complex)
 
     # Duplicate poles and zeros and shift from baseband to +wo and -wo
-    z_bp = cupy.concatenate((z_lp + cupy.sqrt(z_lp**2 - wo**2),
-                             z_lp - cupy.sqrt(z_lp**2 - wo**2)))
-    p_bp = cupy.concatenate((p_lp + cupy.sqrt(p_lp**2 - wo**2),
-                             p_lp - cupy.sqrt(p_lp**2 - wo**2)))
+    z_bp = cupy.concatenate(
+        (z_lp + cupy.sqrt(z_lp**2 - wo**2), z_lp - cupy.sqrt(z_lp**2 - wo**2))
+    )
+    p_bp = cupy.concatenate(
+        (p_lp + cupy.sqrt(p_lp**2 - wo**2), p_lp - cupy.sqrt(p_lp**2 - wo**2))
+    )
 
     # Move degree zeros to origin, leaving degree zeros at infinity for BPF
     z_bp = cupy.append(z_bp, cupy.zeros(degree))
@@ -801,22 +810,24 @@ def lp2bs_zpk(z, p, k, wo=1.0, bw=1.0):
     degree = _relative_degree(z, p)
 
     # Invert to a highpass filter with desired bandwidth
-    z_hp = (bw/2) / z
-    p_hp = (bw/2) / p
+    z_hp = (bw / 2) / z
+    p_hp = (bw / 2) / p
 
     # Square root needs to produce complex result, not NaN
     z_hp = z_hp.astype(complex)
     p_hp = p_hp.astype(complex)
 
     # Duplicate poles and zeros and shift from baseband to +wo and -wo
-    z_bs = cupy.concatenate((z_hp + cupy.sqrt(z_hp**2 - wo**2),
-                             z_hp - cupy.sqrt(z_hp**2 - wo**2)))
-    p_bs = cupy.concatenate((p_hp + cupy.sqrt(p_hp**2 - wo**2),
-                             p_hp - cupy.sqrt(p_hp**2 - wo**2)))
+    z_bs = cupy.concatenate(
+        (z_hp + cupy.sqrt(z_hp**2 - wo**2), z_hp - cupy.sqrt(z_hp**2 - wo**2))
+    )
+    p_bs = cupy.concatenate(
+        (p_hp + cupy.sqrt(p_hp**2 - wo**2), p_hp - cupy.sqrt(p_hp**2 - wo**2))
+    )
 
     # Move any zeros that were at infinity to the center of the stopband
-    z_bs = cupy.append(z_bs, cupy.full(degree, +1j*wo))
-    z_bs = cupy.append(z_bs, cupy.full(degree, -1j*wo))
+    z_bs = cupy.append(z_bs, cupy.full(degree, +1j * wo))
+    z_bs = cupy.append(z_bs, cupy.full(degree, -1j * wo))
 
     # Cancel out gain change caused by inversion
     k_bs = k * cupy.real(cupy.prod(-z) / cupy.prod(-p))
@@ -871,21 +882,21 @@ def bilinear(b, a, fs=1.0):
     for j in range(Dp + 1):
         val = 0.0
         for i in range(N + 1):
-            bNi = b[N - i] * (2 * fs)**i
+            bNi = b[N - i] * (2 * fs) ** i
             for k in range(i + 1):
                 for s in range(M - i + 1):
                     if k + s == j:
-                        val += comb(i, k) * comb(M - i, s) * bNi * (-1)**k
+                        val += comb(i, k) * comb(M - i, s) * bNi * (-1) ** k
         bprime[j] = cupy.real(val)
 
     for j in range(Dp + 1):
         val = 0.0
         for i in range(D + 1):
-            aDi = a[D - i] * (2 * fs)**i
+            aDi = a[D - i] * (2 * fs) ** i
             for k in range(i + 1):
                 for s in range(M - i + 1):
                     if k + s == j:
-                        val += comb(i, k) * comb(M - i, s) * aDi * (-1)**k
+                        val += comb(i, k) * comb(M - i, s) * aDi * (-1) ** k
         aprime[j] = cupy.real(val)
 
     return normalize(bprime, aprime)
@@ -1071,7 +1082,7 @@ def lp2bp(b, a, wo=1.0, bw=1.0):
         for i in range(0, N + 1):
             for k in range(0, i + 1):
                 if ma - i + 2 * k == j:
-                    val += comb(i, k) * b[N - i] * (wosq) ** (i - k) / bw ** i
+                    val += comb(i, k) * b[N - i] * (wosq) ** (i - k) / bw**i
         bprime[Np - j] = val
 
     for j in range(Dp + 1):
@@ -1079,7 +1090,7 @@ def lp2bp(b, a, wo=1.0, bw=1.0):
         for i in range(0, D + 1):
             for k in range(0, i + 1):
                 if ma - i + 2 * k == j:
-                    val += comb(i, k) * a[D - i] * (wosq) ** (i - k) / bw ** i
+                    val += comb(i, k) * a[D - i] * (wosq) ** (i - k) / bw**i
         aprime[Dp - j] = val
 
     return normalize(bprime, aprime)
@@ -1144,8 +1155,7 @@ def lp2bs(b, a, wo=1.0, bw=1.0):
         for i in range(0, N + 1):
             for k in range(0, M - i + 1):
                 if i + 2 * k == j:
-                    val += (comb(M - i, k) * b[N - i] *
-                            (wosq) ** (M - i - k) * bw ** i)
+                    val += comb(M - i, k) * b[N - i] * (wosq) ** (M - i - k) * bw**i
         bprime[Np - j] = val
 
     for j in range(Dp + 1):
@@ -1153,14 +1163,14 @@ def lp2bs(b, a, wo=1.0, bw=1.0):
         for i in range(0, D + 1):
             for k in range(0, M - i + 1):
                 if i + 2 * k == j:
-                    val += (comb(M - i, k) * a[D - i] *
-                            (wosq) ** (M - i - k) * bw ** i)
+                    val += comb(M - i, k) * a[D - i] * (wosq) ** (M - i - k) * bw**i
         aprime[Dp - j] = val
 
     return normalize(bprime, aprime)
 
 
 # ### LTI conversions ###
+
 
 def zpk2tf(z, p, k):
     """
@@ -1337,7 +1347,7 @@ def sos2tf(sos):
     """
     sos = cupy.asarray(sos)
     result_type = sos.dtype
-    if result_type.kind in 'bui':
+    if result_type.kind in "bui":
         result_type = cupy.float64
 
     b = cupy.array([1], dtype=result_type)
@@ -1380,14 +1390,14 @@ def sos2zpk(sos):
 
     """
     n_sections = sos.shape[0]
-    z = cupy.zeros(n_sections*2, cupy.complex128)
-    p = cupy.zeros(n_sections*2, cupy.complex128)
-    k = 1.
+    z = cupy.zeros(n_sections * 2, cupy.complex128)
+    p = cupy.zeros(n_sections * 2, cupy.complex128)
+    k = 1.0
     for section in range(n_sections):
         # XXX: may just solve a quadratic equation instead of tf2zpk
         zpk = tf2zpk(sos[section, :3], sos[section, 3:])
-        z[2*section:2*section + len(zpk[0])] = zpk[0]
-        p[2*section:2*section + len(zpk[1])] = zpk[1]
+        z[2 * section : 2 * section + len(zpk[0])] = zpk[0]
+        p[2 * section : 2 * section + len(zpk[1])] = zpk[1]
         k *= zpk[2]
     return z, p, k
 
@@ -1419,7 +1429,7 @@ def tf2ss(num, den):
     #
     #   A, B, C, and D follow quite naturally.
     #
-    num, den = normalize(num, den)   # Strips zeros, checks arrays
+    num, den = normalize(num, den)  # Strips zeros, checks arrays
     nn = len(num.shape)
     if nn == 1:
         num = cupy.asarray([num], num.dtype)
@@ -1429,10 +1439,12 @@ def tf2ss(num, den):
         msg = "Improper transfer function. `num` is longer than `den`."
         raise ValueError(msg)
     if M == 0 or K == 0:  # Null system
-        return (cupy.array([], float),
-                cupy.array([], float),
-                cupy.array([], float),
-                cupy.array([], float))
+        return (
+            cupy.array([], float),
+            cupy.array([], float),
+            cupy.array([], float),
+            cupy.array([], float),
+        )
 
     # pad numerator to have same number of columns has denominator
     num = cupy.hstack((cupy.zeros((num.shape[0], K - M), num.dtype), num))
@@ -1450,8 +1462,12 @@ def tf2ss(num, den):
     if K == 1:
         D = D.reshape(num.shape)
 
-        return (cupy.zeros((1, 1)), cupy.zeros((1, D.shape[1])),
-                cupy.zeros((D.shape[0], 1)), D)
+        return (
+            cupy.zeros((1, 1)),
+            cupy.zeros((1, D.shape[1])),
+            cupy.zeros((D.shape[0], 1)),
+            D,
+        )
 
     frow = -cupy.array([den[1:]])
     A = cupy.r_[frow, cupy.eye(K - 2, K - 1)]
@@ -1510,8 +1526,8 @@ def ss2tf(A, B, C, D, input=0):
         raise ValueError("System does not have the input specified.")
 
     # make SIMO from possibly MIMO system.
-    B = B[:, input:input + 1]
-    D = D[:, input:input + 1]
+    B = B[:, input : input + 1]
+    D = D[:, input : input + 1]
 
     try:
         den = poly(A)
@@ -1596,6 +1612,7 @@ def ss2zpk(A, B, C, D, input=0):
 
 # TODO (ev-br): move to a better place (_filter_design.py (?))
 
+
 def buttap(N):
     """Return (z,p,k) for analog prototype of Nth-order Butterworth filter.
 
@@ -1610,7 +1627,7 @@ def buttap(N):
     if abs(int(N)) != N:
         raise ValueError("Filter order must be a nonnegative integer")
     z = cupy.array([])
-    m = cupy.arange(-N+1, N, 2)
+    m = cupy.arange(-N + 1, N, 2)
     # Middle value is 0 to ensure an exactly real pole
     p = -cupy.exp(1j * pi * m / (2 * N))
     k = 1
@@ -1636,7 +1653,7 @@ def cheb1ap(N, rp):
     elif N == 0:
         # Avoid divide-by-zero error
         # Even order filters have DC gain of -rp dB
-        return cupy.array([]), cupy.array([]), 10**(-rp/20)
+        return cupy.array([]), cupy.array([]), 10 ** (-rp / 20)
     z = cupy.array([])
 
     # Ripple factor (epsilon)
@@ -1644,9 +1661,9 @@ def cheb1ap(N, rp):
     mu = 1.0 / N * cupy.arcsinh(1 / eps)
 
     # Arrange poles in an ellipse on the left half of the S-plane
-    m = cupy.arange(-N+1, N, 2)
-    theta = pi * m / (2*N)
-    p = -cupy.sinh(mu + 1j*theta)
+    m = cupy.arange(-N + 1, N, 2)
+    theta = pi * m / (2 * N)
+    p = -cupy.sinh(mu + 1j * theta)
 
     k = cupy.prod(-p, axis=0).real
     if N % 2 == 0:
@@ -1680,15 +1697,14 @@ def cheb2ap(N, rs):
     mu = cupy.arcsinh(1.0 / de) / N
 
     if N % 2:
-        m = cupy.concatenate((cupy.arange(-N+1, 0, 2),
-                              cupy.arange(2, N, 2)))
+        m = cupy.concatenate((cupy.arange(-N + 1, 0, 2), cupy.arange(2, N, 2)))
     else:
-        m = cupy.arange(-N+1, N, 2)
+        m = cupy.arange(-N + 1, N, 2)
 
     z = -cupy.conjugate(1j / cupy.sin(m * pi / (2.0 * N)))
 
     # Poles around the unit circle like Butterworth
-    p = -cupy.exp(1j * pi * cupy.arange(-N+1, N, 2) / (2 * N))
+    p = -cupy.exp(1j * pi * cupy.arange(-N + 1, N, 2) / (2 * N))
     # Warp into Chebyshev II
     p = cupy.sinh(mu) * p.real + 1j * cupy.cosh(mu) * p.imag
     p = 1.0 / p
@@ -1728,12 +1744,12 @@ def _ellipdeg(n, m1):
     K1p = special.ellipkm1(m1)
 
     q1 = cupy.exp(-pi * K1p / K1)
-    q = q1 ** (1/n)
+    q = q1 ** (1 / n)
 
     mnum = cupy.arange(_ELLIPDEG_MMAX + 1)
     mden = cupy.arange(1, _ELLIPDEG_MMAX + 2)
 
-    num = (q ** (mnum * (mnum+1))).sum()
+    num = (q ** (mnum * (mnum + 1))).sum()
     den = 1 + 2 * (q ** (mden**2)).sum()
 
     return 16 * q * (num / den) ** 4
@@ -1771,7 +1787,7 @@ def _arc_jac_sn(w, m):
         # works for small kx
         return ((1 - kx) * (1 + kx)) ** 0.5
 
-    k = m ** 0.5
+    k = m**0.5
 
     if k > 1:
         return cupy.nan
@@ -1786,16 +1802,15 @@ def _arc_jac_sn(w, m):
         ks.append((1 - k_p) / (1 + k_p))
         niter += 1
         if niter > _ARC_JAC_SN_MAXITER:
-            raise ValueError('Landen transformation not converging')
+            raise ValueError("Landen transformation not converging")
 
-    K = cupy.prod(1 + cupy.array(ks[1:])) * pi/2
+    K = cupy.prod(1 + cupy.array(ks[1:])) * pi / 2
 
     wns = [w]
 
     for kn, knext in zip(ks[:-1], ks[1:]):
         wn = wns[-1]
-        wnext = (2 * wn /
-                 ((1 + knext) * (1 + _complement(kn * wn))))
+        wnext = 2 * wn / ((1 + knext) * (1 + _complement(kn * wn)))
         wns.append(wnext)
 
     u = 2 / pi * cupy.arcsin(wns[-1])
@@ -1846,7 +1861,7 @@ def ellipap(N, rp, rs):
     elif N == 0:
         # Avoid divide-by-zero warning
         # Even order filters have DC gain of -rp dB
-        return cupy.array([]), cupy.array([]), 10**(-rp/20)
+        return cupy.array([]), cupy.array([]), 10 ** (-rp / 20)
     elif N == 1:
         p = -cupy.sqrt(1.0 / _pow10m1(0.1 * rp))
         k = -p
@@ -1858,8 +1873,9 @@ def ellipap(N, rp, rs):
     eps = cupy.sqrt(eps_sq)
     ck1_sq = eps_sq / _pow10m1(0.1 * rs)
     if ck1_sq == 0:
-        raise ValueError("Cannot design a filter with given rp and rs"
-                         " specifications.")
+        raise ValueError(
+            "Cannot design a filter with given rp and rs" " specifications."
+        )
 
     m = _ellipdeg(N, ck1_sq)
     capk = special.ellipk(m)
@@ -1868,18 +1884,17 @@ def ellipap(N, rp, rs):
 
     s, c, d, phi = special.ellipj(j * capk / N, m * cupy.ones_like(j))
     snew = cupy.compress(cupy.abs(s) > EPSILON, s, axis=-1)
-    z = 1.j / (cupy.sqrt(m) * snew)
+    z = 1.0j / (cupy.sqrt(m) * snew)
     z = cupy.concatenate((z, z.conj()))
 
-    r = _arc_jac_sc1(1. / eps, ck1_sq)
+    r = _arc_jac_sc1(1.0 / eps, ck1_sq)
     v0 = capk * r / (N * special.ellipk(ck1_sq))
 
     sv, cv, dv, phi = special.ellipj(v0, 1 - m)
     p = -(c * d * sv * cv + 1j * s * dv) / (1 - (d * sv) ** 2.0)
 
     if N % 2:
-        mask = cupy.abs(p.imag) > EPSILON * \
-            cupy.sqrt((p * p.conj()).sum(axis=0).real)
+        mask = cupy.abs(p.imag) > EPSILON * cupy.sqrt((p * p.conj()).sum(axis=0).real)
         newp = cupy.compress(mask, p, axis=-1)
         p = cupy.concatenate((p, newp.conj()))
     else:
@@ -1893,6 +1908,7 @@ def ellipap(N, rp, rs):
 
 
 # ### *ord functions to accopany *ap functions
+
 
 def _validate_gpass_gstop(gpass, gstop):
 
@@ -1932,26 +1948,30 @@ def _validate_wp_ws(wp, ws, fs, analog):
 
 
 def _find_nat_freq(stopb, passb, gpass, gstop, filter_type, filter_kind):
-    if filter_type == 1:            # low
+    if filter_type == 1:  # low
         nat = stopb / passb
-    elif filter_type == 2:          # high
+    elif filter_type == 2:  # high
         nat = passb / stopb
-    elif filter_type == 3:          # stop
-        wp0 = _optimize.fminbound(band_stop_obj, passb[0], stopb[0] - 1e-12,
-                                  args=(0, passb, stopb, gpass, gstop,
-                                        filter_kind),
-                                  disp=0)
+    elif filter_type == 3:  # stop
+        wp0 = _optimize.fminbound(
+            band_stop_obj,
+            passb[0],
+            stopb[0] - 1e-12,
+            args=(0, passb, stopb, gpass, gstop, filter_kind),
+            disp=0,
+        )
         passb[0] = wp0
-        wp1 = _optimize.fminbound(band_stop_obj, stopb[1] + 1e-12, passb[1],
-                                  args=(1, passb, stopb, gpass, gstop,
-                                        filter_kind),
-                                  disp=0)
+        wp1 = _optimize.fminbound(
+            band_stop_obj,
+            stopb[1] + 1e-12,
+            passb[1],
+            args=(1, passb, stopb, gpass, gstop, filter_kind),
+            disp=0,
+        )
         passb[1] = wp1
-        nat = ((stopb * (passb[0] - passb[1])) /
-               (stopb ** 2 - passb[0] * passb[1]))
-    elif filter_type == 4:          # pass
-        nat = ((stopb ** 2 - passb[0] * passb[1]) /
-               (stopb * (passb[0] - passb[1])))
+        nat = (stopb * (passb[0] - passb[1])) / (stopb**2 - passb[0] * passb[1])
+    elif filter_type == 4:  # pass
+        nat = (stopb**2 - passb[0] * passb[1]) / (stopb * (passb[0] - passb[1]))
     else:
         raise ValueError(f"should not happen: {filter_type=}.")
 
@@ -2006,27 +2026,25 @@ def band_stop_obj(wp, ind, passb, stopb, gpass, gstop, type):
 
     passbC = passb.copy()
     passbC[ind] = wp
-    nat = (stopb * (passbC[0] - passbC[1]) /
-           (stopb ** 2 - passbC[0] * passbC[1]))
+    nat = stopb * (passbC[0] - passbC[1]) / (stopb**2 - passbC[0] * passbC[1])
     nat = min(cupy.abs(nat))
 
-    if type == 'butter':
+    if type == "butter":
         GSTOP = 10 ** (0.1 * cupy.abs(gstop))
         GPASS = 10 ** (0.1 * cupy.abs(gpass))
-        n = (cupy.log10((GSTOP - 1.0) / (GPASS - 1.0)) / (2 * cupy.log10(nat)))
-    elif type == 'cheby':
+        n = cupy.log10((GSTOP - 1.0) / (GPASS - 1.0)) / (2 * cupy.log10(nat))
+    elif type == "cheby":
         GSTOP = 10 ** (0.1 * cupy.abs(gstop))
         GPASS = 10 ** (0.1 * cupy.abs(gpass))
-        n = cupy.arccosh(
-            cupy.sqrt((GSTOP - 1.0) / (GPASS - 1.0))) / cupy.arccosh(nat)
-    elif type == 'ellip':
+        n = cupy.arccosh(cupy.sqrt((GSTOP - 1.0) / (GPASS - 1.0))) / cupy.arccosh(nat)
+    elif type == "ellip":
         GSTOP = 10 ** (0.1 * gstop)
         GPASS = 10 ** (0.1 * gpass)
         arg1 = cupy.sqrt((GPASS - 1.0) / (GSTOP - 1.0))
         arg0 = 1.0 / nat
-        d0 = special.ellipk(cupy.array([arg0 ** 2, 1 - arg0 ** 2]))
-        d1 = special.ellipk(cupy.array([arg1 ** 2, 1 - arg1 ** 2]))
-        n = (d0[0] * d1[1] / (d0[1] * d1[0]))
+        d0 = special.ellipk(cupy.array([arg0**2, 1 - arg0**2]))
+        d1 = special.ellipk(cupy.array([arg1**2, 1 - arg1**2]))
+        n = d0[0] * d1[1] / (d0[1] * d1[0])
     else:
         raise ValueError("Incorrect type: %s" % type)
     return n
@@ -2090,13 +2108,13 @@ def buttord(wp, ws, gpass, gstop, analog=False, fs=None):
     _validate_gpass_gstop(gpass, gstop)
     wp, ws, filter_type = _validate_wp_ws(wp, ws, fs, analog)
     passb, stopb = _pre_warp(wp, ws, analog)
-    nat, passb = _find_nat_freq(
-        stopb, passb, gpass, gstop, filter_type, 'butter')
+    nat, passb = _find_nat_freq(stopb, passb, gpass, gstop, filter_type, "butter")
 
     GSTOP = 10 ** (0.1 * cupy.abs(gstop))
     GPASS = 10 ** (0.1 * cupy.abs(gpass))
-    ord = int(cupy.ceil(cupy.log10((GSTOP - 1.0) /
-              (GPASS - 1.0)) / (2 * cupy.log10(nat))))
+    ord = int(
+        cupy.ceil(cupy.log10((GSTOP - 1.0) / (GPASS - 1.0)) / (2 * cupy.log10(nat)))
+    )
 
     # Find the Butterworth natural frequency WN (or the "3dB" frequency")
     # to give exactly gpass at passb.
@@ -2104,8 +2122,7 @@ def buttord(wp, ws, gpass, gstop, analog=False, fs=None):
         W0 = (GPASS - 1.0) ** (-1.0 / (2.0 * ord))
     except ZeroDivisionError:
         W0 = 1.0
-        warnings.warn("Order is zero...check input parameters.",
-                      RuntimeWarning, 2)
+        warnings.warn("Order is zero...check input parameters.", RuntimeWarning, 2)
 
     # now convert this frequency back from lowpass prototype
     # to the original analog filter
@@ -2116,16 +2133,15 @@ def buttord(wp, ws, gpass, gstop, analog=False, fs=None):
         WN = passb / W0
     elif filter_type == 3:  # stop
         WN = cupy.empty(2, float)
-        discr = cupy.sqrt((passb[1] - passb[0]) ** 2 +
-                          4 * W0 ** 2 * passb[0] * passb[1])
+        discr = cupy.sqrt((passb[1] - passb[0]) ** 2 + 4 * W0**2 * passb[0] * passb[1])
         WN[0] = ((passb[1] - passb[0]) + discr) / (2 * W0)
         WN[1] = ((passb[1] - passb[0]) - discr) / (2 * W0)
         WN = cupy.sort(cupy.abs(WN))
     elif filter_type == 4:  # pass
         W0 = cupy.array([-W0, W0], dtype=float)
-        WN = (-W0 * (passb[1] - passb[0]) / 2.0 +
-              cupy.sqrt(W0 ** 2 / 4.0 * (passb[1] - passb[0]) ** 2 +
-                        passb[0] * passb[1]))
+        WN = -W0 * (passb[1] - passb[0]) / 2.0 + cupy.sqrt(
+            W0**2 / 4.0 * (passb[1] - passb[0]) ** 2 + passb[0] * passb[1]
+        )
         WN = cupy.sort(cupy.abs(WN))
     else:
         raise ValueError("Bad type: %s" % filter_type)
@@ -2191,8 +2207,7 @@ def cheb1ord(wp, ws, gpass, gstop, analog=False, fs=None):
     _validate_gpass_gstop(gpass, gstop)
     wp, ws, filter_type = _validate_wp_ws(wp, ws, fs, analog)
     passb, stopb = _pre_warp(wp, ws, analog)
-    nat, passb = _find_nat_freq(
-        stopb, passb, gpass, gstop, filter_type, 'cheby')
+    nat, passb = _find_nat_freq(stopb, passb, gpass, gstop, filter_type, "cheby")
 
     GSTOP = 10 ** (0.1 * cupy.abs(gstop))
     GPASS = 10 ** (0.1 * cupy.abs(gpass))
@@ -2261,8 +2276,7 @@ def cheb2ord(wp, ws, gpass, gstop, analog=False, fs=None):
     _validate_gpass_gstop(gpass, gstop)
     wp, ws, filter_type = _validate_wp_ws(wp, ws, fs, analog)
     passb, stopb = _pre_warp(wp, ws, analog)
-    nat, passb = _find_nat_freq(
-        stopb, passb, gpass, gstop, filter_type, 'cheby')
+    nat, passb = _find_nat_freq(stopb, passb, gpass, gstop, filter_type, "cheby")
 
     GSTOP = 10 ** (0.1 * cupy.abs(gstop))
     GPASS = 10 ** (0.1 * cupy.abs(gpass))
@@ -2281,15 +2295,15 @@ def cheb2ord(wp, ws, gpass, gstop, analog=False, fs=None):
         nat = passb * new_freq
     elif filter_type == 3:
         nat = cupy.empty(2, dtype=float)
-        nat[0] = (new_freq / 2.0 * (passb[0] - passb[1]) +
-                  cupy.sqrt(new_freq ** 2 * (passb[1] - passb[0]) ** 2 / 4.0 +
-                            passb[1] * passb[0]))
+        nat[0] = new_freq / 2.0 * (passb[0] - passb[1]) + cupy.sqrt(
+            new_freq**2 * (passb[1] - passb[0]) ** 2 / 4.0 + passb[1] * passb[0]
+        )
         nat[1] = passb[1] * passb[0] / nat[0]
     elif filter_type == 4:
         nat = cupy.empty(2, dtype=float)
-        nat[0] = (1.0 / (2.0 * new_freq) * (passb[0] - passb[1]) +
-                  cupy.sqrt((passb[1] - passb[0]) ** 2 / (4.0 * new_freq ** 2)
-                            + passb[1] * passb[0]))
+        nat[0] = 1.0 / (2.0 * new_freq) * (passb[0] - passb[1]) + cupy.sqrt(
+            (passb[1] - passb[0]) ** 2 / (4.0 * new_freq**2) + passb[1] * passb[0]
+        )
         nat[1] = passb[0] * passb[1] / nat[0]
 
     wn = _postprocess_wn(nat, analog, fs)
@@ -2352,12 +2366,11 @@ def ellipord(wp, ws, gpass, gstop, analog=False, fs=None):
     _validate_gpass_gstop(gpass, gstop)
     wp, ws, filter_type = _validate_wp_ws(wp, ws, fs, analog)
     passb, stopb = _pre_warp(wp, ws, analog)
-    nat, passb = _find_nat_freq(
-        stopb, passb, gpass, gstop, filter_type, 'ellip')
+    nat, passb = _find_nat_freq(stopb, passb, gpass, gstop, filter_type, "ellip")
 
     arg1_sq = _pow10m1(0.1 * gpass) / _pow10m1(0.1 * gstop)
     arg0 = 1.0 / nat
-    d0 = special.ellipk(arg0 ** 2), special.ellipkm1(arg0 ** 2)
+    d0 = special.ellipk(arg0**2), special.ellipkm1(arg0**2)
     d1 = special.ellipk(arg1_sq), special.ellipkm1(arg1_sq)
     ord = int(cupy.ceil(d0[0] * d1[1] / (d0[1] * d1[0])))
 

@@ -1,12 +1,15 @@
 """
 Convenience interface to N-D interpolation
 """
+
 from __future__ import annotations
 
 
 import cupy
 from cupyx.scipy.interpolate._interpnd import (
-    NDInterpolatorBase, _ndim_coords_from_arrays)
+    NDInterpolatorBase,
+    _ndim_coords_from_arrays,
+)
 from cupyx.scipy.spatial import KDTree
 
 
@@ -78,9 +81,9 @@ class NearestNDInterpolator(NDInterpolatorBase):
     """
 
     def __init__(self, x, y, rescale=False, tree_options=None):
-        NDInterpolatorBase.__init__(self, x, y, rescale=rescale,
-                                    need_contiguous=False,
-                                    need_values=False)
+        NDInterpolatorBase.__init__(
+            self, x, y, rescale=rescale, need_contiguous=False, need_values=False
+        )
         if tree_options is None:
             tree_options = dict()
         self.tree = KDTree(self.points, **tree_options)
@@ -143,8 +146,7 @@ class NearestNDInterpolator(NDInterpolatorBase):
             interp_shape = flattened_shape[:-1]
 
         if cupy.issubdtype(self.values.dtype, cupy.complexfloating):
-            interp_values = cupy.full(
-                interp_shape, cupy.nan, dtype=self.values.dtype)
+            interp_values = cupy.full(interp_shape, cupy.nan, dtype=self.values.dtype)
         else:
             interp_values = cupy.full(interp_shape, cupy.nan)
 

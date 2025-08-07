@@ -82,7 +82,7 @@ def numpy_satisfies(version_range: str) -> bool:
     return installed(f"numpy{version_range}")
 
 
-def shaped_arange(shape, xp=cupy, dtype=numpy.float32, order='C'):
+def shaped_arange(shape, xp=cupy, dtype=numpy.float32, order="C"):
     """Returns an array with given shape, array module, and dtype.
 
     Args:
@@ -102,9 +102,9 @@ def shaped_arange(shape, xp=cupy, dtype=numpy.float32, order='C'):
     """
     dtype = numpy.dtype(dtype)
     a = numpy.arange(1, internal.prod(shape) + 1, 1)
-    if dtype == '?':
+    if dtype == "?":
         a = a % 2 == 0
-    elif dtype.kind == 'c':
+    elif dtype.kind == "c":
         a = a + a * 1j
     return xp.array(a.astype(dtype).reshape(shape), order=order)
 
@@ -128,15 +128,14 @@ def shaped_reverse_arange(shape, xp=cupy, dtype=numpy.float32):
     dtype = numpy.dtype(dtype)
     size = internal.prod(shape)
     a = numpy.arange(size, 0, -1)
-    if dtype == '?':
+    if dtype == "?":
         a = a % 2 == 0
-    elif dtype.kind == 'c':
+    elif dtype.kind == "c":
         a = a + a * 1j
     return xp.array(a.astype(dtype).reshape(shape))
 
 
-def shaped_random(
-        shape, xp=cupy, dtype=numpy.float32, scale=10, seed=0, order='C'):
+def shaped_random(shape, xp=cupy, dtype=numpy.float32, scale=10, seed=0, order="C"):
     """Returns an array filled with random values.
 
     Args:
@@ -160,9 +159,9 @@ def shaped_random(
     """
     numpy.random.seed(seed)
     dtype = numpy.dtype(dtype)
-    if dtype == '?':
+    if dtype == "?":
         a = numpy.random.randint(2, size=shape)
-    elif dtype.kind == 'c':
+    elif dtype.kind == "c":
         a = numpy.random.rand(*shape) + 1j * numpy.random.rand(*shape)
         a *= scale
     else:
@@ -171,8 +170,13 @@ def shaped_random(
 
 
 def shaped_sparse_random(
-        shape, sp=cupyx.scipy.sparse, dtype=numpy.float32,
-        density=0.01, format='coo', seed=0):
+    shape,
+    sp=cupyx.scipy.sparse,
+    dtype=numpy.float32,
+    density=0.01,
+    format="coo",
+    seed=0,
+):
     """Returns an array filled with random values.
 
     Args:
@@ -187,6 +191,7 @@ def shaped_sparse_random(
         The sparse matrix with given shape, array module,
     """
     import scipy.sparse
+
     n_rows, n_cols = shape
     numpy.random.seed(seed)
     a = scipy.sparse.random(n_rows, n_cols, density).astype(dtype)
@@ -194,7 +199,7 @@ def shaped_sparse_random(
     if sp is cupyx.scipy.sparse:
         a = cupyx.scipy.sparse.coo_matrix(a)
     elif sp is not scipy.sparse:
-        raise ValueError('Unknown module: {}'.format(sp))
+        raise ValueError("Unknown module: {}".format(sp))
 
     return a.asformat(format)
 
@@ -214,17 +219,16 @@ def shaped_linspace(start, stop, shape, xp=cupy, dtype=numpy.float32):
     """
     dtype = numpy.dtype(dtype)
     size = numpy.prod(shape)
-    if dtype == '?':
+    if dtype == "?":
         start = max(start, 0)
         stop = min(stop, 1)
-    elif dtype.kind == 'u':
+    elif dtype.kind == "u":
         start = max(start, 0)
     a = numpy.linspace(start, stop, size)
     return xp.array(a.astype(dtype).reshape(shape))
 
 
-def generate_matrix(
-        shape, xp=cupy, dtype=numpy.float32, *, singular_values=None):
+def generate_matrix(shape, xp=cupy, dtype=numpy.float32, *, singular_values=None):
     r"""Returns a matrix with specified singular values.
 
     Generates a random matrix with given singular values.
@@ -248,39 +252,37 @@ def generate_matrix(
     """
 
     if len(shape) <= 1:
-        raise ValueError(
-            'shape {} is invalid for matrices: too few axes'.format(shape)
-        )
+        raise ValueError("shape {} is invalid for matrices: too few axes".format(shape))
 
     if singular_values is None:
-        raise TypeError('singular_values is not given')
+        raise TypeError("singular_values is not given")
     singular_values = xp.asarray(singular_values)
 
     dtype = numpy.dtype(dtype)
-    if dtype.kind not in 'fc':
-        raise TypeError('dtype {} is not supported'.format(dtype))
+    if dtype.kind not in "fc":
+        raise TypeError("dtype {} is not supported".format(dtype))
 
     if not xp.isrealobj(singular_values):
-        raise TypeError('singular_values is not real')
+        raise TypeError("singular_values is not real")
     if (singular_values < 0).any():
-        raise ValueError('negative singular value is given')
+        raise ValueError("negative singular value is given")
 
     # Generate random matrices with given singular values. We simply generate
     # orthogonal vectors using SVD on random matrices and then combine them
     # with the given singular values.
     a = xp.random.randn(*shape)
-    if dtype.kind == 'c':
+    if dtype.kind == "c":
         a = a + 1j * xp.random.randn(*shape)
     u, s, vh = xp.linalg.svd(a, full_matrices=False)
     sv = xp.broadcast_to(singular_values, s.shape)
-    a = xp.einsum('...ik,...k,...kj->...ij', u, sv, vh)
+    a = xp.einsum("...ik,...k,...kj->...ij", u, sv, vh)
     return a.astype(dtype)
 
 
 @contextlib.contextmanager
 def assert_warns(expected):
     with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
+        warnings.simplefilter("always")
         yield
 
     if any(isinstance(m.message, expected) for m in w):
@@ -291,7 +293,7 @@ def assert_warns(expected):
     except AttributeError:
         exc_name = str(expected)
 
-    raise AssertionError('%s not triggerred' % exc_name)
+    raise AssertionError("%s not triggerred" % exc_name)
 
 
 class NumpyAliasTestBase(unittest.TestCase):
@@ -318,9 +320,9 @@ class NumpyAliasBasicTestBase(NumpyAliasTestBase):
     def test_docstring(self):
         cupy_func = self.cupy_func
         numpy_func = self.numpy_func
-        assert hasattr(cupy_func, '__doc__')
+        assert hasattr(cupy_func, "__doc__")
         assert cupy_func.__doc__ is not None
-        assert cupy_func.__doc__ != ''
+        assert cupy_func.__doc__ != ""
         assert cupy_func.__doc__ is not numpy_func.__doc__
 
 

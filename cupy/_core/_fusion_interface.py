@@ -25,18 +25,17 @@ def _set_dtype_to_astype_dict():
     global _dtype_to_astype_dict
     _dtype_to_astype_dict = {}
 
-    dtype_list = [numpy.dtype(type_char) for type_char in '?bhilqBHILQefdFD']
+    dtype_list = [numpy.dtype(type_char) for type_char in "?bhilqBHILQefdFD"]
 
     for t in dtype_list:
-        name = 'astype_{}'.format(t)
-        rules = tuple(['{}->{}'.format(s.char, t.char) for s in dtype_list])
-        command = 'out0 = static_cast< {} >(in0)'.format(get_typename(t))
+        name = "astype_{}".format(t)
+        rules = tuple(["{}->{}".format(s.char, t.char) for s in dtype_list])
+        command = "out0 = static_cast< {} >(in0)".format(get_typename(t))
         _dtype_to_astype_dict[t] = core.create_ufunc(name, rules, command)
 
 
 class _VariableProxy:
-    """Abstracted array/scalar object passed to the target function.
-    """
+    """Abstracted array/scalar object passed to the target function."""
 
     def __init__(self, content):
         assert isinstance(content, cupy._core._fusion_variable._TraceVariable)
@@ -147,11 +146,11 @@ class _VariableProxy:
     def astype(self, dtype, order=None, casting=None, subok=None, copy=True):
         dtype = get_dtype(dtype)
         if order is not None:
-            raise TypeError('order is not supported yet')
+            raise TypeError("order is not supported yet")
         if casting is not None:
-            raise TypeError('casting is not supported yet')
+            raise TypeError("casting is not supported yet")
         if subok is not None:
-            raise TypeError('subok is not supported yet')
+            raise TypeError("subok is not supported yet")
         if not copy and self.dtype == dtype:
             return self
         if _dtype_to_astype_dict is None:
@@ -159,12 +158,10 @@ class _VariableProxy:
         return _dtype_to_astype_dict[dtype](self)
 
     def sum(self, axis=None, dtype=None, out=None, keepdims=False):
-        return cupy.sum(
-            self, axis=axis, dtype=dtype, out=out, keepdims=keepdims)
+        return cupy.sum(self, axis=axis, dtype=dtype, out=out, keepdims=keepdims)
 
     def prod(self, axis=None, dtype=None, out=None, keepdims=False):
-        return cupy.prod(
-            self, axis=axis, dtype=dtype, out=out, keepdims=keepdims)
+        return cupy.prod(self, axis=axis, dtype=dtype, out=out, keepdims=keepdims)
 
     def max(self, axis=None, out=None, keepdims=False):
         return cupy.max(self, axis=axis, out=out, keepdims=keepdims)
@@ -188,19 +185,19 @@ class _VariableProxy:
 
     @property
     def shape(self):
-        raise NotImplementedError('`shape` is not supported, currently.')
+        raise NotImplementedError("`shape` is not supported, currently.")
 
     def __bool__(self):
-        raise TypeError('Cannot convert to Python scalar in cupy.fuse')
+        raise TypeError("Cannot convert to Python scalar in cupy.fuse")
 
     def __int__(self):
-        raise TypeError('Cannot convert to Python scalar in cupy.fuse')
+        raise TypeError("Cannot convert to Python scalar in cupy.fuse")
 
     def __float__(self):
-        raise TypeError('Cannot convert to Python scalar in cupy.fuse')
+        raise TypeError("Cannot convert to Python scalar in cupy.fuse")
 
     def __complex__(self):
-        raise TypeError('Cannot convert to Python scalar in cupy.fuse')
+        raise TypeError("Cannot convert to Python scalar in cupy.fuse")
 
 
 class _ScalarProxy(_VariableProxy):
@@ -214,8 +211,7 @@ class _ScalarProxy(_VariableProxy):
     """
 
     def __repr__(self):
-        return '_ScalarProxy({}, dtype={})'.format(
-            self._emit_param_name(), self.dtype)
+        return "_ScalarProxy({}, dtype={})".format(self._emit_param_name(), self.dtype)
 
 
 class _ArrayProxy(_VariableProxy):
@@ -229,8 +225,9 @@ class _ArrayProxy(_VariableProxy):
     """
 
     def __repr__(self):
-        return '_ArrayProxy([...], dtype=\'{}\', ndim={})'.format(
-            self.dtype.char, self.ndim)
+        return "_ArrayProxy([...], dtype='{}', ndim={})".format(
+            self.dtype.char, self.ndim
+        )
 
     def _inplace_op(self, ufunc, other):
         return ufunc(self, other, self)
@@ -278,9 +275,7 @@ class _ArrayProxy(_VariableProxy):
         return _fusion_thread_local.call_indexing(self, index)
 
     def __setitem__(self, slices, value):
-        if slices is Ellipsis or (
-                isinstance(slices, slice) and slices == slice(None)):
-            _fusion_thread_local.call_ufunc(
-                core.elementwise_copy, value, out=self)
+        if slices is Ellipsis or (isinstance(slices, slice) and slices == slice(None)):
+            _fusion_thread_local.call_ufunc(core.elementwise_copy, value, out=self)
         else:
-            raise ValueError('The fusion supports `[...]` or `[:]`.')
+            raise ValueError("The fusion supports `[...]` or `[:]`.")

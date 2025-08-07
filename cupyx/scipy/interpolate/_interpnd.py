@@ -8,13 +8,13 @@ from cupyx.scipy.spatial._delaunay import Delaunay
 import warnings
 
 
-TYPES = ['double', 'thrust::complex<double>']
+TYPES = ["double", "thrust::complex<double>"]
 
 
 def _get_module_func(module, func_name, *template_args):
     args_dtypes = [get_typename(arg.dtype) for arg in template_args]
-    template = ', '.join(args_dtypes)
-    kernel_name = f'{func_name}<{template}>' if template_args else func_name
+    template = ", ".join(args_dtypes)
+    kernel_name = f"{func_name}<{template}>" if template_args else func_name
     kernel = module.get_function(kernel_name)
     return kernel
 
@@ -30,8 +30,7 @@ def _ndim_coords_from_arrays(points, ndim=None):
         n = len(p)
         for j in range(1, n):
             if p[j].shape != p[0].shape:
-                raise ValueError(
-                    "coordinate arrays do not have the same shape")
+                raise ValueError("coordinate arrays do not have the same shape")
         points = cupy.empty(p[0].shape + (len(points),), dtype=float)
         for j, item in enumerate(p):
             points[..., j] = item
@@ -56,15 +55,24 @@ def _check_init_shape(points, values, ndim=None):
     if points.shape[1] < 2:
         raise ValueError("input data must be at least 2-D")
     if ndim is not None and points.shape[1] != ndim:
-        raise ValueError("this mode of interpolation available only for "
-                         "%d-D data" % ndim)
+        raise ValueError(
+            "this mode of interpolation available only for " "%d-D data" % ndim
+        )
 
 
 class NDInterpolatorBase:
     """Common routines for interpolators."""
 
-    def __init__(self, points, values, fill_value=cupy.nan, ndim=None,
-                 rescale=False, need_contiguous=True, need_values=True):
+    def __init__(
+        self,
+        points,
+        values,
+        fill_value=cupy.nan,
+        ndim=None,
+        rescale=False,
+        need_contiguous=True,
+        need_values=True,
+    ):
         """
         Check shape of points and values arrays, and reshape values to
         (npoints, nvalues).  Ensure the `points` and values arrays are
@@ -74,8 +82,10 @@ class NDInterpolatorBase:
         if isinstance(points, Delaunay):
             # Precomputed triangulation was passed in
             if rescale:
-                raise ValueError("Rescaling is not supported when passing "
-                                 "a Delaunay triangulation as ``points``.")
+                raise ValueError(
+                    "Rescaling is not supported when passing "
+                    "a Delaunay triangulation as ``points``."
+                )
             self.tri = points
             points = points.points
         else:
@@ -107,8 +117,7 @@ class NDInterpolatorBase:
     def _calculate_triangulation(self, points):
         pass
 
-    def _set_values(self, values, fill_value=cupy.nan,
-                    need_contiguous=True, ndim=None):
+    def _set_values(self, values, fill_value=cupy.nan, need_contiguous=True, ndim=None):
         values = cupy.asarray(values)
         _check_init_shape(self.points, values, ndim=ndim)
 
@@ -118,25 +127,18 @@ class NDInterpolatorBase:
         elif values.ndim == 2:
             self.values = values
         else:
-            self.values = values.reshape(values.shape[0],
-                                         cupy.prod(values.shape[1:]))
+            self.values = values.reshape(values.shape[0], cupy.prod(values.shape[1:]))
 
         # Complex or real?
-        self.is_complex = cupy.issubdtype(
-            self.values.dtype, cupy.complexfloating)
+        self.is_complex = cupy.issubdtype(self.values.dtype, cupy.complexfloating)
         if self.is_complex:
             if need_contiguous:
-                self.values = cupy.ascontiguousarray(self.values,
-                                                     dtype=cupy.complex128)
-            self.fill_value = cupy.asarray(
-                complex(fill_value), dtype=cupy.complex128)
+                self.values = cupy.ascontiguousarray(self.values, dtype=cupy.complex128)
+            self.fill_value = cupy.asarray(complex(fill_value), dtype=cupy.complex128)
         else:
             if need_contiguous:
-                self.values = cupy.ascontiguousarray(
-                    self.values, dtype=cupy.float64
-                )
-            self.fill_value = cupy.asarray(
-                float(fill_value), dtype=cupy.float64)
+                self.values = cupy.ascontiguousarray(self.values, dtype=cupy.float64)
+            self.fill_value = cupy.asarray(float(fill_value), dtype=cupy.float64)
 
     def _check_call_shape(self, xi):
         xi = cupy.asanyarray(xi)
@@ -182,7 +184,8 @@ class NDInterpolatorBase:
             r = self._evaluate_double(xi)
 
         return cupy.asarray(r).reshape(
-            interpolation_points_shape[:-1] + self.values_shape)
+            interpolation_points_shape[:-1] + self.values_shape
+        )
 
 
 # -----------------------------------------------------------------------------
@@ -231,8 +234,10 @@ __global__ void evaluate_linear_nd_interp(
 """
 
 LINEAR_INTERP_ND_MODULE = cupy.RawModule(
-    code=LINEAR_INTERP_ND_DEF, options=('-std=c++11',),
-    name_expressions=[f'evaluate_linear_nd_interp<{t}>' for t in TYPES])
+    code=LINEAR_INTERP_ND_DEF,
+    options=("-std=c++11",),
+    name_expressions=[f"evaluate_linear_nd_interp<{t}>" for t in TYPES],
+)
 
 
 class LinearNDInterpolator(NDInterpolatorBase):
@@ -313,7 +318,8 @@ class LinearNDInterpolator(NDInterpolatorBase):
 
     def __init__(self, points, values, fill_value=cupy.nan, rescale=False):
         NDInterpolatorBase.__init__(
-            self, points, values, fill_value=fill_value, rescale=rescale)
+            self, points, values, fill_value=fill_value, rescale=rescale
+        )
 
     def _calculate_triangulation(self, points):
         self.tri = Delaunay(points)
@@ -329,19 +335,30 @@ class LinearNDInterpolator(NDInterpolatorBase):
         ndim = xi.shape[1]
         fill_value = self.fill_value
 
-        out = cupy.empty((xi.shape[0], self.values.shape[1]),
-                         dtype=self.values.dtype)
+        out = cupy.empty((xi.shape[0], self.values.shape[1]), dtype=self.values.dtype)
         nvalues = out.shape[1]
 
         _eval_linear_nd_interp = _get_module_func(
-            LINEAR_INTERP_ND_MODULE, 'evaluate_linear_nd_interp', out)
+            LINEAR_INTERP_ND_MODULE, "evaluate_linear_nd_interp", out
+        )
 
         block_sz = 128
         n_blocks = (xi.shape[0] + block_sz - 1) // block_sz
         _eval_linear_nd_interp(
-            (n_blocks,), (block_sz,),
-            (int(xi.shape[0]), int(ndim), int(nvalues), fill_value,
-             isimplices, self.tri.simplices, c, self.values, out))
+            (n_blocks,),
+            (block_sz,),
+            (
+                int(xi.shape[0]),
+                int(ndim),
+                int(nvalues),
+                fill_value,
+                isimplices,
+                self.tri.simplices,
+                c,
+                self.values,
+                out,
+            ),
+        )
 
         return out
 
@@ -637,17 +654,17 @@ __global__ void clough_tocher_2d(
 """
 
 CT_MODULE = cupy.RawModule(
-    code=CT_DEF, options=('-std=c++11',),
-    name_expressions=['estimate_gradients_2d'] +
-                     [f'clough_tocher_2d<{t}>' for t in TYPES])
+    code=CT_DEF,
+    options=("-std=c++11",),
+    name_expressions=["estimate_gradients_2d"]
+    + [f"clough_tocher_2d<{t}>" for t in TYPES],
+)
 
 
 def estimate_gradients_2d_global(tri, y, maxiter=400, tol=1e-6):
     if cupy.issubdtype(y.dtype, cupy.complexfloating):
-        rg = estimate_gradients_2d_global(
-            tri, y.real, maxiter=maxiter, tol=tol)
-        ig = estimate_gradients_2d_global(
-            tri, y.imag, maxiter=maxiter, tol=tol)
+        rg = estimate_gradients_2d_global(tri, y.real, maxiter=maxiter, tol=tol)
+        ig = estimate_gradients_2d_global(tri, y.imag, maxiter=maxiter, tol=tol)
         r = cupy.zeros(rg.shape, dtype=cupy.complex128)
         r.real = rg
         r.imag = ig
@@ -663,16 +680,27 @@ def estimate_gradients_2d_global(tri, y, maxiter=400, tol=1e-6):
     y = cupy.ascontiguousarray(y, dtype=cupy.float64)
 
     err = cupy.zeros(512, dtype=cupy.float64)
-    grad = cupy.zeros((y.shape[0], indptr.shape[0] - 1, 2),
-                      dtype=cupy.float64)
-    prev_grad = cupy.zeros((y.shape[0], indptr.shape[0] - 1, 2),
-                           dtype=cupy.float64)
+    grad = cupy.zeros((y.shape[0], indptr.shape[0] - 1, 2), dtype=cupy.float64)
+    prev_grad = cupy.zeros((y.shape[0], indptr.shape[0] - 1, 2), dtype=cupy.float64)
 
-    estimate_gradients_2d = CT_MODULE.get_function('estimate_gradients_2d')
+    estimate_gradients_2d = CT_MODULE.get_function("estimate_gradients_2d")
     for iter in range(maxiter):
-        estimate_gradients_2d((512,), (128,), (
-            tri.points, grad.shape[1], y, y.shape[0], indptr, indices,
-            float(tol), err, prev_grad, grad))
+        estimate_gradients_2d(
+            (512,),
+            (128,),
+            (
+                tri.points,
+                grad.shape[1],
+                y,
+                y.shape[0],
+                indptr,
+                indices,
+                float(tol),
+                err,
+                prev_grad,
+                grad,
+            ),
+        )
 
         all_converged = (cupy.max(err) < tol).item()
         if all_converged:
@@ -682,8 +710,9 @@ def estimate_gradients_2d_global(tri, y, maxiter=400, tol=1e-6):
         err.fill(0)
 
     if iter == maxiter - 1:
-        warnings.warn("Gradient estimation did not converge, "
-                      "the results may be inaccurate")
+        warnings.warn(
+            "Gradient estimation did not converge, " "the results may be inaccurate"
+        )
 
     return grad.transpose(1, 0, 2).reshape(y_shape + (2,))
 
@@ -790,16 +819,22 @@ class CloughTocher2DInterpolator(NDInterpolatorBase):
        Rocky Mountain J. Math., 14, 223 (1984).
     """
 
-    def __init__(self, points, values, fill_value=cupy.nan,
-                 tol=1e-6, maxiter=400, rescale=False):
+    def __init__(
+        self, points, values, fill_value=cupy.nan, tol=1e-6, maxiter=400, rescale=False
+    ):
         self._tol = tol
         self._maxiter = maxiter
-        NDInterpolatorBase.__init__(self, points, values, ndim=2,
-                                    fill_value=fill_value, rescale=rescale,
-                                    need_values=False)
+        NDInterpolatorBase.__init__(
+            self,
+            points,
+            values,
+            ndim=2,
+            fill_value=fill_value,
+            rescale=rescale,
+            need_values=False,
+        )
 
-    def _set_values(self, values, fill_value=cupy.nan,
-                    need_contiguous=True, ndim=None):
+    def _set_values(self, values, fill_value=cupy.nan, need_contiguous=True, ndim=None):
         """
         Sets the values of the interpolation points.
 
@@ -809,12 +844,17 @@ class CloughTocher2DInterpolator(NDInterpolatorBase):
             Data values.
         """
         NDInterpolatorBase._set_values(
-            self, values, fill_value=fill_value,
-            need_contiguous=need_contiguous, ndim=ndim)
+            self,
+            values,
+            fill_value=fill_value,
+            need_contiguous=need_contiguous,
+            ndim=ndim,
+        )
 
         if self.values is not None:
             self.grad = estimate_gradients_2d_global(
-                self.tri, self.values, tol=self._tol, maxiter=self._maxiter)
+                self.tri, self.values, tol=self._tol, maxiter=self._maxiter
+            )
 
     def _calculate_triangulation(self, points):
         self.tri = Delaunay(points)
@@ -829,14 +869,25 @@ class CloughTocher2DInterpolator(NDInterpolatorBase):
         isimplices, c = self._find_simplicies(xi)
         fill_value = self.fill_value
 
-        out = cupy.zeros((xi.shape[0], self.values.shape[1]),
-                         dtype=self.values.dtype)
+        out = cupy.zeros((xi.shape[0], self.values.shape[1]), dtype=self.values.dtype)
 
-        clough_tocher_2d = _get_module_func(
-            CT_MODULE, 'clough_tocher_2d', self.values)
-        clough_tocher_2d((512,), (128,), (
-            self.tri.points, self.tri.points.shape[0], self.tri.simplices,
-            self.tri.neighbors, isimplices, c, xi.shape[0], self.values,
-            self.values.shape[1], self.grad, fill_value, out
-        ))
+        clough_tocher_2d = _get_module_func(CT_MODULE, "clough_tocher_2d", self.values)
+        clough_tocher_2d(
+            (512,),
+            (128,),
+            (
+                self.tri.points,
+                self.tri.points.shape[0],
+                self.tri.simplices,
+                self.tri.neighbors,
+                isimplices,
+                c,
+                xi.shape[0],
+                self.values,
+                self.values.shape[1],
+                self.grad,
+                fill_value,
+                out,
+            ),
+        )
         return out

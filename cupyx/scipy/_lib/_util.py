@@ -13,9 +13,14 @@ def float_factorial(n):
     return float(math.factorial(n)) if n < 171 else cupy.inf
 
 
-def _asarray_validated(a, check_finite=True,
-                       sparse_ok=False, objects_ok=False, mask_ok=False,
-                       as_inexact=False):
+def _asarray_validated(
+    a,
+    check_finite=True,
+    sparse_ok=False,
+    objects_ok=False,
+    mask_ok=False,
+    as_inexact=False,
+):
     """Helper function for SciPy argument validation.
 
     Many CuPy linear algebra functions do support arbitrary array-like
@@ -51,10 +56,13 @@ def _asarray_validated(a, check_finite=True,
 
     if not sparse_ok:
         import cupyx.scipy.sparse
+
         if cupyx.scipy.sparse.issparse(a):
-            msg = ('Sparse matrices are not supported by this function. '
-                   'Perhaps one of the cupyx.scipy.sparse.linalg functions '
-                   'would work instead.')
+            msg = (
+                "Sparse matrices are not supported by this function. "
+                "Perhaps one of the cupyx.scipy.sparse.linalg functions "
+                "would work instead."
+            )
             raise ValueError(msg)
 
     # TODO: remove these comments when CuPy supports masked arrays

@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 
 import numpy
+
 try:
     import scipy
 except ImportError:
@@ -21,7 +22,7 @@ def linspace_data_gen(start, stop, n, endpoint=False, dtype=numpy.float64):
     return cpu_sig, gpu_sig
 
 
-@pytest.mark.parametrize('dtype', [cupy.float32, cupy.float64])
+@pytest.mark.parametrize("dtype", [cupy.float32, cupy.float64])
 @pytest.mark.parametrize("num_samps", [2**14, 2**18])
 @pytest.mark.parametrize("filter_len", [8, 32, 128])
 @testing.with_requires("scipy")
@@ -34,7 +35,7 @@ def test_firfilter(dtype, num_samps, filter_len):
     testing.assert_allclose(gpu_output, cpu_output, atol=1e-3, rtol=1e-3)
 
 
-@pytest.mark.parametrize('dtype', [cupy.float32, cupy.float64])
+@pytest.mark.parametrize("dtype", [cupy.float32, cupy.float64])
 @pytest.mark.parametrize("filter_len", [8, 32, 128])
 @testing.with_requires("scipy")
 def test_firfilter_zi(dtype, filter_len):
@@ -47,7 +48,7 @@ def test_firfilter_zi(dtype, filter_len):
     assert cupy.real(gpu_output).dtype == dtype
 
 
-@pytest.mark.parametrize('dtype', [cupy.float32, cupy.float64])
+@pytest.mark.parametrize("dtype", [cupy.float32, cupy.float64])
 @pytest.mark.parametrize("num_samps", [2**14, 2**18])
 @pytest.mark.parametrize("filter_len", [8, 32, 128])
 @pytest.mark.parametrize("padtype", ["odd", "even", "constant"])
@@ -132,8 +133,8 @@ def channelize_poly_cpu(x, h, n_chans):
 
     # instead of n_chans here, this could be channel separation
     for i, nn in enumerate(range(0, len(x), n_chans)):
-        reg[:, 1:n_taps] = reg[:, 0: (n_taps - 1)]
-        reg[:, 0] = numpy.conj(numpy.flipud(x[nn: (nn + n_chans)]))
+        reg[:, 1:n_taps] = reg[:, 0 : (n_taps - 1)]
+        reg[:, 0] = numpy.conj(numpy.flipud(x[nn : (nn + n_chans)]))
         for mm in range(n_chans):
             vv[mm] = numpy.dot(reg[mm, :], numpy.atleast_2d(h[mm, :]).T)[0]
 
@@ -144,7 +145,8 @@ def channelize_poly_cpu(x, h, n_chans):
 
 @pytest.mark.skipif(
     cupy.cuda.runtime.runtimeGetVersion() < 11040,
-    reason='Requires CUDA 11.4 or greater')
+    reason="Requires CUDA 11.4 or greater",
+)
 @pytest.mark.parametrize(
     "dtype", [cupy.float32, cupy.float64, cupy.complex64, cupy.complex128]
 )

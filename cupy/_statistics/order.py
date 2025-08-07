@@ -40,9 +40,11 @@ def amin(a, axis=None, out=None, keepdims=False):
     if _fusion_thread_local.is_fusing():
         if keepdims:
             raise NotImplementedError(
-                'cupy.amin does not support `keepdims` in fusion yet.')
+                "cupy.amin does not support `keepdims` in fusion yet."
+            )
         return _fusion_thread_local.call_reduction(
-            _statistics.amin, a, axis=axis, out=out)
+            _statistics.amin, a, axis=axis, out=out
+        )
 
     # TODO(okuta): check type
     return a.min(axis=axis, out=out, keepdims=keepdims)
@@ -77,9 +79,11 @@ def amax(a, axis=None, out=None, keepdims=False):
     if _fusion_thread_local.is_fusing():
         if keepdims:
             raise NotImplementedError(
-                'cupy.amax does not support `keepdims` in fusion yet.')
+                "cupy.amax does not support `keepdims` in fusion yet."
+            )
         return _fusion_thread_local.call_reduction(
-            _statistics.amax, a, axis=axis, out=out)
+            _statistics.amax, a, axis=axis, out=out
+        )
 
     # TODO(okuta): check type
     return a.max(axis=axis, out=out, keepdims=keepdims)
@@ -112,7 +116,7 @@ def nanmin(a, axis=None, out=None, keepdims=False):
     # TODO(niboshi): Avoid synchronization.
     res = _core.nanmin(a, axis=axis, out=out, keepdims=keepdims)
     if content.isnan(res).any():  # synchronize!
-        warnings.warn('All-NaN slice encountered', RuntimeWarning)
+        warnings.warn("All-NaN slice encountered", RuntimeWarning)
     return res
 
 
@@ -143,7 +147,7 @@ def nanmax(a, axis=None, out=None, keepdims=False):
     # TODO(niboshi): Avoid synchronization.
     res = _core.nanmax(a, axis=axis, out=out, keepdims=keepdims)
     if content.isnan(res).any():  # synchronize!
-        warnings.warn('All-NaN slice encountered', RuntimeWarning)
+        warnings.warn("All-NaN slice encountered", RuntimeWarning)
     return res
 
 
@@ -178,10 +182,9 @@ def ptp(a, axis=None, out=None, keepdims=False):
     return a.ptp(axis=axis, out=out, keepdims=keepdims)
 
 
-def _quantile_unchecked(a, q, axis=None, out=None,
-                        overwrite_input=False,
-                        method='linear',
-                        keepdims=False):
+def _quantile_unchecked(
+    a, q, axis=None, out=None, overwrite_input=False, method="linear", keepdims=False
+):
     dtype = cupy.result_type(a, q)
     q = cupy.asarray(q)
 
@@ -191,10 +194,11 @@ def _quantile_unchecked(a, q, axis=None, out=None,
     else:
         zerod = False
     if q.ndim > 1:
-        raise ValueError('Expected q to have a dimension of 1.\n'
-                         'Actual: {} != 1'.format(q.ndim))
+        raise ValueError(
+            "Expected q to have a dimension of 1.\n" "Actual: {} != 1".format(q.ndim)
+        )
     if isinstance(axis, int):
-        axis = axis,
+        axis = (axis,)
     if keepdims:
         if axis is None:
             keepdim = (1,) * a.ndim
@@ -224,28 +228,38 @@ def _quantile_unchecked(a, q, axis=None, out=None,
     axis = -1
     ap.sort(axis=axis)
     Nx = ap.shape[axis]
-    indices = q * (Nx - 1.)
+    indices = q * (Nx - 1.0)
 
-    if method in ['inverted_cdf', 'averaged_inverted_cdf',
-                  'closest_observation', 'interpolated_inverted_cdf',
-                  'hazen', 'weibull', 'median_unbiased', 'normal_unbiased']:
+    if method in [
+        "inverted_cdf",
+        "averaged_inverted_cdf",
+        "closest_observation",
+        "interpolated_inverted_cdf",
+        "hazen",
+        "weibull",
+        "median_unbiased",
+        "normal_unbiased",
+    ]:
         # TODO(takagi) Implement new methods introduced in NumPy 1.22
-        raise ValueError(f'\'{method}\' method is not yet supported. '
-                         'Please use any other method.')
-    elif method == 'lower':
+        raise ValueError(
+            f"'{method}' method is not yet supported. " "Please use any other method."
+        )
+    elif method == "lower":
         indices = cupy.floor(indices).astype(cupy.int32)
-    elif method == 'higher':
+    elif method == "higher":
         indices = cupy.ceil(indices).astype(cupy.int32)
-    elif method == 'midpoint':
+    elif method == "midpoint":
         indices = 0.5 * (cupy.floor(indices) + cupy.ceil(indices))
-    elif method == 'nearest':
+    elif method == "nearest":
         indices = cupy.around(indices).astype(cupy.int32)
-    elif method == 'linear':
+    elif method == "linear":
         pass
     else:
-        raise ValueError('Unexpected interpolation method.\n'
-                         'Actual: \'{}\' not in (\'linear\', \'lower\', '
-                         '\'higher\', \'midpoint\')'.format(method))
+        raise ValueError(
+            "Unexpected interpolation method.\n"
+            "Actual: '{}' not in ('linear', 'lower', "
+            "'higher', 'midpoint')".format(method)
+        )
 
     if indices.dtype == cupy.int32:
         ret = cupy.rollaxis(ap, axis)
@@ -257,8 +271,9 @@ def _quantile_unchecked(a, q, axis=None, out=None,
             ret = cupy.rollaxis(out, 0, out.ndim)
 
         cupy.ElementwiseKernel(
-            'S idx, raw T a, raw int32 offset, raw int32 size', 'U ret',
-            '''
+            "S idx, raw T a, raw int32 offset, raw int32 size",
+            "U ret",
+            """
             ptrdiff_t idx_below = floor(idx);
             U weight_above = idx - idx_below;
 
@@ -273,8 +288,8 @@ def _quantile_unchecked(a, q, axis=None, out=None,
             } else {
                 ret = a[offset_top] - diff * (1 - weight_above);
             }
-            ''',
-            'cupy_percentile_weightnening'
+            """,
+            "cupy_percentile_weightnening",
         )(indices, ap, ap.shape[-1] if ap.ndim > 1 else 0, ap.size, ret)
         ret = cupy.rollaxis(ret, -1)  # Roll q dimension back to first axis
 
@@ -293,12 +308,17 @@ def _quantile_is_valid(q):
     return xp.count_nonzero(0.0 <= q) and xp.count_nonzero(q <= 1.0)
 
 
-def percentile(a, q, axis=None, out=None,
-               overwrite_input=False,
-               method='linear',
-               keepdims=False,
-               *,
-               interpolation=None):
+def percentile(
+    a,
+    q,
+    axis=None,
+    out=None,
+    overwrite_input=False,
+    method="linear",
+    keepdims=False,
+    *,
+    interpolation=None,
+):
     """Computes the q-th percentile of the data along the specified axis.
 
     Args:
@@ -326,28 +346,36 @@ def percentile(a, q, axis=None, out=None,
     .. seealso:: :func:`numpy.percentile`
     """
     if interpolation is not None:
-        method = _check_interpolation_as_method(
-            method, interpolation, 'percentile')
+        method = _check_interpolation_as_method(method, interpolation, "percentile")
     if isinstance(q, (tuple, list)):
         # float is intentionally excluded here to compute the correct output
         # dtype in _quantile_unchecked
         q = numpy.asarray(q)
     q = q / 100
     if not _quantile_is_valid(q):  # synchronize if `q` is of cupy.ndarray
-        raise ValueError('Percentiles must be in the range [0, 100]')
+        raise ValueError("Percentiles must be in the range [0, 100]")
     return _quantile_unchecked(
-        a, q, axis=axis, out=out,
+        a,
+        q,
+        axis=axis,
+        out=out,
         overwrite_input=overwrite_input,
         method=method,
-        keepdims=keepdims)
+        keepdims=keepdims,
+    )
 
 
-def quantile(a, q, axis=None, out=None,
-             overwrite_input=False,
-             method='linear',
-             keepdims=False,
-             *,
-             interpolation=None):
+def quantile(
+    a,
+    q,
+    axis=None,
+    out=None,
+    overwrite_input=False,
+    method="linear",
+    keepdims=False,
+    *,
+    interpolation=None,
+):
     """Computes the q-th quantile of the data along the specified axis.
 
     Args:
@@ -375,19 +403,22 @@ def quantile(a, q, axis=None, out=None,
     .. seealso:: :func:`numpy.quantile`
     """
     if interpolation is not None:
-        method = _check_interpolation_as_method(
-            method, interpolation, 'quantile')
+        method = _check_interpolation_as_method(method, interpolation, "quantile")
     if isinstance(q, (tuple, list)):
         # float is intentionally excluded here to compute the correct output
         # dtype in _quantile_unchecked
         q = numpy.asarray(q)
     if not _quantile_is_valid(q):  # synchronize if `q` is of cupy.ndarray
-        raise ValueError('Quantiles must be in the range [0, 1]')
+        raise ValueError("Quantiles must be in the range [0, 1]")
     return _quantile_unchecked(
-        a, q, axis=axis, out=out,
+        a,
+        q,
+        axis=axis,
+        out=out,
         overwrite_input=overwrite_input,
         method=method,
-        keepdims=keepdims)
+        keepdims=keepdims,
+    )
 
 
 # Borrowd from NumPy
@@ -399,10 +430,13 @@ def _check_interpolation_as_method(method, interpolation, fname):
         "Users of the modes 'nearest', 'lower', 'higher', or "
         "'midpoint' are encouraged to review the method they. "
         "(Deprecated NumPy 1.22)",
-        DeprecationWarning, stacklevel=3)
+        DeprecationWarning,
+        stacklevel=3,
+    )
     if method != "linear":
         # sanity check, we assume this basically never happens
         raise TypeError(
             "You shall not pass both `method` and `interpolation`!\n"
-            "(`interpolation` is Deprecated in favor of `method`)")
+            "(`interpolation` is Deprecated in favor of `method`)"
+        )
     return interpolation

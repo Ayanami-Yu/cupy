@@ -22,7 +22,7 @@ def column_stack(tup):
 
     """
     if any(not isinstance(a, cupy.ndarray) for a in tup):
-        raise TypeError('Only cupy arrays can be column stacked')
+        raise TypeError("Only cupy arrays can be column stacked")
 
     lst = list(tup)
     for i, a in enumerate(lst):
@@ -30,13 +30,12 @@ def column_stack(tup):
             a = a[:, cupy.newaxis]
             lst[i] = a
         elif a.ndim != 2:
-            raise ValueError(
-                'Only 1 or 2 dimensional arrays can be column stacked')
+            raise ValueError("Only 1 or 2 dimensional arrays can be column stacked")
 
     return concatenate(lst, axis=1)
 
 
-def concatenate(tup, axis=0, out=None, *, dtype=None, casting='same_kind'):
+def concatenate(tup, axis=0, out=None, *, dtype=None, casting="same_kind"):
     """Joins arrays along an axis.
 
     Args:
@@ -80,7 +79,7 @@ def dstack(tup):
     return concatenate([cupy.atleast_3d(m) for m in tup], 2)
 
 
-def hstack(tup, *, dtype=None, casting='same_kind'):
+def hstack(tup, *, dtype=None, casting="same_kind"):
     """Stacks arrays horizontally.
 
     If an input array has one dimension, then the array is treated as a
@@ -108,7 +107,7 @@ def hstack(tup, *, dtype=None, casting='same_kind'):
     return concatenate(arrs, axis, dtype=dtype, casting=casting)
 
 
-def vstack(tup, *, dtype=None, casting='same_kind'):
+def vstack(tup, *, dtype=None, casting="same_kind"):
     """Stacks arrays vertically.
 
     If an input array has one dimension, then the array is treated as a
@@ -130,21 +129,21 @@ def vstack(tup, *, dtype=None, casting='same_kind'):
     .. seealso:: :func:`numpy.dstack`
 
     """
-    return concatenate([cupy.atleast_2d(m) for m in tup], 0,
-                       dtype=dtype, casting=casting)
+    return concatenate(
+        [cupy.atleast_2d(m) for m in tup], 0, dtype=dtype, casting=casting
+    )
 
 
-def row_stack(tup, *, dtype=None, casting='same_kind'):
+def row_stack(tup, *, dtype=None, casting="same_kind"):
     warnings.warn(
-        "`row_stack` alias is deprecated. "
-        "Use `cp.vstack` directly.",
+        "`row_stack` alias is deprecated. " "Use `cp.vstack` directly.",
         DeprecationWarning,
-        stacklevel=1
+        stacklevel=1,
     )
     return vstack(tup, dtype=dtype, casting=casting)
 
 
-def stack(tup, axis=0, out=None, *, dtype=None, casting='same_kind'):
+def stack(tup, axis=0, out=None, *, dtype=None, casting="same_kind"):
     """Stacks arrays along a new axis.
 
     Args:
@@ -162,5 +161,10 @@ def stack(tup, axis=0, out=None, *, dtype=None, casting='same_kind'):
 
     .. seealso:: :func:`numpy.stack`
     """
-    return concatenate([cupy.expand_dims(x, axis) for x in tup], axis, out,
-                       dtype=dtype, casting=casting)
+    return concatenate(
+        [cupy.expand_dims(x, axis) for x in tup],
+        axis,
+        out,
+        dtype=dtype,
+        casting=casting,
+    )

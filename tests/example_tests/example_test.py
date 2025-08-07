@@ -14,15 +14,14 @@ def run_example(path, *args):
     mempool.free_all_blocks()
     pinned_mempool.free_all_blocks()
 
-    examples_path = os.path.join(
-        os.path.dirname(__file__), '..', '..', 'examples')
+    examples_path = os.path.join(os.path.dirname(__file__), "..", "..", "examples")
     fullpath = os.path.join(examples_path, path)
 
     try:
         return subprocess.check_output(
-            (sys.executable, fullpath) + args,
-            stderr=subprocess.STDOUT)
+            (sys.executable, fullpath) + args, stderr=subprocess.STDOUT
+        )
     except subprocess.CalledProcessError as e:
-        print('Original error message:')
-        print(e.output.decode('utf-8'))
+        print("Original error message:")
+        print(e.output.decode("utf-8"))
         raise

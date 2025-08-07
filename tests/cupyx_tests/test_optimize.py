@@ -14,8 +14,9 @@ from cupy._core import _accelerator
 
 try:
     import warnings
+
     with warnings.catch_warnings():
-        warnings.filterwarnings('ignore', category=DeprecationWarning)
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
         import cupyx.optimizing
         import cupyx.optimizing._optimize
         import cupy._core._optimize_config
@@ -23,7 +24,7 @@ except ImportError:
     pass
 
 
-@testing.with_requires('optuna')
+@testing.with_requires("optuna")
 class TestOptimize(unittest.TestCase):
 
     def setUp(self):
@@ -31,7 +32,8 @@ class TestOptimize(unittest.TestCase):
 
     def test_optimize_reduction_kernel(self):
         my_sum = cupy.ReductionKernel(
-            'T x', 'T out', 'x', 'a + b', 'out = a', '0', 'my_sum')
+            "T x", "T out", "x", "a + b", "out = a", "0", "my_sum"
+        )
         x = testing.shaped_arange((3, 4), cupy)
         y1 = my_sum(x, axis=1)
         with cupyx.optimizing.optimize():
@@ -39,18 +41,19 @@ class TestOptimize(unittest.TestCase):
         testing.assert_array_equal(y1, y2)
 
     def test_optimize_cache(self):
-        if (_accelerator.ACCELERATOR_CUB
-                in _accelerator.get_reduction_accelerators()):
-            pytest.skip('optimize cannot be mocked for CUB reduction')
+        if _accelerator.ACCELERATOR_CUB in _accelerator.get_reduction_accelerators():
+            pytest.skip("optimize cannot be mocked for CUB reduction")
 
         target = cupyx.optimizing._optimize._optimize
-        target_full_name = '{}.{}'.format(target.__module__, target.__name__)
+        target_full_name = "{}.{}".format(target.__module__, target.__name__)
 
         with mock.patch(target_full_name) as optimize_impl:
             my_sum = cupy.ReductionKernel(
-                'T x', 'T out', 'x', 'a + b', 'out = a', '0', 'my_sum')
+                "T x", "T out", "x", "a + b", "out = a", "0", "my_sum"
+            )
             my_sum_ = cupy.ReductionKernel(
-                'T x', 'T out', 'x', 'a + b', 'out = a', '0', 'my_sum_')
+                "T x", "T out", "x", "a + b", "out = a", "0", "my_sum_"
+            )
             x = testing.shaped_arange((3, 4), cupy)
             x_ = testing.shaped_arange((3, 4), cupy)
             y = testing.shaped_arange((4, 4), cupy)
@@ -74,7 +77,7 @@ class TestOptimize(unittest.TestCase):
                 my_sum_(x, axis=1)
                 assert optimize_impl.call_count == 5
 
-            with cupyx.optimizing.optimize(key='new_key'):
+            with cupyx.optimizing.optimize(key="new_key"):
                 my_sum(x, axis=1)
                 assert optimize_impl.call_count == 6
 
@@ -86,16 +89,16 @@ class TestOptimize(unittest.TestCase):
 
     @testing.multi_gpu(2)
     def test_optimize_cache_multi_gpus(self):
-        if (_accelerator.ACCELERATOR_CUB
-                in _accelerator.get_reduction_accelerators()):
-            pytest.skip('optimize cannot be mocked for CUB reduction')
+        if _accelerator.ACCELERATOR_CUB in _accelerator.get_reduction_accelerators():
+            pytest.skip("optimize cannot be mocked for CUB reduction")
 
         target = cupyx.optimizing._optimize._optimize
-        target_full_name = '{}.{}'.format(target.__module__, target.__name__)
+        target_full_name = "{}.{}".format(target.__module__, target.__name__)
 
         with mock.patch(target_full_name) as optimize_impl:
             my_sum = cupy.ReductionKernel(
-                'T x', 'T out', 'x', 'a + b', 'out = a', '0', 'my_sum')
+                "T x", "T out", "x", "a + b", "out = a", "0", "my_sum"
+            )
 
             with cupyx.optimizing.optimize():
                 with cupy.cuda.Device(0):
@@ -110,11 +113,12 @@ class TestOptimize(unittest.TestCase):
 
     def test_optimize_pickle(self):
         my_sum = cupy.ReductionKernel(
-            'T x', 'T out', 'x', 'a + b', 'out = a', '0', 'my_sum')
+            "T x", "T out", "x", "a + b", "out = a", "0", "my_sum"
+        )
         x = testing.shaped_arange((3, 4), cupy)
 
         with tempfile.TemporaryDirectory() as directory:
-            filepath = directory + '/optimize_params'
+            filepath = directory + "/optimize_params"
 
             with cupyx.optimizing.optimize() as context:
                 my_sum(x, axis=1)
@@ -128,13 +132,13 @@ class TestOptimize(unittest.TestCase):
                 context.load(filepath)
                 assert params_map.keys() == context._params_map.keys()
 
-            with cupyx.optimizing.optimize(key='other_key') as context:
+            with cupyx.optimizing.optimize(key="other_key") as context:
                 with pytest.raises(ValueError):
                     context.load(filepath)
 
     def test_optimize_autosave(self):
         with tempfile.TemporaryDirectory() as directory:
-            filepath = directory + '/optimize_params'
+            filepath = directory + "/optimize_params"
 
             # non-existing file, readonly=True
             with testing.assert_warns(UserWarning):
@@ -159,10 +163,8 @@ class TestOptimize(unittest.TestCase):
 
 
 # TODO(leofang): check the optimizer is not applicable to the cutensor backend?
-@testing.parameterize(*testing.product({
-    'backend': ([], ['cub'])
-}))
-@testing.with_requires('optuna')
+@testing.parameterize(*testing.product({"backend": ([], ["cub"])}))
+@testing.with_requires("optuna")
 class TestOptimizeBackends(unittest.TestCase):
     """This class tests if optuna is in effect for create_reduction_func()"""
 
@@ -183,13 +185,13 @@ class TestOptimizeBackends(unittest.TestCase):
 
     def test_optimize1(self):
         # Ensure the optimizer is run 3 times for all backends.
-        func = 'cupyx.optimizing._optimize._optimize'
+        func = "cupyx.optimizing._optimize._optimize"
         times_called = 3
 
         # Setting "wraps" is necessary to avoid compilation errors.
         with testing.AssertFunctionIsCalled(
-                func, times_called=times_called,
-                wraps=cupyx.optimizing._optimize._optimize):
+            func, times_called=times_called, wraps=cupyx.optimizing._optimize._optimize
+        ):
             with cupyx.optimizing.optimize():
                 self.x.sum()
             with cupyx.optimizing.optimize():
@@ -199,13 +201,15 @@ class TestOptimizeBackends(unittest.TestCase):
 
     def test_optimize2(self):
         # Ensure the CUB optimizer is not run when the CUB kernel is not used.
-        func = 'cupy._core._cub_reduction._get_cub_optimized_params'
-        times_called = 2 if ('cub' in self.backend) else 0
+        func = "cupy._core._cub_reduction._get_cub_optimized_params"
+        times_called = 2 if ("cub" in self.backend) else 0
 
         # Setting "wraps" is necessary to avoid errors being silently ignored.
         with testing.AssertFunctionIsCalled(
-                func, times_called=times_called,
-                wraps=cupy._core._cub_reduction._get_cub_optimized_params):
+            func,
+            times_called=times_called,
+            wraps=cupy._core._cub_reduction._get_cub_optimized_params,
+        ):
             with cupyx.optimizing.optimize():
                 self.x.sum()
             with cupyx.optimizing.optimize():

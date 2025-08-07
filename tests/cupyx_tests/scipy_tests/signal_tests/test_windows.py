@@ -18,32 +18,32 @@ except ImportError:
 
 
 window_funcs = [
-    ('boxcar', ()),
-    ('triang', ()),
-    ('parzen', ()),
-    ('bohman', ()),
-    ('blackman', ()),
-    ('nuttall', ()),
-    ('blackmanharris', ()),
-    ('flattop', ()),
-    ('bartlett', ()),
-    ('barthann', ()),
-    ('hamming', ()),
-    ('kaiser', (1,)),
-    ('gaussian', (0.5,)),
-    ('general_gaussian', (1.5, 2)),
-    ('chebwin', (1,)),
-    ('cosine', ()),
-    ('hann', ()),
-    ('exponential', ()),
-    ('taylor', ()),
-    ('tukey', (0.5,)),
+    ("boxcar", ()),
+    ("triang", ()),
+    ("parzen", ()),
+    ("bohman", ()),
+    ("blackman", ()),
+    ("nuttall", ()),
+    ("blackmanharris", ()),
+    ("flattop", ()),
+    ("bartlett", ()),
+    ("barthann", ()),
+    ("hamming", ()),
+    ("kaiser", (1,)),
+    ("gaussian", (0.5,)),
+    ("general_gaussian", (1.5, 2)),
+    ("chebwin", (1,)),
+    ("cosine", ()),
+    ("hann", ()),
+    ("exponential", ()),
+    ("taylor", ()),
+    ("tukey", (0.5,)),
 ]
 
 
 @testing.with_requires("scipy")
 class TestBartHann:
-    @testing.numpy_cupy_allclose(scipy_name='scp', rtol=1e-15, atol=1e-15)
+    @testing.numpy_cupy_allclose(scipy_name="scp", rtol=1e-15, atol=1e-15)
     def test_basic(self, xp, scp):
         w1 = scp.signal.windows.barthann(6, sym=True)
         w2 = scp.signal.windows.barthann(7)
@@ -53,7 +53,7 @@ class TestBartHann:
 
 @testing.with_requires("scipy")
 class TestBartlett:
-    @testing.numpy_cupy_allclose(scipy_name='scp', rtol=1e-15, atol=1e-15)
+    @testing.numpy_cupy_allclose(scipy_name="scp", rtol=1e-15, atol=1e-15)
     def test_basic(self, xp, scp):
         w1 = scp.signal.windows.bartlett(6)
         w2 = scp.signal.windows.bartlett(7)
@@ -63,27 +63,31 @@ class TestBartlett:
 
 @testing.with_requires("scipy")
 class TestBlackman:
-    @testing.numpy_cupy_allclose(scipy_name='scp', rtol=1e-15, atol=1e-15)
+    @testing.numpy_cupy_allclose(scipy_name="scp", rtol=1e-15, atol=1e-15)
     def test_basic(self, xp, scp):
-        return (scp.signal.windows.blackman(6, sym=False),
-                scp.signal.windows.blackman(7, sym=False),
-                scp.signal.windows.blackman(6),
-                scp.signal.windows.blackman(7, True))
+        return (
+            scp.signal.windows.blackman(6, sym=False),
+            scp.signal.windows.blackman(7, sym=False),
+            scp.signal.windows.blackman(6),
+            scp.signal.windows.blackman(7, True),
+        )
 
 
 @testing.with_requires("scipy")
 class TestBlackmanHarris:
-    @testing.numpy_cupy_allclose(scipy_name='scp', rtol=1e-15, atol=1e-15)
+    @testing.numpy_cupy_allclose(scipy_name="scp", rtol=1e-15, atol=1e-15)
     def test_basic(self, xp, scp):
-        return (scp.signal.windows.blackmanharris(6, False),
-                scp.signal.windows.blackmanharris(7, sym=False),
-                scp.signal.windows.blackmanharris(6),
-                scp.signal.windows.blackmanharris(7, sym=True))
+        return (
+            scp.signal.windows.blackmanharris(6, False),
+            scp.signal.windows.blackmanharris(7, sym=False),
+            scp.signal.windows.blackmanharris(6),
+            scp.signal.windows.blackmanharris(7, sym=True),
+        )
 
 
 @testing.with_requires("scipy")
 class TestTaylor:
-    @testing.numpy_cupy_allclose(scipy_name='scp', rtol=1e-15, atol=1e-15)
+    @testing.numpy_cupy_allclose(scipy_name="scp", rtol=1e-15, atol=1e-15)
     def test_normalized(self, xp, scp):
         """Tests windows of small length that are normalized to 1. See the
         documentation for the Taylor window for more information on
@@ -93,16 +97,18 @@ class TestTaylor:
         w2 = scp.signal.windows.taylor(6, 2, 15)
         return w1, w2
 
-    @testing.numpy_cupy_allclose(scipy_name='scp', rtol=1e-15, atol=1e-15)
+    @testing.numpy_cupy_allclose(scipy_name="scp", rtol=1e-15, atol=1e-15)
     def test_non_normalized(self, xp, scp):
         """Test windows of small length that are not normalized to 1. See
         the documentation for the Taylor window for more information on
         normalization.
         """
-        return (scp.signal.windows.taylor(5, 2, 15, norm=False),
-                scp.signal.windows.taylor(6, 2, 15, norm=False))
+        return (
+            scp.signal.windows.taylor(5, 2, 15, norm=False),
+            scp.signal.windows.taylor(6, 2, 15, norm=False),
+        )
 
-    @testing.numpy_cupy_allclose(scipy_name='scp')
+    @testing.numpy_cupy_allclose(scipy_name="scp")
     def test_correctness(self, xp, scp):
         """This test ensures the correctness of the implemented Taylor
         Windowing function. A Taylor Window of 1024 points is created, its FFT
@@ -123,8 +129,7 @@ class TestTaylor:
         # Set norm=False for correctness as the values obtained from the
         # scientific publication do not normalize the values. Normalizing
         # changes the sidelobe level from the desired value.
-        w = scp.signal.windows.taylor(
-            M_win, nbar=4, sll=35, norm=False, sym=False)
+        w = scp.signal.windows.taylor(M_win, nbar=4, sll=35, norm=False, sym=False)
         f = scp.fft.fft(w, N_fft)
         spec = 20 * xp.log10(xp.abs(f / xp.amax(f)))
 
@@ -140,57 +145,63 @@ class TestTaylor:
 
 @testing.with_requires("scipy")
 class TestBohman:
-    @testing.numpy_cupy_allclose(scipy_name='scp', rtol=1e-13, atol=1e-13)
+    @testing.numpy_cupy_allclose(scipy_name="scp", rtol=1e-13, atol=1e-13)
     def test_basic(self, xp, scp):
-        return (scp.signal.windows.bohman(6),
-                scp.signal.windows.bohman(7, sym=True),
-                scp.signal.windows.bohman(6, False))
+        return (
+            scp.signal.windows.bohman(6),
+            scp.signal.windows.bohman(7, sym=True),
+            scp.signal.windows.bohman(6, False),
+        )
 
 
 @testing.with_requires("scipy")
 class TestBoxcar:
-    @testing.numpy_cupy_allclose(scipy_name='scp', rtol=1e-13, atol=1e-13)
+    @testing.numpy_cupy_allclose(scipy_name="scp", rtol=1e-13, atol=1e-13)
     def test_basic(self, xp, scp):
-        return (scp.signal.windows.boxcar(6),
-                scp.signal.windows.boxcar(7),
-                scp.signal.windows.boxcar(6, False))
+        return (
+            scp.signal.windows.boxcar(6),
+            scp.signal.windows.boxcar(7),
+            scp.signal.windows.boxcar(6, False),
+        )
 
 
 @testing.with_requires("scipy")
 class TestChebWin:
-    @testing.numpy_cupy_allclose(scipy_name='scp', rtol=1e-13, atol=1e-13)
+    @testing.numpy_cupy_allclose(scipy_name="scp", rtol=1e-13, atol=1e-13)
     def test_basic(self, xp, scp):
         with warnings.catch_warnings():
             # sup.filter(UserWarning, "This window is not suitable")
-            ret = (scp.signal.windows.chebwin(6, 100),
-                   scp.signal.windows.chebwin(7, 100),
-                   scp.signal.windows.chebwin(6, 10),
-                   scp.signal.windows.chebwin(7, 10),
-                   scp.signal.windows.chebwin(6, 10, False))
+            ret = (
+                scp.signal.windows.chebwin(6, 100),
+                scp.signal.windows.chebwin(7, 100),
+                scp.signal.windows.chebwin(6, 10),
+                scp.signal.windows.chebwin(7, 10),
+                scp.signal.windows.chebwin(6, 10, False),
+            )
         return ret
 
-    @testing.numpy_cupy_allclose(scipy_name='scp', rtol=1e-13, atol=1e-13)
+    @testing.numpy_cupy_allclose(scipy_name="scp", rtol=1e-13, atol=1e-13)
     def test_cheb_odd_high_attenuation(self, xp, scp):
         with warnings.catch_warnings():
             # sup.filter(UserWarning, "This window is not suitable")
             cheb_odd = scp.signal.windows.chebwin(53, at=-40)
         return cheb_odd
 
-    @testing.numpy_cupy_allclose(scipy_name='scp', rtol=1e-13, atol=1e-13)
+    @testing.numpy_cupy_allclose(scipy_name="scp", rtol=1e-13, atol=1e-13)
     def test_cheb_even_high_attenuation(self, xp, scp):
         with warnings.catch_warnings():
             # sup.filter(UserWarning, "This window is not suitable")
             cheb_even = scp.signal.windows.chebwin(54, at=40)
         return cheb_even
 
-    @testing.numpy_cupy_allclose(scipy_name='scp', rtol=1e-13, atol=1e-13)
+    @testing.numpy_cupy_allclose(scipy_name="scp", rtol=1e-13, atol=1e-13)
     def test_cheb_odd_low_attenuation(self, xp, scp):
         with warnings.catch_warnings():
             # sup.filter(UserWarning, "This window is not suitable")
             cheb_odd = scp.signal.windows.chebwin(7, at=10)
         return cheb_odd
 
-    @testing.numpy_cupy_allclose(scipy_name='scp', rtol=1e-13, atol=1e-13)
+    @testing.numpy_cupy_allclose(scipy_name="scp", rtol=1e-13, atol=1e-13)
     def test_cheb_even_low_attenuation(self, xp, scp):
         with warnings.catch_warnings():
             # sup.filter(UserWarning, "This window is not suitable")
@@ -210,12 +221,12 @@ exponential_data = {
     (5, None, 0.2, True): True,
     (5, None, 1.0, True): True,
     (5, 2, 0.2, True): False,
-    (5, 2, 1.0, True): False
+    (5, 2, 1.0, True): False,
 }
 
 
 @testing.with_requires("scipy")
-@testing.numpy_cupy_allclose(scipy_name='scp', rtol=1e-13, atol=1e-13)
+@testing.numpy_cupy_allclose(scipy_name="scp", rtol=1e-13, atol=1e-13)
 def test_exponential(xp, scp):
     for args, valid in exponential_data.items():
         if not valid:
@@ -227,129 +238,150 @@ def test_exponential(xp, scp):
 
 @testing.with_requires("scipy")
 class TestFlatTop:
-    @testing.numpy_cupy_allclose(scipy_name='scp', rtol=1e-13, atol=1e-13)
+    @testing.numpy_cupy_allclose(scipy_name="scp", rtol=1e-13, atol=1e-13)
     def test_basic(self, xp, scp):
-        return (scp.signal.windows.flattop(6, sym=False),
-                scp.signal.windows.flattop(7, sym=False),
-                scp.signal.windows.flattop(6),
-                scp.signal.windows.flattop(7, True),)
+        return (
+            scp.signal.windows.flattop(6, sym=False),
+            scp.signal.windows.flattop(7, sym=False),
+            scp.signal.windows.flattop(6),
+            scp.signal.windows.flattop(7, True),
+        )
 
 
 @testing.with_requires("scipy")
 class TestGaussian:
-    @testing.numpy_cupy_allclose(scipy_name='scp', rtol=1e-13, atol=1e-13)
+    @testing.numpy_cupy_allclose(scipy_name="scp", rtol=1e-13, atol=1e-13)
     def test_basic(self, xp, scp):
-        return (scp.signal.windows.gaussian(6, 1.0),
-                scp.signal.windows.gaussian(7, 1.2),
-                scp.signal.windows.gaussian(7, 3),
-                scp.signal.windows.gaussian(6, 3, False),)
+        return (
+            scp.signal.windows.gaussian(6, 1.0),
+            scp.signal.windows.gaussian(7, 1.2),
+            scp.signal.windows.gaussian(7, 3),
+            scp.signal.windows.gaussian(6, 3, False),
+        )
 
 
 @testing.with_requires("scipy")
 class TestGeneralCosine:
-    @testing.numpy_cupy_allclose(scipy_name='scp', rtol=1e-13, atol=1e-13)
+    @testing.numpy_cupy_allclose(scipy_name="scp", rtol=1e-13, atol=1e-13)
     def test_basic(self, xp, scp):
-        return (scp.signal.windows.general_cosine(5, [0.5, 0.3, 0.2]),
-                scp.signal.windows.general_cosine(4, [0.5, 0.3, 0.2],
-                                                  sym=False),)
+        return (
+            scp.signal.windows.general_cosine(5, [0.5, 0.3, 0.2]),
+            scp.signal.windows.general_cosine(4, [0.5, 0.3, 0.2], sym=False),
+        )
 
 
 @testing.with_requires("scipy")
 class TestGeneralHamming:
-    @testing.numpy_cupy_allclose(scipy_name='scp', rtol=1e-13, atol=1e-13)
+    @testing.numpy_cupy_allclose(scipy_name="scp", rtol=1e-13, atol=1e-13)
     def test_basic(self, xp, scp):
-        return (scp.signal.windows.general_hamming(5, 0.7),
-                scp.signal.windows.general_hamming(5, 0.75, sym=False),
-                scp.signal.windows.general_hamming(6, 0.75, sym=True),)
+        return (
+            scp.signal.windows.general_hamming(5, 0.7),
+            scp.signal.windows.general_hamming(5, 0.75, sym=False),
+            scp.signal.windows.general_hamming(6, 0.75, sym=True),
+        )
 
 
 @testing.with_requires("scipy")
 class TestHamming:
-    @testing.numpy_cupy_allclose(scipy_name='scp', rtol=1e-13, atol=1e-13)
+    @testing.numpy_cupy_allclose(scipy_name="scp", rtol=1e-13, atol=1e-13)
     def test_basic(self, xp, scp):
-        return (scp.signal.windows.hamming(6, False),
-                scp.signal.windows.hamming(7, sym=False),
-                scp.signal.windows.hamming(6),
-                scp.signal.windows.hamming(7, sym=True),)
+        return (
+            scp.signal.windows.hamming(6, False),
+            scp.signal.windows.hamming(7, sym=False),
+            scp.signal.windows.hamming(6),
+            scp.signal.windows.hamming(7, sym=True),
+        )
 
 
 @testing.with_requires("scipy")
 class TestHann:
-    @testing.numpy_cupy_allclose(scipy_name='scp', rtol=1e-13, atol=1e-13)
+    @testing.numpy_cupy_allclose(scipy_name="scp", rtol=1e-13, atol=1e-13)
     def test_basic(self, xp, scp):
-        return (scp.signal.windows.hann(6, sym=False),
-                scp.signal.windows.hann(7, sym=False),
-                scp.signal.windows.hann(6, True),
-                scp.signal.windows.hann(7),)
+        return (
+            scp.signal.windows.hann(6, sym=False),
+            scp.signal.windows.hann(7, sym=False),
+            scp.signal.windows.hann(6, True),
+            scp.signal.windows.hann(7),
+        )
 
 
 @testing.with_requires("scipy")
 class TestKaiser:
-    @testing.numpy_cupy_allclose(scipy_name='scp', rtol=1e-13, atol=1e-13)
+    @testing.numpy_cupy_allclose(scipy_name="scp", rtol=1e-13, atol=1e-13)
     def test_basic(self, xp, scp):
-        return (scp.signal.windows.kaiser(6, 0.5),
-                scp.signal.windows.kaiser(7, 0.5),
-                scp.signal.windows.kaiser(6, 2.7),
-                scp.signal.windows.kaiser(7, 2.7),
-                scp.signal.windows.kaiser(6, 2.7, False),)
+        return (
+            scp.signal.windows.kaiser(6, 0.5),
+            scp.signal.windows.kaiser(7, 0.5),
+            scp.signal.windows.kaiser(6, 2.7),
+            scp.signal.windows.kaiser(7, 2.7),
+            scp.signal.windows.kaiser(6, 2.7, False),
+        )
 
 
-@testing.with_requires('scipy>=1.10')
+@testing.with_requires("scipy>=1.10")
 class TestKaiserBesselDerived:
-    @testing.numpy_cupy_allclose(scipy_name='scp', rtol=1e-13, atol=1e-13)
+    @testing.numpy_cupy_allclose(scipy_name="scp", rtol=1e-13, atol=1e-13)
     def test_basic(self, xp, scp):
         M = 100
         w = scp.signal.windows.kaiser_bessel_derived(M, beta=4.0)
         w2 = scp.signal.windows.get_window(
-            ('kaiser bessel derived', 4.0), M, fftbins=False)
+            ("kaiser bessel derived", 4.0), M, fftbins=False
+        )
         w3 = scp.signal.windows.kaiser_bessel_derived(2, beta=xp.pi / 2)
         w4 = scp.signal.windows.kaiser_bessel_derived(4, beta=xp.pi / 2)
         w5 = scp.signal.windows.kaiser_bessel_derived(6, beta=xp.pi / 2)
         return w, w2, w3, w4, w5
 
-    @testing.numpy_cupy_allclose(scipy_name='scp', rtol=1e-13, atol=1e-13)
+    @testing.numpy_cupy_allclose(scipy_name="scp", rtol=1e-13, atol=1e-13)
     def test_exceptions(self, xp, scp):
         M = 100
         # Assert ValueError for odd window length
-        msg = ("Kaiser-Bessel Derived windows are only defined for even "
-               "number of points")
+        msg = (
+            "Kaiser-Bessel Derived windows are only defined for even "
+            "number of points"
+        )
         with assert_raises(ValueError, match=msg):
-            scp.signal.windows.kaiser_bessel_derived(M + 1, beta=4.)
+            scp.signal.windows.kaiser_bessel_derived(M + 1, beta=4.0)
 
         # Assert ValueError for non-symmetric setting
-        msg = ("Kaiser-Bessel Derived windows are only defined for "
-               "symmetric shapes")
+        msg = "Kaiser-Bessel Derived windows are only defined for " "symmetric shapes"
         with assert_raises(ValueError, match=msg):
-            scp.signal.windows.kaiser_bessel_derived(M + 1, beta=4., sym=False)
+            scp.signal.windows.kaiser_bessel_derived(M + 1, beta=4.0, sym=False)
         return 42
 
 
 @testing.with_requires("scipy")
 class TestNuttall:
-    @testing.numpy_cupy_allclose(scipy_name='scp', rtol=1e-13, atol=1e-13)
+    @testing.numpy_cupy_allclose(scipy_name="scp", rtol=1e-13, atol=1e-13)
     def test_basic(self, xp, scp):
-        return (scp.signal.windows.nuttall(6, sym=False),
-                scp.signal.windows.nuttall(7, sym=False),
-                scp.signal.windows.nuttall(6),
-                scp.signal.windows.nuttall(7, True),)
+        return (
+            scp.signal.windows.nuttall(6, sym=False),
+            scp.signal.windows.nuttall(7, sym=False),
+            scp.signal.windows.nuttall(6),
+            scp.signal.windows.nuttall(7, True),
+        )
 
 
 @testing.with_requires("scipy")
 class TestParzen:
-    @testing.numpy_cupy_allclose(scipy_name='scp', rtol=1e-13, atol=1e-13)
+    @testing.numpy_cupy_allclose(scipy_name="scp", rtol=1e-13, atol=1e-13)
     def test_basic(self, xp, scp):
-        return (scp.signal.windows.parzen(6),
-                scp.signal.windows.parzen(7, sym=True),
-                scp.signal.windows.parzen(6, False),)
+        return (
+            scp.signal.windows.parzen(6),
+            scp.signal.windows.parzen(7, sym=True),
+            scp.signal.windows.parzen(6, False),
+        )
 
 
 @testing.with_requires("scipy")
 class TestTriang:
-    @testing.numpy_cupy_allclose(scipy_name='scp', rtol=1e-13, atol=1e-13)
+    @testing.numpy_cupy_allclose(scipy_name="scp", rtol=1e-13, atol=1e-13)
     def test_basic(self, xp, scp):
-        return (scp.signal.windows.triang(6, True),
-                scp.signal.windows.triang(7),
-                scp.signal.windows.triang(6, sym=False),)
+        return (
+            scp.signal.windows.triang(6, True),
+            scp.signal.windows.triang(7),
+            scp.signal.windows.triang(6, sym=False),
+        )
 
 
 tukey_data = [
@@ -364,12 +396,12 @@ tukey_data = [
     (5, 1.0, True),
     (6, 0),
     (7, 0),
-    (6, .25),
-    (7, .25),
+    (6, 0.25),
+    (7, 0.25),
     (6,),
     (7,),
-    (6, .75),
-    (7, .75),
+    (6, 0.75),
+    (7, 0.75),
     (6, 1),
     (7, 1),
 ]
@@ -377,8 +409,8 @@ tukey_data = [
 
 @testing.with_requires("scipy")
 class TestTukey:
-    @pytest.mark.parametrize('args', tukey_data)
-    @testing.numpy_cupy_allclose(scipy_name='scp', rtol=1e-13, atol=1e-13)
+    @pytest.mark.parametrize("args", tukey_data)
+    @testing.numpy_cupy_allclose(scipy_name="scp", rtol=1e-13, atol=1e-13)
     def test_basic(self, args, xp, scp):
         # Test against hardcoded data
         win = scp.signal.windows.tukey(*args)
@@ -393,16 +425,16 @@ dpss_data = [
 ]
 
 
-@pytest.mark.skip('This has not been implemented yet in CuPy')
+@pytest.mark.skip("This has not been implemented yet in CuPy")
 @testing.with_requires("scipy")
 class TestDPSS:
-    @pytest.mark.parametrize('args', tukey_data)
-    @testing.numpy_cupy_allclose(scipy_name='scp', rtol=1e-13, atol=1e-13)
+    @pytest.mark.parametrize("args", tukey_data)
+    @testing.numpy_cupy_allclose(scipy_name="scp", rtol=1e-13, atol=1e-13)
     def test_basic(self, args, xp, scp):
         win, ratios = scp.signal.windows.dpss(*args, return_ratios=True)
         return win, ratios
 
-    @testing.numpy_cupy_allclose(scipy_name='scp', rtol=1e-13, atol=1e-13)
+    @testing.numpy_cupy_allclose(scipy_name="scp", rtol=1e-13, atol=1e-13)
     def test_unity(self, xp, scp):
         # Test unity value handling (gh-2221)
         results = []
@@ -411,7 +443,7 @@ class TestDPSS:
             win = scp.signal.windows.dpss(M, M / 2.1)
             results.append(win)
             # corrected w/subsample delay (slower)
-            win_sub = scp.signal.windows.dpss(M, M / 2.1, norm='subsample')
+            win_sub = scp.signal.windows.dpss(M, M / 2.1, norm="subsample")
             if M > 2:
                 # @M=2 the subsample doesn't do anything
                 results.append(win_sub)
@@ -420,7 +452,7 @@ class TestDPSS:
             results.append(win_2)
         return results
 
-    @testing.numpy_cupy_allclose(scipy_name='scp', rtol=1e-13, atol=1e-13)
+    @testing.numpy_cupy_allclose(scipy_name="scp", rtol=1e-13, atol=1e-13)
     def test_extremes(self, xp, scp):
         # Test extremes of alpha
         lam1 = scp.signal.windows.dpss(31, 6, 4, return_ratios=True)[1]
@@ -428,7 +460,7 @@ class TestDPSS:
         lam3 = scp.signal.windows.dpss(31, 8, 4, return_ratios=True)[1]
         return lam1, lam2, lam3
 
-    @pytest.mark.parametrize('windows', [cu_windows, cpu_windows])
+    @pytest.mark.parametrize("windows", [cu_windows, cpu_windows])
     def test_degenerate(self, windows):
         # Test failures
         assert_raises(ValueError, windows.dpss, 4, 1.5, -1)  # Bad Kmax
@@ -442,7 +474,7 @@ class TestDPSS:
 
 @testing.with_requires("scipy>=1.10")
 class TestLanczos:
-    @testing.numpy_cupy_allclose(scipy_name='scp', rtol=1e-13, atol=1e-13)
+    @testing.numpy_cupy_allclose(scipy_name="scp", rtol=1e-13, atol=1e-13)
     def test_basic(self, xp, scp):
         # Analytical results:
         # sinc(x) = sinc(-x)
@@ -452,11 +484,13 @@ class TestLanczos:
         # sinc(pi / 3) = 0.826993343
         # sinc(3 pi / 5) = 0.504551152
         # sinc(pi / 5) = 0.935489284
-        return (scp.signal.windows.lanczos(6, sym=False),
-                scp.signal.windows.lanczos(6),
-                scp.signal.windows.lanczos(7, sym=True),)
+        return (
+            scp.signal.windows.lanczos(6, sym=False),
+            scp.signal.windows.lanczos(6),
+            scp.signal.windows.lanczos(7, sym=True),
+        )
 
-    @pytest.mark.parametrize('windows', [cu_windows, cpu_windows])
+    @pytest.mark.parametrize("windows", [cu_windows, cpu_windows])
     def test_array_size(self, windows):
         for n in [0, 10, 11]:
             assert len(windows.lanczos(n, sym=False)) == n
@@ -465,91 +499,95 @@ class TestLanczos:
 
 @testing.with_requires("scipy")
 class TestGetWindow:
-    @testing.numpy_cupy_allclose(scipy_name='scp', rtol=1e-13, atol=1e-13)
+    @testing.numpy_cupy_allclose(scipy_name="scp", rtol=1e-13, atol=1e-13)
     def test_boxcar(self, xp, scp):
-        w1 = scp.signal.windows.get_window('boxcar', 12)
+        w1 = scp.signal.windows.get_window("boxcar", 12)
 
         # window is a tuple of len 1
-        w2 = scp.signal.windows.get_window(('boxcar',), 16)
+        w2 = scp.signal.windows.get_window(("boxcar",), 16)
         return w1, w2
 
-    @testing.numpy_cupy_allclose(scipy_name='scp', rtol=1e-13, atol=1e-13)
+    @testing.numpy_cupy_allclose(scipy_name="scp", rtol=1e-13, atol=1e-13)
     def test_cheb_odd(self, xp, scp):
         with warnings.catch_warnings():
             # sup.filter(UserWarning, "This window is not suitable")
-            w = scp.signal.windows.get_window(
-                ('chebwin', -40), 53, fftbins=False)
+            w = scp.signal.windows.get_window(("chebwin", -40), 53, fftbins=False)
         return w
 
-    @testing.numpy_cupy_allclose(scipy_name='scp', rtol=1e-13, atol=1e-13)
+    @testing.numpy_cupy_allclose(scipy_name="scp", rtol=1e-13, atol=1e-13)
     def test_cheb_even(self, xp, scp):
         with warnings.catch_warnings():
             # sup.filter(UserWarning, "This window is not suitable")
-            w = scp.signal.windows.get_window(
-                ('chebwin', 40), 54, fftbins=False)
+            w = scp.signal.windows.get_window(("chebwin", 40), 54, fftbins=False)
         return w
 
-    @pytest.mark.skip('This has not been implemented yet in CuPy')
-    @testing.numpy_cupy_allclose(scipy_name='scp', rtol=1e-13, atol=1e-13)
+    @pytest.mark.skip("This has not been implemented yet in CuPy")
+    @testing.numpy_cupy_allclose(scipy_name="scp", rtol=1e-13, atol=1e-13)
     def test_dpss(self, xp, scp):
-        win1 = scp.signal.windows.get_window(('dpss', 3), 64, fftbins=False)
+        win1 = scp.signal.windows.get_window(("dpss", 3), 64, fftbins=False)
         win2 = scp.signal.windows.dpss(64, 3)
         return win1, win2
 
-    @testing.numpy_cupy_allclose(scipy_name='scp', rtol=1e-13, atol=1e-13)
+    @testing.numpy_cupy_allclose(scipy_name="scp", rtol=1e-13, atol=1e-13)
     def test_kaiser_float(self, xp, scp):
         win1 = scp.signal.windows.get_window(7.2, 64)
         win2 = scp.signal.windows.kaiser(64, 7.2, False)
         return win1, win2
 
-    @pytest.mark.parametrize('windows', [cu_windows, cpu_windows])
+    @pytest.mark.parametrize("windows", [cu_windows, cpu_windows])
     def test_invalid_inputs(self, windows):
         # Window is not a float, tuple, or string
-        assert_raises(ValueError, windows.get_window, set('hann'), 8)
+        assert_raises(ValueError, windows.get_window, set("hann"), 8)
 
         # Unknown window type error
-        assert_raises(ValueError, windows.get_window, 'broken', 4)
+        assert_raises(ValueError, windows.get_window, "broken", 4)
 
     @testing.with_requires("scipy>=1.16")
-    @testing.numpy_cupy_allclose(scipy_name='scp', rtol=1e-13, atol=1e-13)
+    @testing.numpy_cupy_allclose(scipy_name="scp", rtol=1e-13, atol=1e-13)
     def test_array_as_window(self, xp, scp):
         # scipy github issue 3603
         osfactor = 128
         sig = xp.arange(128)
 
-        win = scp.signal.windows.get_window(('kaiser', 8.0), osfactor // 2)
-        if hasattr(scp.signal, 'resample'):
-            with assert_raises(ValueError, match='window length is not equal'):
+        win = scp.signal.windows.get_window(("kaiser", 8.0), osfactor // 2)
+        if hasattr(scp.signal, "resample"):
+            with assert_raises(ValueError, match="window length is not equal"):
                 scp.signal.resample(sig, len(sig) * osfactor, window=win)
         return win
 
-    @testing.numpy_cupy_allclose(scipy_name='scp', rtol=1e-13, atol=1e-13)
+    @testing.numpy_cupy_allclose(scipy_name="scp", rtol=1e-13, atol=1e-13)
     def test_general_cosine(self, xp, scp):
-        return (scp.signal.get_window(('general_cosine', [0.5, 0.3, 0.2]), 4),
-                scp.signal.get_window(('general_cosine', [0.5, 0.3, 0.2]), 4,
-                                      fftbins=False))
+        return (
+            scp.signal.get_window(("general_cosine", [0.5, 0.3, 0.2]), 4),
+            scp.signal.get_window(
+                ("general_cosine", [0.5, 0.3, 0.2]), 4, fftbins=False
+            ),
+        )
 
-    @testing.numpy_cupy_allclose(scipy_name='scp', rtol=1e-13, atol=1e-13)
+    @testing.numpy_cupy_allclose(scipy_name="scp", rtol=1e-13, atol=1e-13)
     def test_general_hamming(self, xp, scp):
         return (
-            scp.signal.get_window(('general_hamming', 0.7), 5),
-            scp.signal.get_window(('general_hamming', 0.7), 5, fftbins=False),)
+            scp.signal.get_window(("general_hamming", 0.7), 5),
+            scp.signal.get_window(("general_hamming", 0.7), 5, fftbins=False),
+        )
 
     @testing.with_requires("scipy >= 1.10")
-    @testing.numpy_cupy_allclose(scipy_name='scp', atol=1e-15)
+    @testing.numpy_cupy_allclose(scipy_name="scp", atol=1e-15)
     def test_lanczos(self, xp, scp):
-        return (scp.signal.get_window('lanczos', 6),
-                scp.signal.get_window('lanczos', 6, fftbins=False),
-                scp.signal.get_window('lanczos', 6),
-                scp.signal.get_window('sinc', 6))
+        return (
+            scp.signal.get_window("lanczos", 6),
+            scp.signal.get_window("lanczos", 6, fftbins=False),
+            scp.signal.get_window("lanczos", 6),
+            scp.signal.get_window("sinc", 6),
+        )
 
 
-@pytest.mark.parametrize('window_info', window_funcs)
+@pytest.mark.parametrize("window_info", window_funcs)
 @testing.with_requires("scipy")
-@testing.numpy_cupy_allclose(scipy_name='scp', rtol=1e-13, atol=1e-13)
+@testing.numpy_cupy_allclose(scipy_name="scp", rtol=1e-13, atol=1e-13)
 def test_windowfunc_basics(window_info, xp, scp):
     window_name, params = window_info
-    if window_name in {'parzen', 'tukey'}:
+    if window_name in {"parzen", "tukey"}:
         pytest.skip()
 
     window = getattr(scp.signal.windows, window_name)
@@ -593,46 +631,62 @@ def test_windowfunc_basics(window_info, xp, scp):
     return results
 
 
-@pytest.mark.parametrize('windows', [cu_windows, cpu_windows])
+@pytest.mark.parametrize("windows", [cu_windows, cpu_windows])
 @testing.with_requires("scipy")
 def test_needs_params(windows):
-    for winstr in ['kaiser', 'ksr', 'kaiser_bessel_derived', 'kbd',
-                   'gaussian', 'gauss', 'gss',
-                   'general gaussian', 'general_gaussian',
-                   'general gauss', 'general_gauss', 'ggs',
-                   'dss', 'dpss', 'general cosine', 'general_cosine',
-                   'chebwin', 'cheb', 'general hamming', 'general_hamming',
-                   ]:
+    for winstr in [
+        "kaiser",
+        "ksr",
+        "kaiser_bessel_derived",
+        "kbd",
+        "gaussian",
+        "gauss",
+        "gss",
+        "general gaussian",
+        "general_gaussian",
+        "general gauss",
+        "general_gauss",
+        "ggs",
+        "dss",
+        "dpss",
+        "general cosine",
+        "general_cosine",
+        "chebwin",
+        "cheb",
+        "general hamming",
+        "general_hamming",
+    ]:
         assert_raises(ValueError, windows.get_window, winstr, 7)
 
 
 @testing.with_requires("scipy>=1.10")
-@pytest.mark.parametrize('windows', [cu_windows, cpu_windows])
+@pytest.mark.parametrize("windows", [cu_windows, cpu_windows])
 def test_needs_params_2(windows):
-    for winstr in ['kaiser_bessel_derived']:
+    for winstr in ["kaiser_bessel_derived"]:
         assert_raises(ValueError, windows.get_window, winstr, 7)
 
 
 @testing.with_requires("scipy")
-@testing.numpy_cupy_allclose(scipy_name='scp', rtol=1e-13, atol=1e-13)
+@testing.numpy_cupy_allclose(scipy_name="scp", rtol=1e-13, atol=1e-13)
 def test_not_needs_params(xp, scp):
-    for winstr in ['barthann',
-                   'bartlett',
-                   'blackman',
-                   'blackmanharris',
-                   'bohman',
-                   'boxcar',
-                   'cosine',
-                   'flattop',
-                   'hamming',
-                   'nuttall',
-                   'parzen',
-                   'taylor',
-                   'exponential',
-                   'poisson',
-                   'tukey',
-                   'tuk',
-                   'triangle',
-                   ]:
+    for winstr in [
+        "barthann",
+        "bartlett",
+        "blackman",
+        "blackmanharris",
+        "bohman",
+        "boxcar",
+        "cosine",
+        "flattop",
+        "hamming",
+        "nuttall",
+        "parzen",
+        "taylor",
+        "exponential",
+        "poisson",
+        "tukey",
+        "tuk",
+        "triangle",
+    ]:
         win = scp.signal.get_window(winstr, 7)
         return win

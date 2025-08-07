@@ -29,19 +29,19 @@ def _gen_gaussians(xp, center_locs, sigmas, total_length):
 def _gen_gaussians_even(xp, sigmas, total_length):
     num_peaks = len(sigmas)
     delta = total_length / (num_peaks + 1)
-    center_locs = xp.linspace(
-        delta, total_length - delta, num=num_peaks).astype(int)
+    center_locs = xp.linspace(delta, total_length - delta, num=num_peaks).astype(int)
     out_data = _gen_gaussians(xp, center_locs, sigmas, total_length)
     return out_data, center_locs
 
 
 @pytest.mark.xfail(
     runtime.is_hip and driver.get_build_version() < 5_00_00000,
-    reason='name_expressions with ROCm 4.3 may not work')
-@testing.with_requires('scipy')
+    reason="name_expressions with ROCm 4.3 may not work",
+)
+@testing.with_requires("scipy")
 class TestPeakProminences:
 
-    @pytest.mark.parametrize('x', [[1, 2, 3], []])
+    @pytest.mark.parametrize("x", [[1, 2, 3], []])
     @testing.numpy_cupy_allclose(scipy_name="scp", type_check=False)
     def test_empty(self, x, xp, scp):
         """
@@ -63,8 +63,7 @@ class TestPeakProminences:
         out = scp.signal.peak_prominences(x, peaks)
         return out
 
-    @pytest.mark.parametrize(
-        'x', [[0.0, 2, 1, 2, 1, 2, 0], [0, 1.0, 0, 1, 0, 1, 0]])
+    @pytest.mark.parametrize("x", [[0.0, 2, 1, 2, 1, 2, 0], [0, 1.0, 0, 1, 0, 1, 0]])
     @testing.numpy_cupy_allclose(scipy_name="scp")
     def test_edge_cases(self, x, xp, scp):
         """
@@ -86,7 +85,7 @@ class TestPeakProminences:
         out = scp.signal.peak_prominences(x[::2], peaks[::2])
         return out
 
-    @pytest.mark.parametrize('wlen', [8, 7, 6, 5, 3.2, 3, 1.1])
+    @pytest.mark.parametrize("wlen", [8, 7, 6, 5, 3.2, 3, 1.1])
     @testing.numpy_cupy_allclose(scipy_name="scp")
     def test_wlen(self, wlen, xp, scp):
         """
@@ -102,35 +101,41 @@ class TestPeakProminences:
         """
         for xp, scp in [(cupy, cupyx.scipy), (np, scipy)]:
             # x with dimension > 1
-            with pytest.raises(ValueError, match='1-D array'):
+            with pytest.raises(ValueError, match="1-D array"):
                 scp.signal.peak_prominences([[0, 1, 1, 0]], [1, 2])
             # peaks with dimension > 1
-            with pytest.raises(ValueError, match='1-D array'):
+            with pytest.raises(ValueError, match="1-D array"):
                 scp.signal.peak_prominences([0, 1, 1, 0], [[1, 2]])
             # x with dimension < 1
-            with pytest.raises(ValueError, match='1-D array'):
-                scp.signal.peak_prominences(3, [0,])
+            with pytest.raises(ValueError, match="1-D array"):
+                scp.signal.peak_prominences(
+                    3,
+                    [
+                        0,
+                    ],
+                )
 
             # empty x with supplied
-            with pytest.raises(ValueError, match='not a valid index'):
+            with pytest.raises(ValueError, match="not a valid index"):
                 scp.signal.peak_prominences([], [0])
             # invalid indices with non-empty x
             for p in [-100, -1, 3, 1000]:
-                with pytest.raises(ValueError, match='not a valid index'):
+                with pytest.raises(ValueError, match="not a valid index"):
                     scp.signal.peak_prominences([1, 0, 2], [p])
 
             # wlen < 3
-            with pytest.raises(ValueError, match='wlen'):
+            with pytest.raises(ValueError, match="wlen"):
                 scp.signal.peak_prominences(xp.arange(10), [3, 5], wlen=1)
 
 
 @pytest.mark.xfail(
     runtime.is_hip and driver.get_build_version() < 5_00_00000,
-    reason='name_expressions with ROCm 4.3 may not work')
-@testing.with_requires('scipy')
+    reason="name_expressions with ROCm 4.3 may not work",
+)
+@testing.with_requires("scipy")
 class TestPeakWidths:
 
-    @pytest.mark.parametrize('x', [[1, 2, 3], []])
+    @pytest.mark.parametrize("x", [[1, 2, 3], []])
     @testing.numpy_cupy_allclose(scipy_name="scp")
     def test_empty(self, x, xp, scp):
         """
@@ -140,7 +145,7 @@ class TestPeakWidths:
         return widths
 
     @pytest.mark.filterwarnings("ignore:some peaks have a width of 0")
-    @pytest.mark.parametrize('rel_height', [0, 0.25, 0.5, 0.75, 1.0, 2.0, 3.0])
+    @pytest.mark.parametrize("rel_height", [0, 0.25, 0.5, 0.75, 1.0, 2.0, 3.0])
     @testing.numpy_cupy_allclose(scipy_name="scp")
     def test_basic(self, rel_height, xp, scp):
         """
@@ -166,63 +171,65 @@ class TestPeakWidths:
         Verify that argument validation works as intended.
         """
         for xp, scp in [(cupy, cupyx.scipy), (np, scipy)]:
-            with pytest.raises(ValueError, match='1-D array'):
+            with pytest.raises(ValueError, match="1-D array"):
                 # x with dimension > 1
                 scp.signal.peak_widths(xp.zeros((3, 4)), xp.ones(3))
-            with pytest.raises(ValueError, match='1-D array'):
+            with pytest.raises(ValueError, match="1-D array"):
                 # x with dimension < 1
                 scp.signal.peak_widths(3, [0])
-            with pytest.raises(ValueError, match='1-D array'):
+            with pytest.raises(ValueError, match="1-D array"):
                 # peaks with dimension > 1
-                scp.signal.peak_widths(
-                    xp.arange(10), xp.ones((3, 2), dtype=xp.intp))
-            with pytest.raises(ValueError, match='1-D array'):
+                scp.signal.peak_widths(xp.arange(10), xp.ones((3, 2), dtype=xp.intp))
+            with pytest.raises(ValueError, match="1-D array"):
                 # peaks with dimension < 1
                 scp.signal.peak_widths(xp.arange(10), 3)
-            with pytest.raises(ValueError, match='not a valid index'):
+            with pytest.raises(ValueError, match="not a valid index"):
                 # peak pos exceeds x.size
                 scp.signal.peak_widths(xp.arange(10), [8, 11])
-            with pytest.raises(ValueError, match='not a valid index'):
+            with pytest.raises(ValueError, match="not a valid index"):
                 # empty x with peaks supplied
                 scp.signal.peak_widths([], [1, 2])
-            with pytest.raises(ValueError, match='rel_height'):
+            with pytest.raises(ValueError, match="rel_height"):
                 # rel_height is < 0
                 scp.signal.peak_widths([0, 1, 0, 1, 0], [1, 3], rel_height=-1)
-            with pytest.raises(TypeError, match='None'):
+            with pytest.raises(TypeError, match="None"):
                 # prominence data contains None
                 scp.signal.peak_widths(
-                    [1, 2, 1], [1], prominence_data=(None, None, None))
+                    [1, 2, 1], [1], prominence_data=(None, None, None)
+                )
 
     def test_mismatching_prominence_data(self):
         """Test with mismatching peak and / or prominence data."""
         for xp, scp in [(cupy, cupyx.scipy), (np, scipy)]:
             x = xp.asarray([0, 1, 0])
             peak = [1]
-            for i, (prominences, left_bases, right_bases) in enumerate([
-                ((1.,), (-1,), (2,)),  # left base not in x
-                ((1.,), (0,), (3,)),  # right base not in x
-                ((1.,), (2,), (0,)),  # swapped bases same as peak
-                ((1., 1.), (0, 0), (2, 2)),  # array shapes don't match peaks
-                ((1., 1.), (0,), (2,)),  # arrays with different shapes
-                ((1.,), (0, 0), (2,)),  # arrays with different shapes
-                ((1.,), (0,), (2, 2))  # arrays with different shapes
-            ]):
+            for i, (prominences, left_bases, right_bases) in enumerate(
+                [
+                    ((1.0,), (-1,), (2,)),  # left base not in x
+                    ((1.0,), (0,), (3,)),  # right base not in x
+                    ((1.0,), (2,), (0,)),  # swapped bases same as peak
+                    ((1.0, 1.0), (0, 0), (2, 2)),  # array shapes don't match peaks
+                    ((1.0, 1.0), (0,), (2,)),  # arrays with different shapes
+                    ((1.0,), (0, 0), (2,)),  # arrays with different shapes
+                    ((1.0,), (0,), (2, 2)),  # arrays with different shapes
+                ]
+            ):
                 # Make sure input is matches output of signal.peak_prominences
-                prominence_data = (xp.array(prominences, dtype=xp.float64),
-                                   xp.array(left_bases, dtype=xp.intp),
-                                   xp.array(right_bases, dtype=xp.intp))
+                prominence_data = (
+                    xp.array(prominences, dtype=xp.float64),
+                    xp.array(left_bases, dtype=xp.intp),
+                    xp.array(right_bases, dtype=xp.intp),
+                )
                 # Test for correct exception
                 if i < 3:
                     match = "prominence data is invalid"
                 else:
-                    match = ("arrays in `prominence_data` must have the "
-                             "same shape")
+                    match = "arrays in `prominence_data` must have the " "same shape"
                 with pytest.raises(ValueError, match=match):
-                    scp.signal.peak_widths(
-                        x, peak, prominence_data=prominence_data)
+                    scp.signal.peak_widths(x, peak, prominence_data=prominence_data)
 
     @pytest.mark.filterwarnings("ignore:some peaks have a width of 0")
-    @pytest.mark.parametrize('rel_height', [0, 2/3])
+    @pytest.mark.parametrize("rel_height", [0, 2 / 3])
     @testing.numpy_cupy_allclose(scipy_name="scp")
     def test_intersection_rules(self, rel_height, xp, scp):
         """Test if x == eval_height counts as an intersection."""
@@ -235,14 +242,24 @@ class TestPeakWidths:
 
 @pytest.mark.xfail(
     runtime.is_hip and driver.get_build_version() < 5_00_00000,
-    reason='name_expressions with ROCm 4.3 may not work')
-@testing.with_requires('scipy')
+    reason="name_expressions with ROCm 4.3 may not work",
+)
+@testing.with_requires("scipy")
 class TestFindPeaks:
 
     # Keys of optionally returned properties
-    property_keys = {'peak_heights', 'left_thresholds', 'right_thresholds',
-                     'prominences', 'left_bases', 'right_bases', 'widths',
-                     'width_heights', 'left_ips', 'right_ips'}
+    property_keys = {
+        "peak_heights",
+        "left_thresholds",
+        "right_thresholds",
+        "prominences",
+        "left_bases",
+        "right_bases",
+        "widths",
+        "width_heights",
+        "left_ips",
+        "right_ips",
+    }
 
     @testing.numpy_cupy_allclose(scipy_name="scp", type_check=False)
     def test_constant(self, xp, scp):
@@ -251,13 +268,15 @@ class TestFindPeaks:
         """
         open_interval = (None, None)
         peaks, props = scp.signal.find_peaks(
-            xp.ones(10), height=open_interval, threshold=open_interval,
-            prominence=open_interval, width=open_interval)
-        return (peaks,) + tuple(
-            [props[k] for k in self.property_keys if k in props])
+            xp.ones(10),
+            height=open_interval,
+            threshold=open_interval,
+            prominence=open_interval,
+            width=open_interval,
+        )
+        return (peaks,) + tuple([props[k] for k in self.property_keys if k in props])
 
-    @pytest.mark.parametrize(
-        'plateau_size', [(None, None), 4, (None, 3.5), (5, 50)])
+    @pytest.mark.parametrize("plateau_size", [(None, None), 4, (None, 3.5), (5, 50)])
     @testing.numpy_cupy_allclose(scipy_name="scp")
     def test_plateau_size(self, plateau_size, xp, scp):
         """
@@ -273,23 +292,21 @@ class TestFindPeaks:
 
         # Test full output
         peaks, props = scp.signal.find_peaks(x, plateau_size=plateau_size)
-        return (peaks,) + tuple(
-            [props[k] for k in self.property_keys if k in props])
+        return (peaks,) + tuple([props[k] for k in self.property_keys if k in props])
 
-    @pytest.mark.parametrize(
-        'height', [(None, None), 0.5, (None, 3), (2, 3)])
+    @pytest.mark.parametrize("height", [(None, None), 0.5, (None, 3), (2, 3)])
     @testing.numpy_cupy_allclose(scipy_name="scp")
     def test_height_condition(self, height, xp, scp):
         """
         Test height condition for peaks.
         """
-        x = xp.asarray([0., 1/3, 0., 2.5, 0, 4., 0])
+        x = xp.asarray([0.0, 1 / 3, 0.0, 2.5, 0, 4.0, 0])
         peaks, props = scp.signal.find_peaks(x, height=height)
-        return (peaks,) + tuple(
-            [props[k] for k in self.property_keys if k in props])
+        return (peaks,) + tuple([props[k] for k in self.property_keys if k in props])
 
     @pytest.mark.parametrize(
-        'threshold', [(None, None), 2, 3.5, (None, 5), (None, 4), (2, 4)])
+        "threshold", [(None, None), 2, 3.5, (None, 5), (None, 4), (2, 4)]
+    )
     @testing.numpy_cupy_allclose(scipy_name="scp", type_check=False)
     def test_threshold_condition(self, threshold, xp, scp):
         """
@@ -297,10 +314,9 @@ class TestFindPeaks:
         """
         x = xp.asarray([0, 2, 1, 4, -1])
         peaks, props = scp.signal.find_peaks(x, threshold=threshold)
-        return (peaks,) + tuple(
-            [props[k] for k in self.property_keys if k in props])
+        return (peaks,) + tuple([props[k] for k in self.property_keys if k in props])
 
-    @pytest.mark.parametrize('distance', [3, 3.0001])
+    @pytest.mark.parametrize("distance", [3, 3.0001])
     @testing.numpy_cupy_allclose(scipy_name="scp")
     def test_distance_condition(self, distance, xp, scp):
         """
@@ -311,8 +327,7 @@ class TestFindPeaks:
         x = xp.zeros(21)
         x[peaks_all] += xp.linspace(1, 2, peaks_all.size)
         peaks, props = scp.signal.find_peaks(x, distance=distance)
-        return (peaks,) + tuple(
-            [props[k] for k in self.property_keys if k in props])
+        return (peaks,) + tuple([props[k] for k in self.property_keys if k in props])
 
     @testing.numpy_cupy_allclose(scipy_name="scp")
     def test_distance_priority(self, xp, scp):
@@ -320,8 +335,7 @@ class TestFindPeaks:
         x = xp.asarray([-2, 1, -1, 0, -3])
         # use distance > x size
         peaks, props = scp.signal.find_peaks(x, distance=10)
-        return (peaks,) + tuple(
-            [props[k] for k in self.property_keys if k in props])
+        return (peaks,) + tuple([props[k] for k in self.property_keys if k in props])
 
     @testing.numpy_cupy_allclose(scipy_name="scp")
     def test_prominence_condition(self, xp, scp):
@@ -335,8 +349,7 @@ class TestFindPeaks:
         interval = (3, 9)
 
         peaks, props = scp.signal.find_peaks(x, prominence=interval)
-        return (peaks,) + tuple(
-            [props[k] for k in self.property_keys if k in props])
+        return (peaks,) + tuple([props[k] for k in self.property_keys if k in props])
 
     @testing.numpy_cupy_allclose(scipy_name="scp", type_check=False)
     def test_width_condition(self, xp, scp):
@@ -344,10 +357,8 @@ class TestFindPeaks:
         Test width condition for peaks.
         """
         x = xp.array([1, 0, 1, 2, 1, 0, -1, 4, 0])
-        peaks, props = scp.signal.find_peaks(
-            x, width=(None, 2), rel_height=0.75)
-        return (peaks,) + tuple(
-            [props[k] for k in self.property_keys if k in props])
+        peaks, props = scp.signal.find_peaks(x, width=(None, 2), rel_height=0.75)
+        return (peaks,) + tuple([props[k] for k in self.property_keys if k in props])
 
     @testing.numpy_cupy_allclose(scipy_name="scp")
     def test_properties(self, xp, scp):
@@ -357,10 +368,13 @@ class TestFindPeaks:
         open_interval = (None, None)
         x = xp.asarray([0, 1, 0, 2, 1.5, 0, 3, 0, 5, 9])
         peaks, props = scp.signal.find_peaks(
-            x, height=open_interval, threshold=open_interval,
-            prominence=open_interval, width=open_interval)
-        return (peaks,) + tuple(
-            [props[k] for k in self.property_keys if k in props])
+            x,
+            height=open_interval,
+            threshold=open_interval,
+            prominence=open_interval,
+            width=open_interval,
+        )
+        return (peaks,) + tuple([props[k] for k in self.property_keys if k in props])
 
     def test_raises(self):
         """
@@ -374,8 +388,10 @@ class TestFindPeaks:
             with pytest.raises(ValueError, match="distance"):
                 scp.signal.find_peaks(xp.arange(10), distance=-1)
 
-    @pytest.mark.filterwarnings("ignore:some peaks have a prominence of 0",
-                                "ignore:some peaks have a width of 0")
+    @pytest.mark.filterwarnings(
+        "ignore:some peaks have a prominence of 0",
+        "ignore:some peaks have a width of 0",
+    )
     @testing.numpy_cupy_allclose(scipy_name="scp", type_check=False)
     def test_wlen_smaller_plateau(self, xp, scp):
         """
@@ -385,16 +401,16 @@ class TestFindPeaks:
         Regression test for gh-9110.
         """
         peaks, props = scp.signal.find_peaks(
-            [0, 1, 1, 1, 0], prominence=(None, None),
-            width=(None, None), wlen=2)
-        return (peaks,) + tuple(
-            [props[k] for k in self.property_keys if k in props])
+            [0, 1, 1, 1, 0], prominence=(None, None), width=(None, None), wlen=2
+        )
+        return (peaks,) + tuple([props[k] for k in self.property_keys if k in props])
 
 
 @pytest.mark.xfail(
     runtime.is_hip and driver.get_build_version() < 5_00_00000,
-    reason='name_expressions with ROCm 4.3 may not work')
-@testing.with_requires('scipy')
+    reason="name_expressions with ROCm 4.3 may not work",
+)
+@testing.with_requires("scipy")
 class TestArgrel:
 
     @testing.numpy_cupy_allclose(scipy_name="scp")
@@ -410,19 +426,23 @@ class TestArgrel:
         row2, col2 = scp.signal.argrelmin(z2, axis=1)
         return i[0], row1, col1, row2, col2
 
-    @pytest.mark.parametrize('func_name', ['argrelmax', 'argrelmin'])
-    @pytest.mark.parametrize('axis', [0, 1])
+    @pytest.mark.parametrize("func_name", ["argrelmax", "argrelmin"])
+    @pytest.mark.parametrize("axis", [0, 1])
     @testing.numpy_cupy_allclose(scipy_name="scp")
     def test_basic(self, func_name, axis, xp, scp):
         # Note: the docstrings for the argrel{min,max,extrema} functions
         # do not give a guarantee of the order of the indices, so we'll
         # sort them before testing.
 
-        x = xp.array([[1, 2, 2, 3, 2],
-                      [2, 1, 2, 2, 3],
-                      [3, 2, 1, 2, 2],
-                      [2, 3, 2, 1, 2],
-                      [1, 2, 3, 2, 1]])
+        x = xp.array(
+            [
+                [1, 2, 2, 3, 2],
+                [2, 1, 2, 2, 3],
+                [3, 2, 1, 2, 2],
+                [2, 3, 2, 1, 2],
+                [1, 2, 3, 2, 1],
+            ]
+        )
 
         func = getattr(scp.signal, func_name)
         row, col = func(x, axis=axis)
@@ -434,10 +454,9 @@ class TestArgrel:
         order = 2
         sigmas = [1.0, 2.0, 10.0, 5.0, 15.0]
         test_data, act_locs = _gen_gaussians_even(xp, sigmas, 500)
-        test_data[act_locs + order] = test_data[act_locs]*0.99999
-        test_data[act_locs - order] = test_data[act_locs]*0.99999
-        rel_max_locs = scp.signal.argrelmax(
-            test_data, order=order, mode='clip')[0]
+        test_data[act_locs + order] = test_data[act_locs] * 0.99999
+        test_data[act_locs - order] = test_data[act_locs] * 0.99999
+        rel_max_locs = scp.signal.argrelmax(test_data, order=order, mode="clip")[0]
         return rel_max_locs
 
     @testing.numpy_cupy_allclose(scipy_name="scp")
@@ -447,6 +466,5 @@ class TestArgrel:
         rot_factor = 20
         rot_range = xp.arange(0, len(test_data)) - rot_factor
         test_data_2 = xp.vstack([test_data, test_data[rot_range]])
-        rel_max_rows, rel_max_cols = scp.signal.argrelmax(
-            test_data_2, axis=1, order=1)
+        rel_max_rows, rel_max_cols = scp.signal.argrelmax(test_data_2, axis=1, order=1)
         return rel_max_rows, rel_max_cols

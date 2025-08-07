@@ -9,9 +9,7 @@ import cupy
 from cupy import testing
 
 
-@testing.parameterize(*testing.product({
-    'trim': [True, False]
-}))
+@testing.parameterize(*testing.product({"trim": [True, False]}))
 class TestAsSeries(unittest.TestCase):
 
     @testing.for_all_dtypes(no_bool=True)
@@ -101,9 +99,7 @@ class TestTrimseq(unittest.TestCase):
                 xp.polynomial.polyutils.trimseq(a)
 
 
-@testing.parameterize(*testing.product({
-    'tol': [0, 1e-3]
-}))
+@testing.parameterize(*testing.product({"tol": [0, 1e-3]}))
 class TestTrimcoef(unittest.TestCase):
 
     @testing.for_all_dtypes(no_bool=True)
@@ -118,8 +114,7 @@ class TestTrimcoef(unittest.TestCase):
         a = xp.array([1, 2, 0, 3, 0, 3e-4, 1e-3], dtype)
         return xp.polynomial.polyutils.trimcoef(a, dtype(self.tol))
 
-    @testing.for_all_dtypes_combination(
-        names=['dtype1', 'dtype2'], no_bool=True)
+    @testing.for_all_dtypes_combination(names=["dtype1", "dtype2"], no_bool=True)
     @testing.numpy_cupy_array_equal()
     def test_trimcoef_diff_types(self, xp, dtype1, dtype2):
         a = xp.array([1, 2, 0, 3, 0], dtype1)

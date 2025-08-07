@@ -20,7 +20,7 @@ def _get_harmonic_list(degree_max):
 @testing.with_requires("scipy")
 class TestBasic:
 
-    @pytest.mark.filterwarnings('ignore::DeprecationWarning')
+    @pytest.mark.filterwarnings("ignore::DeprecationWarning")
     @pytest.mark.parametrize("m, n", _get_harmonic_list(degree_max=5))
     @testing.for_dtypes(["e", "f", "d"])
     @numpy_cupy_allclose(scipy_name="scp", rtol=1e-7, atol=1e-10)

@@ -5,7 +5,11 @@ import warnings
 
 import cupy
 from cupyx.scipy.spatial._kdtree_utils import (
-    asm_kd_tree, compute_knn, compute_tree_bounds, find_nodes_in_radius)
+    asm_kd_tree,
+    compute_knn,
+    compute_tree_bounds,
+    find_nodes_in_radius,
+)
 from cupyx.scipy.spatial.distance import distance_matrix
 from cupyx.scipy.sparse import coo_matrix
 
@@ -115,15 +119,24 @@ class KDTree:
            k-d Trees, 2022. doi:10.48550/arXiv.2210.12859.
     """
 
-    def __init__(self, data, leafsize=10, compact_nodes=True, copy_data=False,
-                 balanced_tree=True, boxsize=None):
+    def __init__(
+        self,
+        data,
+        leafsize=10,
+        compact_nodes=True,
+        copy_data=False,
+        balanced_tree=True,
+        boxsize=None,
+    ):
         self.data = data
         if copy_data:
             self.data = self.data.copy()
 
         if not balanced_tree:
-            warnings.warn('balanced_tree=False is not supported by the GPU '
-                          'implementation of KDTree, skipping.')
+            warnings.warn(
+                "balanced_tree=False is not supported by the GPU "
+                "implementation of KDTree, skipping."
+            )
 
         self.copy_query_points = False
         self.n, self.m = self.data.shape
@@ -134,8 +147,7 @@ class KDTree:
         if boxsize is not None:
             # self.boxsize_data = cupy.empty(self.m, dtype=data.dtype)
             self.copy_query_points = True
-            boxsize = broadcast_contiguous(boxsize, shape=(self.m,),
-                                           dtype=cupy.float64)
+            boxsize = broadcast_contiguous(boxsize, shape=(self.m,), dtype=cupy.float64)
             # self.boxsize_data[:self.m] = boxsize
             # self.boxsize_data[self.m:] = 0.5 * boxsize
 
@@ -143,18 +155,18 @@ class KDTree:
             periodic_mask = self.boxsize > 0
             if ((self.data >= self.boxsize[None, :])[:, periodic_mask]).any():
                 raise ValueError(
-                    "Some input data are greater than the size of the "
-                    "periodic box.")
+                    "Some input data are greater than the size of the " "periodic box."
+                )
             if ((self.data < 0)[:, periodic_mask]).any():
-                raise ValueError("Negative input data are outside of the "
-                                 "periodic box.")
+                raise ValueError(
+                    "Negative input data are outside of the " "periodic box."
+                )
 
         self.tree, self.index = asm_kd_tree(self.data)
         self.bounds = cupy.empty((0,))
         if self.copy_query_points:
             if self.data.dtype != cupy.float64:
-                raise ValueError('periodic KDTree is only available '
-                                 'on float64')
+                raise ValueError("periodic KDTree is only available " "on float64")
             self.bounds = compute_tree_bounds(self.tree)
 
         self.mins = cupy.min(self.tree, axis=0)
@@ -264,8 +276,7 @@ class KDTree:
         """
         if self.copy_query_points:
             if x.dtype != cupy.float64:
-                raise ValueError('periodic KDTree is only available '
-                                 'on float64')
+                raise ValueError("periodic KDTree is only available " "on float64")
             x = x.copy()
 
         common_dtype = cupy.result_type(self.tree.dtype, x.dtype)
@@ -279,16 +290,24 @@ class KDTree:
             try:
                 k = int(k)
             except TypeError:
-                raise ValueError('k must be an integer or list of integers')
+                raise ValueError("k must be an integer or list of integers")
 
         return compute_knn(
-            x, tree, self.index, self.boxsize, self.bounds, k=k,
-            eps=float(eps), p=float(p),
+            x,
+            tree,
+            self.index,
+            self.boxsize,
+            self.bounds,
+            k=k,
+            eps=float(eps),
+            p=float(p),
             distance_upper_bound=distance_upper_bound,
-            adjust_to_box=self.copy_query_points)
+            adjust_to_box=self.copy_query_points,
+        )
 
-    def query_ball_point(self, x, r, p=2., eps=0, return_sorted=None,
-                         return_length=False):
+    def query_ball_point(
+        self, x, r, p=2.0, eps=0, return_sorted=None, return_length=False
+    ):
         """
         Find all points within distance r of point(s) x.
 
@@ -340,8 +359,7 @@ class KDTree:
         """
         if self.copy_query_points:
             if x.dtype != cupy.float64:
-                raise ValueError('periodic KDTree is only available '
-                                 'on float64')
+                raise ValueError("periodic KDTree is only available " "on float64")
             x = x.copy()
 
         common_dtype = cupy.result_type(self.tree.dtype, x.dtype)
@@ -352,9 +370,18 @@ class KDTree:
             x = x.astype(common_dtype)
 
         return find_nodes_in_radius(
-            x, tree, self.index, self.boxsize, self.bounds,
-            r, p=p, eps=eps, return_sorted=return_sorted,
-            return_length=return_length, adjust_to_box=self.copy_query_points)
+            x,
+            tree,
+            self.index,
+            self.boxsize,
+            self.bounds,
+            r,
+            p=p,
+            eps=eps,
+            return_sorted=return_sorted,
+            return_length=return_length,
+            adjust_to_box=self.copy_query_points,
+        )
 
     def query_ball_tree(self, other, r, p=2.0, eps=0.0):
         """
@@ -406,10 +433,9 @@ class KDTree:
         >>> plt.show()
 
         """
-        return other.query_ball_point(
-            self.data, r, p=p, eps=eps, return_sorted=True)
+        return other.query_ball_point(self.data, r, p=p, eps=eps, return_sorted=True)
 
-    def query_pairs(self, r, p=2.0, eps=0, output_type='ndarray'):
+    def query_pairs(self, r, p=2.0, eps=0, output_type="ndarray"):
         """
         Find all pairs of points in `self` whose distance is at most r.
 
@@ -459,16 +485,17 @@ class KDTree:
         >>> plt.show()
 
         """
-        if output_type == 'set':
-            warnings.warn("output_type='set' is not supported by the GPU "
-                          "implementation of KDTree, resorting back to "
-                          "'ndarray'.")
+        if output_type == "set":
+            warnings.warn(
+                "output_type='set' is not supported by the GPU "
+                "implementation of KDTree, resorting back to "
+                "'ndarray'."
+            )
 
         x = self.data
         if self.copy_query_points:
             if x.dtype != cupy.float64:
-                raise ValueError('periodic KDTree is only available '
-                                 'on float64')
+                raise ValueError("periodic KDTree is only available " "on float64")
             x = x.copy()
 
         common_dtype = cupy.result_type(self.tree.dtype, x.dtype)
@@ -479,9 +506,18 @@ class KDTree:
             x = x.astype(common_dtype)
 
         return find_nodes_in_radius(
-            x, tree, self.index, self.boxsize, self.bounds,
-            r, p=p, eps=eps, return_sorted=True, return_tuples=True,
-            adjust_to_box=self.copy_query_points)
+            x,
+            tree,
+            self.index,
+            self.boxsize,
+            self.bounds,
+            r,
+            p=p,
+            eps=eps,
+            return_sorted=True,
+            return_tuples=True,
+            adjust_to_box=self.copy_query_points,
+        )
 
     def count_neighbors(self, other, r, p=2.0, weights=None, cumulative=True):
         """
@@ -537,10 +573,11 @@ class KDTree:
             ``(-inf if i == 0 else r[i-1]) < R <= r[i]``
 
         """
-        raise NotImplementedError('count_neighbors is not available on CuPy')
+        raise NotImplementedError("count_neighbors is not available on CuPy")
 
-    def sparse_distance_matrix(self, other, max_distance, p=2.0,
-                               output_type='coo_matrix'):
+    def sparse_distance_matrix(
+        self, other, max_distance, p=2.0, output_type="coo_matrix"
+    ):
         """
         Compute a sparse distance matrix
 
@@ -593,14 +630,15 @@ class KDTree:
            [0.31994999, 0.72658602, 0.71124834, 0.55396483, 0.90785663],
            [0.24617575, 0.29571802, 0.26836782, 0.57714465, 0.6473269 ]])
         """
-        if output_type not in {'coo_matrix', 'ndarray'}:
+        if output_type not in {"coo_matrix", "ndarray"}:
             raise ValueError(
                 "sparse_distance_matrix only supports 'coo_matrix' and "
-                "'ndarray' outputs")
+                "'ndarray' outputs"
+            )
 
         dist = distance_matrix(self.data, other.data, p)
         dist[dist > max_distance] = 0
 
-        if output_type == 'coo_matrix':
+        if output_type == "coo_matrix":
             return coo_matrix(dist)
         return dist

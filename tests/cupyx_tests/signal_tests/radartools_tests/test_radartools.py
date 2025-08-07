@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import numpy
 import pytest
+
 try:
     import scipy
 except ImportError:
@@ -19,6 +20,7 @@ def _numpy_pulse_preprocess(x, normalize, window):
             x *= window(numpy.fft.fftfreq(n))
         else:
             from scipy.signal import get_window
+
             x *= get_window(window, n, False)
 
     if normalize:
@@ -40,7 +42,7 @@ def _numpy_pulse_compression(x, t, normalize, window):
     fft_x = numpy.fft.fft(x, n)
     fft_t = numpy.fft.fft(t, n)
     out = numpy.fft.ifft(fft_x * fft_t.conj(), n)
-    if dtype.kind != 'c':
+    if dtype.kind != "c":
         out = out.real
     return out.astype(dtype)
 
@@ -53,9 +55,9 @@ tol = {
 }
 
 
-@pytest.mark.parametrize('normalize', [True, False])
-@pytest.mark.parametrize('window', [None, 'hamming', numpy.negative])
-@testing.for_dtypes('fdFD')
+@pytest.mark.parametrize("normalize", [True, False])
+@pytest.mark.parametrize("window", [None, "hamming", numpy.negative])
+@testing.for_dtypes("fdFD")
 @testing.numpy_cupy_allclose(rtol=tol, contiguous_check=False)
 @testing.with_requires("scipy")
 def test_pulse_compression(xp, normalize, window, dtype):
@@ -70,8 +72,8 @@ def test_pulse_compression(xp, normalize, window, dtype):
         return _numpy_pulse_compression(x, template, normalize, window)
 
 
-@pytest.mark.parametrize('window', [None, 'hamming', numpy.negative])
-@testing.for_dtypes('fdFD')
+@pytest.mark.parametrize("window", [None, "hamming", numpy.negative])
+@testing.for_dtypes("fdFD")
 @testing.numpy_cupy_allclose(rtol=tol, contiguous_check=False)
 @testing.with_requires("scipy")
 def test_pulse_doppler(xp, window, dtype):
@@ -94,8 +96,7 @@ def test_cfar_alpha(dtype):
     cupy.testing.assert_allclose(gpu, cpu)
 
 
-@pytest.mark.parametrize(
-    "size,gc,rc", [(100, 1, 5), (11, 2, 3), (100, 10, 20)])
+@pytest.mark.parametrize("size,gc,rc", [(100, 1, 5), (11, 2, 3), (100, 10, 20)])
 @testing.for_float_dtypes(no_float16=True)
 @testing.numpy_cupy_allclose(rtol=2e-6, type_check=False)
 @testing.with_requires("scipy")
@@ -108,20 +109,20 @@ def test_ca_cfar1d(xp, dtype, size, gc, rc):
         weight = numpy.ones(((rc + gc) * 2 + 1,), dtype=dtype)
         weight[rc:-rc] = 0
         alpha = numpy.zeros((size,), dtype=dtype)
-        alpha[gc+rc:-gc-rc] = signal.cfar_alpha(1e-3, 2 * rc)
+        alpha[gc + rc : -gc - rc] = signal.cfar_alpha(1e-3, 2 * rc)
         out = scipy.ndimage.convolve1d(array, weight) * alpha / (2 * rc)
         return out, array - out > 0
 
 
-@pytest.mark.parametrize(
-    "size,gc,rc", [(1, 1, 1), (10, 2, 3), (10, 0, 5), (10, 5, 0)])
+@pytest.mark.parametrize("size,gc,rc", [(1, 1, 1), (10, 2, 3), (10, 0, 5), (10, 5, 0)])
 def test_ca_cfar1d_failures(size, gc, rc):
     with pytest.raises(ValueError):
         _, _ = signal.ca_cfar(cupy.zeros(size), gc, rc)
 
 
 @pytest.mark.parametrize(
-    "shape,gc,rc", [((10, 10), (1, 1), (2, 2)), ((10, 100), (1, 10), (2, 20))])
+    "shape,gc,rc", [((10, 10), (1, 1), (2, 2)), ((10, 100), (1, 10), (2, 20))]
+)
 @testing.for_float_dtypes(no_float16=True)
 @testing.numpy_cupy_allclose(rtol=2e-6, type_check=False)
 @testing.with_requires("scipy")
@@ -133,20 +134,21 @@ def test_ca_cfar2d(xp, dtype, shape, gc, rc):
         assert xp is numpy
         rcx, rcy = rc
         gcx, gcy = gc
-        weight = numpy.ones(
-            ((rcx + gcx) * 2 + 1, (rcy + gcy) * 2 + 1), dtype=dtype)
+        weight = numpy.ones(((rcx + gcx) * 2 + 1, (rcy + gcy) * 2 + 1), dtype=dtype)
         weight[rcx:-rcx, rcy:-rcy] = 0
         alpha = numpy.zeros(shape, dtype=dtype)
         N = weight.size - (2 * gcx + 1) * (2 * gcy + 1)
-        alpha[gcx+rcx:-gcx-rcx, gcy+rcy:-gcy-rcy] = signal.cfar_alpha(1e-3, N)
+        alpha[gcx + rcx : -gcx - rcx, gcy + rcy : -gcy - rcy] = signal.cfar_alpha(
+            1e-3, N
+        )
         out = scipy.ndimage.convolve(array, weight) * alpha / N
         return out, array - out > 0
 
 
 @pytest.mark.parametrize(
-    "shape,gc,rc", [((3, 3), (1, 2), (1, 10)),
-                    ((3, 3), (1, 1), (10, 1)),
-                    ((5, 5), (3, 3), (3, 3))])
+    "shape,gc,rc",
+    [((3, 3), (1, 2), (1, 10)), ((3, 3), (1, 1), (10, 1)), ((5, 5), (3, 3), (3, 3))],
+)
 def test_ca_cfar2d_failures(shape, gc, rc):
     with pytest.raises(ValueError):
         _, _ = signal.ca_cfar(cupy.zeros(shape), gc, rc)

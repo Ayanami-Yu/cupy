@@ -2,6 +2,7 @@
 ltisys -- a collection of classes and functions for modeling linear
 time invariant systems.
 """
+
 from __future__ import annotations
 
 import warnings
@@ -14,21 +15,28 @@ from cupyx.scipy import linalg
 from cupyx.scipy.interpolate import make_interp_spline
 from cupyx.scipy.linalg import expm, block_diag
 
-from cupyx.scipy.signal._lti_conversion import (
-    _atleast_2d_or_none, abcd_normalize)
+from cupyx.scipy.signal._lti_conversion import _atleast_2d_or_none, abcd_normalize
 from cupyx.scipy.signal._iir_filter_conversions import (
-    normalize, tf2zpk, tf2ss, zpk2ss, ss2tf, ss2zpk, zpk2tf)
-from cupyx.scipy.signal._filter_design import (
-    freqz, freqz_zpk, freqs, freqs_zpk)
+    normalize,
+    tf2zpk,
+    tf2ss,
+    zpk2ss,
+    ss2tf,
+    ss2zpk,
+    zpk2tf,
+)
+from cupyx.scipy.signal._filter_design import freqz, freqz_zpk, freqs, freqs_zpk
 
 
 class LinearTimeInvariant:
     def __new__(cls, *system, **kwargs):
         """Create a new object, don't allow direct instances."""
         if cls is LinearTimeInvariant:
-            raise NotImplementedError('The LinearTimeInvariant class is not '
-                                      'meant to be used directly, use `lti` '
-                                      'or `dlti` instead.')
+            raise NotImplementedError(
+                "The LinearTimeInvariant class is not "
+                "meant to be used directly, use `lti` "
+                "or `dlti` instead."
+            )
         return super().__new__(cls)
 
     def __init__(self):
@@ -53,7 +61,7 @@ class LinearTimeInvariant:
         if self.dt is None:
             return {}
         else:
-            return {'dt': self.dt}
+            return {"dt": self.dt}
 
     @property
     def zeros(self):
@@ -147,22 +155,26 @@ class lti(LinearTimeInvariant):
     convert to the specific system representation first. For example, call
     ``sys = sys.to_zpk()`` before accessing/changing the zeros, poles or gain.
     """
+
     def __new__(cls, *system):
         """Create an instance of the appropriate subclass."""
         if cls is lti:
             N = len(system)
             if N == 2:
                 return TransferFunctionContinuous.__new__(
-                    TransferFunctionContinuous, *system)
+                    TransferFunctionContinuous, *system
+                )
             elif N == 3:
                 return ZerosPolesGainContinuous.__new__(
-                    ZerosPolesGainContinuous, *system)
+                    ZerosPolesGainContinuous, *system
+                )
             elif N == 4:
-                return StateSpaceContinuous.__new__(StateSpaceContinuous,
-                                                    *system)
+                return StateSpaceContinuous.__new__(StateSpaceContinuous, *system)
             else:
-                raise ValueError("`system` needs to be an instance of `lti` "
-                                 "or have 2, 3 or 4 arguments.")
+                raise ValueError(
+                    "`system` needs to be an instance of `lti` "
+                    "or have 2, 3 or 4 arguments."
+                )
         # __new__ was called from a subclass, let it call its own functions
         return super().__new__(cls)
 
@@ -214,7 +226,7 @@ class lti(LinearTimeInvariant):
         """
         return freqresp(self, w=w, n=n)
 
-    def to_discrete(self, dt, method='zoh', alpha=None):
+    def to_discrete(self, dt, method="zoh", alpha=None):
         """Return a discretized version of the current system.
 
         Parameters: See `cont2discrete` for details.
@@ -223,8 +235,9 @@ class lti(LinearTimeInvariant):
         -------
         sys: instance of `dlti`
         """
-        raise NotImplementedError('to_discrete is not implemented for this '
-                                  'system class.')
+        raise NotImplementedError(
+            "to_discrete is not implemented for this " "system class."
+        )
 
 
 class dlti(LinearTimeInvariant):
@@ -270,22 +283,26 @@ class dlti(LinearTimeInvariant):
     exponent order (e.g., ``z^2 + 3z + 5`` would be represented as ``[1, 3,
     5]``).
     """
+
     def __new__(cls, *system, **kwargs):
         """Create an instance of the appropriate subclass."""
         if cls is dlti:
             N = len(system)
             if N == 2:
                 return TransferFunctionDiscrete.__new__(
-                    TransferFunctionDiscrete, *system, **kwargs)
+                    TransferFunctionDiscrete, *system, **kwargs
+                )
             elif N == 3:
-                return ZerosPolesGainDiscrete.__new__(ZerosPolesGainDiscrete,
-                                                      *system, **kwargs)
+                return ZerosPolesGainDiscrete.__new__(
+                    ZerosPolesGainDiscrete, *system, **kwargs
+                )
             elif N == 4:
-                return StateSpaceDiscrete.__new__(StateSpaceDiscrete, *system,
-                                                  **kwargs)
+                return StateSpaceDiscrete.__new__(StateSpaceDiscrete, *system, **kwargs)
             else:
-                raise ValueError("`system` needs to be an instance of `dlti` "
-                                 "or have 2, 3 or 4 arguments.")
+                raise ValueError(
+                    "`system` needs to be an instance of `dlti` "
+                    "or have 2, 3 or 4 arguments."
+                )
         # __new__ was called from a subclass, let it call its own functions
         return super().__new__(cls)
 
@@ -295,7 +312,7 @@ class dlti(LinearTimeInvariant):
 
         The heavy lifting is done by the subclasses.
         """
-        dt = kwargs.pop('dt', True)
+        dt = kwargs.pop("dt", True)
         super().__init__(*system, **kwargs)
 
         self.dt = dt
@@ -399,6 +416,7 @@ class TransferFunction(LinearTimeInvariant):
     exponent order (e.g. ``s^2 + 3s + 5`` or ``z^2 + 3z + 5`` would be
     represented as ``[1, 3, 5]``)
     """
+
     def __new__(cls, *system, **kwargs):
         """Handle object conversion if input is an instance of lti."""
         if len(system) == 1 and isinstance(system[0], LinearTimeInvariant):
@@ -406,16 +424,14 @@ class TransferFunction(LinearTimeInvariant):
 
         # Choose whether to inherit from `lti` or from `dlti`
         if cls is TransferFunction:
-            if kwargs.get('dt') is None:
+            if kwargs.get("dt") is None:
                 return TransferFunctionContinuous.__new__(
-                    TransferFunctionContinuous,
-                    *system,
-                    **kwargs)
+                    TransferFunctionContinuous, *system, **kwargs
+                )
             else:
                 return TransferFunctionDiscrete.__new__(
-                    TransferFunctionDiscrete,
-                    *system,
-                    **kwargs)
+                    TransferFunctionDiscrete, *system, **kwargs
+                )
 
         # No special conversion needed
         return super().__new__(cls)
@@ -436,7 +452,7 @@ class TransferFunction(LinearTimeInvariant):
 
     def __repr__(self):
         """Return representation of the system's transfer function"""
-        return '{}(\n{},\n{},\ndt: {}\n)'.format(
+        return "{}(\n{},\n{},\ndt: {}\n)".format(
             self.__class__.__name__,
             repr(self.num),
             repr(self.den),
@@ -503,8 +519,7 @@ class TransferFunction(LinearTimeInvariant):
             Zeros, poles, gain representation of the current system
 
         """
-        return ZerosPolesGain(*tf2zpk(self.num, self.den),
-                              **self._dt_dict)
+        return ZerosPolesGain(*tf2zpk(self.num, self.den), **self._dt_dict)
 
     def to_ss(self):
         """
@@ -516,8 +531,7 @@ class TransferFunction(LinearTimeInvariant):
             State space model of the current system
 
         """
-        return StateSpace(*tf2ss(self.num, self.den),
-                          **self._dt_dict)
+        return StateSpace(*tf2ss(self.num, self.den), **self._dt_dict)
 
     @staticmethod
     def _z_to_zinv(num, den):
@@ -614,7 +628,7 @@ class TransferFunctionContinuous(TransferFunction, lti):
 
     """
 
-    def to_discrete(self, dt, method='zoh', alpha=None):
+    def to_discrete(self, dt, method="zoh", alpha=None):
         """
         Returns the discretized `TransferFunction` system.
 
@@ -624,11 +638,10 @@ class TransferFunctionContinuous(TransferFunction, lti):
         -------
         sys: instance of `dlti` and `StateSpace`
         """
-        return TransferFunction(*cont2discrete((self.num, self.den),
-                                               dt,
-                                               method=method,
-                                               alpha=alpha)[:-1],
-                                dt=dt)
+        return TransferFunction(
+            *cont2discrete((self.num, self.den), dt, method=method, alpha=alpha)[:-1],
+            dt=dt,
+        )
 
 
 class TransferFunctionDiscrete(TransferFunction, dlti):
@@ -675,6 +688,7 @@ class TransferFunctionDiscrete(TransferFunction, dlti):
     exponent order (e.g., ``z^2 + 3z + 5`` would be represented as
     ``[1, 3, 5]``).
     """
+
     pass
 
 
@@ -720,6 +734,7 @@ class ZerosPolesGain(LinearTimeInvariant):
     representation first. For example, call ``sys = sys.to_ss()`` before
     accessing/changing the A, B, C, D system matrices.
     """
+
     def __new__(cls, *system, **kwargs):
         """Handle object conversion if input is an instance of `lti`"""
         if len(system) == 1 and isinstance(system[0], LinearTimeInvariant):
@@ -727,16 +742,13 @@ class ZerosPolesGain(LinearTimeInvariant):
 
         # Choose whether to inherit from `lti` or from `dlti`
         if cls is ZerosPolesGain:
-            if kwargs.get('dt') is None:
+            if kwargs.get("dt") is None:
                 return ZerosPolesGainContinuous.__new__(
-                    ZerosPolesGainContinuous,
-                    *system,
-                    **kwargs)
+                    ZerosPolesGainContinuous, *system, **kwargs
+                )
             else:
                 return ZerosPolesGainDiscrete.__new__(
-                    ZerosPolesGainDiscrete,
-                    *system,
-                    **kwargs
+                    ZerosPolesGainDiscrete, *system, **kwargs
                 )
 
         # No special conversion needed
@@ -758,7 +770,7 @@ class ZerosPolesGain(LinearTimeInvariant):
 
     def __repr__(self):
         """Return representation of the `ZerosPolesGain` system."""
-        return '{}(\n{},\n{},\n{},\ndt: {}\n)'.format(
+        return "{}(\n{},\n{},\n{},\ndt: {}\n)".format(
             self.__class__.__name__,
             repr(self.zeros),
             repr(self.poles),
@@ -824,8 +836,9 @@ class ZerosPolesGain(LinearTimeInvariant):
             Transfer function of the current system
 
         """
-        return TransferFunction(*zpk2tf(self.zeros, self.poles, self.gain),
-                                **self._dt_dict)
+        return TransferFunction(
+            *zpk2tf(self.zeros, self.poles, self.gain), **self._dt_dict
+        )
 
     def to_zpk(self):
         """
@@ -849,8 +862,7 @@ class ZerosPolesGain(LinearTimeInvariant):
             State space model of the current system
 
         """
-        return StateSpace(*zpk2ss(self.zeros, self.poles, self.gain),
-                          **self._dt_dict)
+        return StateSpace(*zpk2ss(self.zeros, self.poles, self.gain), **self._dt_dict)
 
 
 class ZerosPolesGainContinuous(ZerosPolesGain, lti):
@@ -905,7 +917,7 @@ class ZerosPolesGainContinuous(ZerosPolesGain, lti):
 
     """
 
-    def to_discrete(self, dt, method='zoh', alpha=None):
+    def to_discrete(self, dt, method="zoh", alpha=None):
         """
         Returns the discretized `ZerosPolesGain` system.
 
@@ -916,11 +928,11 @@ class ZerosPolesGainContinuous(ZerosPolesGain, lti):
         sys: instance of `dlti` and `ZerosPolesGain`
         """
         return ZerosPolesGain(
-            *cont2discrete((self.zeros, self.poles, self.gain),
-                           dt,
-                           method=method,
-                           alpha=alpha)[:-1],
-            dt=dt)
+            *cont2discrete(
+                (self.zeros, self.poles, self.gain), dt, method=method, alpha=alpha
+            )[:-1],
+            dt=dt,
+        )
 
 
 class ZerosPolesGainDiscrete(ZerosPolesGain, dlti):
@@ -963,6 +975,7 @@ class ZerosPolesGainDiscrete(ZerosPolesGain, dlti):
     representation first. For example, call ``sys = sys.to_ss()`` before
     accessing/changing the A, B, C, D system matrices.
     """
+
     pass
 
 
@@ -1018,12 +1031,12 @@ class StateSpace(LinearTimeInvariant):
 
         # Choose whether to inherit from `lti` or from `dlti`
         if cls is StateSpace:
-            if kwargs.get('dt') is None:
-                return StateSpaceContinuous.__new__(StateSpaceContinuous,
-                                                    *system, **kwargs)
+            if kwargs.get("dt") is None:
+                return StateSpaceContinuous.__new__(
+                    StateSpaceContinuous, *system, **kwargs
+                )
             else:
-                return StateSpaceDiscrete.__new__(StateSpaceDiscrete,
-                                                  *system, **kwargs)
+                return StateSpaceDiscrete.__new__(StateSpaceDiscrete, *system, **kwargs)
 
         # No special conversion needed
         return super().__new__(cls)
@@ -1046,7 +1059,7 @@ class StateSpace(LinearTimeInvariant):
 
     def __repr__(self):
         """Return representation of the `StateSpace` system."""
-        return '{}(\n{},\n{},\n{},\n{},\ndt: {}\n)'.format(
+        return "{}(\n{},\n{},\n{},\n{},\ndt: {}\n)".format(
             self.__class__.__name__,
             repr(self.A),
             repr(self.B),
@@ -1056,8 +1069,9 @@ class StateSpace(LinearTimeInvariant):
         )
 
     def _check_binop_other(self, other):
-        return isinstance(other, (StateSpace, cupy.ndarray, float, complex,
-                                  cupy.number, int))
+        return isinstance(
+            other, (StateSpace, cupy.ndarray, float, complex, cupy.number, int)
+        )
 
     def __mul__(self, other):
         """
@@ -1083,7 +1097,7 @@ class StateSpace(LinearTimeInvariant):
                 return NotImplemented
 
             if self.dt != other.dt:
-                raise TypeError('Cannot multiply systems with different `dt`.')
+                raise TypeError("Cannot multiply systems with different `dt`.")
 
             n1 = self.A.shape[0]
             n2 = other.A.shape[0]
@@ -1099,8 +1113,12 @@ class StateSpace(LinearTimeInvariant):
             # [x2'] = [0  A2    ] [x2] + [B2   ] u2
             #                    [x1]
             #  y2   = [C1 D1*C2] [x2] + D1*D2 u2
-            a = cupy.vstack((cupy.hstack((self.A, self.B @ other.C)),
-                             cupy.hstack((cupy.zeros((n2, n1)), other.A))))
+            a = cupy.vstack(
+                (
+                    cupy.hstack((self.A, self.B @ other.C)),
+                    cupy.hstack((cupy.zeros((n2, n1)), other.A)),
+                )
+            )
             b = cupy.vstack((self.B @ other.D, other.B))
             c = cupy.hstack((self.C, self.D @ other.C))
             d = self.D @ other.D
@@ -1113,11 +1131,13 @@ class StateSpace(LinearTimeInvariant):
             d = self.D @ other
 
         common_dtype = cupy.result_type(a.dtype, b.dtype, c.dtype, d.dtype)
-        return StateSpace(cupy.asarray(a, dtype=common_dtype),
-                          cupy.asarray(b, dtype=common_dtype),
-                          cupy.asarray(c, dtype=common_dtype),
-                          cupy.asarray(d, dtype=common_dtype),
-                          **self._dt_dict)
+        return StateSpace(
+            cupy.asarray(a, dtype=common_dtype),
+            cupy.asarray(b, dtype=common_dtype),
+            cupy.asarray(c, dtype=common_dtype),
+            cupy.asarray(d, dtype=common_dtype),
+            **self._dt_dict,
+        )
 
     def __rmul__(self, other):
         """Pre-multiply a scalar or matrix (but not StateSpace)"""
@@ -1131,11 +1151,13 @@ class StateSpace(LinearTimeInvariant):
         d = other @ self.D
 
         common_dtype = cupy.result_type(a.dtype, b.dtype, c.dtype, d.dtype)
-        return StateSpace(cupy.asarray(a, dtype=common_dtype),
-                          cupy.asarray(b, dtype=common_dtype),
-                          cupy.asarray(c, dtype=common_dtype),
-                          cupy.asarray(d, dtype=common_dtype),
-                          **self._dt_dict)
+        return StateSpace(
+            cupy.asarray(a, dtype=common_dtype),
+            cupy.asarray(b, dtype=common_dtype),
+            cupy.asarray(c, dtype=common_dtype),
+            cupy.asarray(d, dtype=common_dtype),
+            **self._dt_dict,
+        )
 
     def __neg__(self):
         """Negate the system (equivalent to pre-multiplying by -1)."""
@@ -1151,11 +1173,10 @@ class StateSpace(LinearTimeInvariant):
         if isinstance(other, StateSpace):
             # Disallow mix of discrete and continuous systems.
             if type(other) is not type(self):
-                raise TypeError('Cannot add {} and {}'.format(type(self),
-                                                              type(other)))
+                raise TypeError("Cannot add {} and {}".format(type(self), type(other)))
 
             if self.dt != other.dt:
-                raise TypeError('Cannot add systems with different `dt`.')
+                raise TypeError("Cannot add systems with different `dt`.")
             # Interconnection of systems
             # x1' = A1 x1 + B1 u
             # y1  = C1 x1 + D1 u
@@ -1182,16 +1203,19 @@ class StateSpace(LinearTimeInvariant):
                 c = self.C
                 d = self.D + other
             else:
-                raise ValueError("Cannot add systems with incompatible "
-                                 "dimensions ({} and {})"
-                                 .format(self.D.shape, other.shape))
+                raise ValueError(
+                    "Cannot add systems with incompatible "
+                    "dimensions ({} and {})".format(self.D.shape, other.shape)
+                )
 
         common_dtype = cupy.result_type(a.dtype, b.dtype, c.dtype, d.dtype)
-        return StateSpace(cupy.asarray(a, dtype=common_dtype),
-                          cupy.asarray(b, dtype=common_dtype),
-                          cupy.asarray(c, dtype=common_dtype),
-                          cupy.asarray(d, dtype=common_dtype),
-                          **self._dt_dict)
+        return StateSpace(
+            cupy.asarray(a, dtype=common_dtype),
+            cupy.asarray(b, dtype=common_dtype),
+            cupy.asarray(c, dtype=common_dtype),
+            cupy.asarray(d, dtype=common_dtype),
+            **self._dt_dict,
+        )
 
     def __sub__(self, other):
         if not self._check_binop_other(other):
@@ -1221,10 +1245,9 @@ class StateSpace(LinearTimeInvariant):
 
         if isinstance(other, cupy.ndarray) and other.ndim > 0:
             # It's ambiguous what this means, so disallow it
-            raise ValueError(
-                "Cannot divide StateSpace by non-scalar numpy arrays")
+            raise ValueError("Cannot divide StateSpace by non-scalar numpy arrays")
 
-        return self.__mul__(1/other)
+        return self.__mul__(1 / other)
 
     @property
     def A(self):
@@ -1294,8 +1317,9 @@ class StateSpace(LinearTimeInvariant):
             Transfer function of the current system
 
         """
-        return TransferFunction(*ss2tf(self._A, self._B, self._C, self._D,
-                                       **kwargs), **self._dt_dict)
+        return TransferFunction(
+            *ss2tf(self._A, self._B, self._C, self._D, **kwargs), **self._dt_dict
+        )
 
     def to_zpk(self, **kwargs):
         """
@@ -1312,8 +1336,9 @@ class StateSpace(LinearTimeInvariant):
             Zeros, poles, gain representation of the current system
 
         """
-        return ZerosPolesGain(*ss2zpk(self._A, self._B, self._C, self._D,
-                                      **kwargs), **self._dt_dict)
+        return ZerosPolesGain(
+            *ss2zpk(self._A, self._B, self._C, self._D, **kwargs), **self._dt_dict
+        )
 
     def to_ss(self):
         """
@@ -1363,7 +1388,7 @@ class StateSpaceContinuous(StateSpace, lti):
     ``sys = sys.to_zpk()`` before accessing/changing the zeros, poles or gain.
     """
 
-    def to_discrete(self, dt, method='zoh', alpha=None):
+    def to_discrete(self, dt, method="zoh", alpha=None):
         """
         Returns the discretized `StateSpace` system.
 
@@ -1373,11 +1398,12 @@ class StateSpaceContinuous(StateSpace, lti):
         -------
         sys: instance of `dlti` and `StateSpace`
         """
-        return StateSpace(*cont2discrete((self.A, self.B, self.C, self.D),
-                                         dt,
-                                         method=method,
-                                         alpha=alpha)[:-1],
-                          dt=dt)
+        return StateSpace(
+            *cont2discrete(
+                (self.A, self.B, self.C, self.D), dt, method=method, alpha=alpha
+            )[:-1],
+            dt=dt,
+        )
 
 
 class StateSpaceDiscrete(StateSpace, dlti):
@@ -1418,10 +1444,12 @@ class StateSpaceDiscrete(StateSpace, dlti):
     convert to the specific system representation first. For example, call
     ``sys = sys.to_zpk()`` before accessing/changing the zeros, poles or gain.
     """
+
     pass
 
 
 # ### lsim and related functions
+
 
 def lsim(system, U, T, X0=None, interp=True):
     """
@@ -1475,8 +1503,7 @@ def lsim(system, U, T, X0=None, interp=True):
     if isinstance(system, lti):
         sys = system._as_ss()
     elif isinstance(system, dlti):
-        raise AttributeError('lsim can only be used with continuous-time '
-                             'systems.')
+        raise AttributeError("lsim can only be used with continuous-time " "systems.")
     else:
         sys = lti(*system)._as_ss()
     T = cupy.atleast_1d(T)
@@ -1500,9 +1527,9 @@ def lsim(system, U, T, X0=None, interp=True):
     else:
         raise ValueError("Initial time must be nonnegative")
 
-    no_input = (U is None or
-                (isinstance(U, (int, float)) and U == 0.) or
-                not cupy.any(U))
+    no_input = (
+        U is None or (isinstance(U, (int, float)) and U == 0.0) or not cupy.any(U)
+    )
 
     if n_steps == 1:
         yout = cupy.squeeze(xout @ C.T)
@@ -1519,7 +1546,7 @@ def lsim(system, U, T, X0=None, interp=True):
         # take transpose because state is a row vector
         expAT_dt = expm(A.T * dt)
         for i in range(1, n_steps):
-            xout[i] = xout[i-1] @ expAT_dt
+            xout[i] = xout[i - 1] @ expAT_dt
         yout = cupy.squeeze(xout @ C.T)
         return T, cupy.squeeze(yout), cupy.squeeze(xout)
 
@@ -1529,8 +1556,7 @@ def lsim(system, U, T, X0=None, interp=True):
         U = U[:, None]
 
     if U.shape[0] != n_steps:
-        raise ValueError("U must have the same number of rows "
-                         "as elements in T.")
+        raise ValueError("U must have the same number of rows " "as elements in T.")
 
     if U.shape[1] != n_inputs:
         raise ValueError("System does not define that many inputs.")
@@ -1544,14 +1570,15 @@ def lsim(system, U, T, X0=None, interp=True):
         # Solution is
         #   [ x(dt) ]       [ A*dt   B*dt ] [ x0 ]
         #   [ u(dt) ] = exp [  0     0    ] [ u0 ]
-        M = cupy.vstack([cupy.hstack([A * dt, B * dt]),
-                         cupy.zeros((n_inputs, n_states + n_inputs))])
+        M = cupy.vstack(
+            [cupy.hstack([A * dt, B * dt]), cupy.zeros((n_inputs, n_states + n_inputs))]
+        )
         # transpose everything because the state and input are row vectors
         expMT = expm(M.T)
         Ad = expMT[:n_states, :n_states]
         Bd = expMT[n_states:, :n_states]
         for i in range(1, n_steps):
-            xout[i] = xout[i-1] @ Ad + U[i-1] @ Bd
+            xout[i] = xout[i - 1] @ Ad + U[i - 1] @ Bd
     else:
         # Linear interpolation between steps
         # Algorithm: to integrate from time 0 to time dt, with linear
@@ -1563,19 +1590,21 @@ def lsim(system, U, T, X0=None, interp=True):
         #   [ x(dt) ]       [ A*dt  B*dt  0 ] [  x0   ]
         #   [ u(dt) ] = exp [  0     0    I ] [  u0   ]
         #   [u1 - u0]       [  0     0    0 ] [u1 - u0]
-        Mlst = [cupy.hstack([A * dt, B * dt,
-                             cupy.zeros((n_states, n_inputs))]),
-                cupy.hstack([cupy.zeros((n_inputs, n_states + n_inputs)),
-                             cupy.identity(n_inputs)]),
-                cupy.zeros((n_inputs, n_states + 2 * n_inputs))]
+        Mlst = [
+            cupy.hstack([A * dt, B * dt, cupy.zeros((n_states, n_inputs))]),
+            cupy.hstack(
+                [cupy.zeros((n_inputs, n_states + n_inputs)), cupy.identity(n_inputs)]
+            ),
+            cupy.zeros((n_inputs, n_states + 2 * n_inputs)),
+        ]
 
         M = cupy.vstack(Mlst)
         expMT = expm(M.T)
         Ad = expMT[:n_states, :n_states]
-        Bd1 = expMT[n_states+n_inputs:, :n_states]
-        Bd0 = expMT[n_states:n_states + n_inputs, :n_states] - Bd1
+        Bd1 = expMT[n_states + n_inputs :, :n_states]
+        Bd0 = expMT[n_states : n_states + n_inputs, :n_states] - Bd1
         for i in range(1, n_steps):
-            xout[i] = ((xout[i-1] @ Ad) + (U[i-1] @ Bd0) + (U[i] @ Bd1))
+            xout[i] = (xout[i - 1] @ Ad) + (U[i - 1] @ Bd0) + (U[i] @ Bd1)
 
     yout = cupy.squeeze(xout @ C.T) + cupy.squeeze(U @ D.T)
     return T, cupy.squeeze(yout), cupy.squeeze(xout)
@@ -1611,6 +1640,7 @@ def _default_response_times(A, n):
     # eigenvalue locations, but that would change the default behavior.
 
     import numpy as np
+
     vals = np.linalg.eigvals(A.get())
     vals = cupy.asarray(vals)
 
@@ -1666,8 +1696,9 @@ def impulse(system, X0=None, T=None, N=None):
     if isinstance(system, lti):
         sys = system._as_ss()
     elif isinstance(system, dlti):
-        raise AttributeError('impulse can only be used with continuous-time '
-                             'systems.')
+        raise AttributeError(
+            "impulse can only be used with continuous-time " "systems."
+        )
     else:
         sys = lti(*system)._as_ss()
     if X0 is None:
@@ -1681,7 +1712,7 @@ def impulse(system, X0=None, T=None, N=None):
     else:
         T = cupy.asarray(T)
 
-    _, h, _ = lsim(sys, 0., T, X, interp=False)
+    _, h, _ = lsim(sys, 0.0, T, X, interp=False)
     return T, h
 
 
@@ -1729,8 +1760,7 @@ def step(system, X0=None, T=None, N=None):
     if isinstance(system, lti):
         sys = system._as_ss()
     elif isinstance(system, dlti):
-        raise AttributeError('step can only be used with continuous-time '
-                             'systems.')
+        raise AttributeError("step can only be used with continuous-time " "systems.")
     else:
         sys = lti(*system)._as_ss()
     if N is None:
@@ -1843,14 +1873,16 @@ def freqresp(system, w=None, n=10000):
         else:
             sys = system._as_zpk()
     elif isinstance(system, dlti):
-        raise AttributeError('freqresp can only be used with continuous-time '
-                             'systems.')
+        raise AttributeError(
+            "freqresp can only be used with continuous-time " "systems."
+        )
     else:
         sys = lti(*system)._as_zpk()
 
     if sys.inputs != 1 or sys.outputs != 1:
-        raise ValueError("freqresp() requires a SISO (single input, single "
-                         "output) system.")
+        raise ValueError(
+            "freqresp() requires a SISO (single input, single " "output) system."
+        )
 
     if w is not None:
         worN = w
@@ -1869,6 +1901,7 @@ def freqresp(system, w=None, n=10000):
 
 
 # ### place_poles ###
+
 
 # This class will be used by place_poles to return its results
 # see https://code.activestate.com/recipes/52308/
@@ -1896,19 +1929,24 @@ def _valid_inputs(A, B, poles, method, rtol, maxiter):
     if A.shape[0] != A.shape[1]:
         raise ValueError("A must be square")
     if len(poles) > A.shape[0]:
-        raise ValueError("maximum number of poles is %d but you asked for %d" %
-                         (A.shape[0], len(poles)))
+        raise ValueError(
+            "maximum number of poles is %d but you asked for %d"
+            % (A.shape[0], len(poles))
+        )
     if len(poles) < A.shape[0]:
-        raise ValueError("number of poles is %d but you should provide %d" %
-                         (len(poles), A.shape[0]))
+        raise ValueError(
+            "number of poles is %d but you should provide %d" % (len(poles), A.shape[0])
+        )
     r = cupy.linalg.matrix_rank(B)
     for p in poles:
         if sum(p == poles) > r:
-            raise ValueError("at least one of the requested pole is repeated "
-                             "more than rank(B) times")
+            raise ValueError(
+                "at least one of the requested pole is repeated "
+                "more than rank(B) times"
+            )
     # Choose update method
     update_loop = _YT_loop
-    if method not in ('KNV0', 'YT'):
+    if method not in ("KNV0", "YT"):
         raise ValueError("The method keyword must be one of 'YT' or 'KNV0'")
 
     if method == "KNV0":
@@ -2007,8 +2045,8 @@ def _YT_real(ker_pole, Q, transfer_matrix, i, j):
     v = Q[:, -1, None]
 
     # step 2 page 19
-#    m = np.dot(np.dot(ker_pole[i].T, np.dot(u, v.T) -
-#        np.dot(v, u.T)), ker_pole[j])
+    #    m = np.dot(np.dot(ker_pole[i].T, np.dot(u, v.T) -
+    #        np.dot(v, u.T)), ker_pole[j])
     m = (ker_pole[i].T @ (u @ v.T - v @ u.T)) @ ker_pole[j]
 
     # step 3 page 19
@@ -2020,49 +2058,41 @@ def _YT_real(ker_pole, Q, transfer_matrix, i, j):
 
     # what follows is a rough python translation of the formulas
     # in section 6.2 page 20 (step 4)
-    transfer_matrix_j_mo_transfer_matrix_j = cupy.vstack((
-        transfer_matrix[:, i, None],
-        transfer_matrix[:, j, None]))
+    transfer_matrix_j_mo_transfer_matrix_j = cupy.vstack(
+        (transfer_matrix[:, i, None], transfer_matrix[:, j, None])
+    )
 
     if not cupy.allclose(sm[0], sm[1]):
         ker_pole_imo_mu1 = ker_pole[i] @ mu1
         ker_pole_i_nu1 = ker_pole[j] @ nu1
         ker_pole_mu_nu = cupy.vstack((ker_pole_imo_mu1, ker_pole_i_nu1))
     else:
-        ker_pole_ij = cupy.vstack((
-            cupy.hstack((ker_pole[i],
-                         cupy.zeros(ker_pole[i].shape))),
-            cupy.hstack((cupy.zeros(ker_pole[j].shape),
-                         ker_pole[j]))
-        ))
-        mu_nu_matrix = cupy.vstack(
-            (cupy.hstack((mu1, mu2)), cupy.hstack((nu1, nu2)))
+        ker_pole_ij = cupy.vstack(
+            (
+                cupy.hstack((ker_pole[i], cupy.zeros(ker_pole[i].shape))),
+                cupy.hstack((cupy.zeros(ker_pole[j].shape), ker_pole[j])),
+            )
         )
+        mu_nu_matrix = cupy.vstack((cupy.hstack((mu1, mu2)), cupy.hstack((nu1, nu2))))
         ker_pole_mu_nu = ker_pole_ij @ mu_nu_matrix
-    transfer_matrix_ij = ((ker_pole_mu_nu @ ker_pole_mu_nu.T)
-                          @ transfer_matrix_j_mo_transfer_matrix_j)
+    transfer_matrix_ij = (
+        ker_pole_mu_nu @ ker_pole_mu_nu.T
+    ) @ transfer_matrix_j_mo_transfer_matrix_j
 
     if not cupy.allclose(transfer_matrix_ij, 0):
-        transfer_matrix_ij = (sqrt(2) * transfer_matrix_ij /
-                              cupy.linalg.norm(transfer_matrix_ij))
-        transfer_matrix[:, i] = transfer_matrix_ij[
-            :transfer_matrix[:, i].shape[0], 0
-        ]
-        transfer_matrix[:, j] = transfer_matrix_ij[
-            transfer_matrix[:, i].shape[0]:, 0
-        ]
+        transfer_matrix_ij = (
+            sqrt(2) * transfer_matrix_ij / cupy.linalg.norm(transfer_matrix_ij)
+        )
+        transfer_matrix[:, i] = transfer_matrix_ij[: transfer_matrix[:, i].shape[0], 0]
+        transfer_matrix[:, j] = transfer_matrix_ij[transfer_matrix[:, i].shape[0] :, 0]
     else:
         # As in knv0 if transfer_matrix_j_mo_transfer_matrix_j is orthogonal to
         # Vect{ker_pole_mu_nu} assign transfer_matrixi/transfer_matrix_j to
         # ker_pole_mu_nu and iterate. As we are looking for a vector in
         # Vect{Matker_pole_MU_NU} (see section 6.1 page 19) this might help
         # (that's a guess, not a claim !)
-        transfer_matrix[:, i] = ker_pole_mu_nu[
-            :transfer_matrix[:, i].shape[0], 0
-        ]
-        transfer_matrix[:, j] = ker_pole_mu_nu[
-            transfer_matrix[:, i].shape[0]:, 0
-        ]
+        transfer_matrix[:, i] = ker_pole_mu_nu[: transfer_matrix[:, i].shape[0], 0]
+        transfer_matrix[:, j] = ker_pole_mu_nu[transfer_matrix[:, i].shape[0] :, 0]
 
 
 def _YT_complex(ker_pole, Q, transfer_matrix, i, j):
@@ -2072,12 +2102,12 @@ def _YT_complex(ker_pole, Q, transfer_matrix, i, j):
     # step 1 page 20
     ur = sqrt(2) * Q[:, -2, None]
     ui = sqrt(2) * Q[:, -1, None]
-    u = ur + 1j*ui
+    u = ur + 1j * ui
 
     # step 2 page 20
     ker_pole_ij = ker_pole[i]
-#    m = np.dot(np.dot(np.conj(ker_pole_ij.T), np.dot(u, np.conj(u).T) -
-#               np.dot(np.conj(u), u.T)), ker_pole_ij)
+    #    m = np.dot(np.dot(np.conj(ker_pole_ij.T), np.dot(u, np.conj(u).T) -
+    #               np.dot(np.conj(u), u.T)), ker_pole_ij)
 
     m = ker_pole_ij.conj().T @ (u @ u.conj().T - u.conj() @ u.T) @ ker_pole_ij
 
@@ -2086,6 +2116,7 @@ def _YT_complex(ker_pole, Q, transfer_matrix, i, j):
 
     # XXX: delegate to numpy
     import numpy as np
+
     e_val, e_vec = np.linalg.eig(m.get())
     e_val, e_vec = cupy.asarray(e_val), cupy.asarray(e_vec)
 
@@ -2101,22 +2132,24 @@ def _YT_complex(ker_pole, Q, transfer_matrix, i, j):
     # transfer_matrix[i]=real(transfer_matrix_i) and
     # transfer_matrix[j]=imag(transfer_matrix_i)
     transfer_matrix_j_mo_transfer_matrix_j = (
-        transfer_matrix[:, i, None] +
-        1j*transfer_matrix[:, j, None]
+        transfer_matrix[:, i, None] + 1j * transfer_matrix[:, j, None]
     )
 
-    if not cupy.allclose(cupy.abs(e_val[e_val_idx[-1]]),
-                         cupy.abs(e_val[e_val_idx[-2]])):
+    if not cupy.allclose(
+        cupy.abs(e_val[e_val_idx[-1]]), cupy.abs(e_val[e_val_idx[-2]])
+    ):
         ker_pole_mu = ker_pole_ij @ mu1
     else:
         mu1_mu2_matrix = cupy.hstack((mu1, mu2))
         ker_pole_mu = ker_pole_ij @ mu1_mu2_matrix
-    transfer_matrix_i_j = cupy.dot((ker_pole_mu @ ker_pole_mu.conj().T),
-                                   transfer_matrix_j_mo_transfer_matrix_j)
+    transfer_matrix_i_j = cupy.dot(
+        (ker_pole_mu @ ker_pole_mu.conj().T), transfer_matrix_j_mo_transfer_matrix_j
+    )
 
     if not cupy.allclose(transfer_matrix_i_j, 0):
-        transfer_matrix_i_j = (transfer_matrix_i_j /
-                               cupy.linalg.norm(transfer_matrix_i_j))
+        transfer_matrix_i_j = transfer_matrix_i_j / cupy.linalg.norm(
+            transfer_matrix_i_j
+        )
         transfer_matrix[:, i] = cupy.real(transfer_matrix_i_j[:, 0])
         transfer_matrix[:, j] = cupy.imag(transfer_matrix_i_j[:, 0])
     else:
@@ -2150,43 +2183,43 @@ def _YT_loop(ker_pole, transfer_matrix, poles, B, maxiter, rtol):
     else:
         update_order = [[], []]
 
-    r_comp = cupy.arange(nb_real+1, len(poles)+1, 2)
+    r_comp = cupy.arange(nb_real + 1, len(poles) + 1, 2)
     # step 1.a
-    r_p = cupy.arange(1, hnb+nb_real % 2)
-    update_order[0].extend(2*r_p)
-    update_order[1].extend(2*r_p+1)
+    r_p = cupy.arange(1, hnb + nb_real % 2)
+    update_order[0].extend(2 * r_p)
+    update_order[1].extend(2 * r_p + 1)
     # step 1.b
     update_order[0].extend(r_comp)
-    update_order[1].extend(r_comp+1)
+    update_order[1].extend(r_comp + 1)
     # step 1.c
-    r_p = cupy.arange(1, hnb+1)
-    update_order[0].extend(2*r_p-1)
-    update_order[1].extend(2*r_p)
+    r_p = cupy.arange(1, hnb + 1)
+    update_order[0].extend(2 * r_p - 1)
+    update_order[1].extend(2 * r_p)
     # step 1.d
     if hnb == 0 and cupy.isreal(poles[0]):
         update_order[0].append(cupy.array(1))
         update_order[1].append(cupy.array(1))
     update_order[0].extend(r_comp)
-    update_order[1].extend(r_comp+1)
+    update_order[1].extend(r_comp + 1)
     # step 2.a
-    r_j = cupy.arange(2, hnb+nb_real % 2)
+    r_j = cupy.arange(2, hnb + nb_real % 2)
     for j in r_j:
-        for i in range(1, hnb+1):
+        for i in range(1, hnb + 1):
             update_order[0].append(cupy.array(i))
-            update_order[1].append(cupy.array(i+j))
+            update_order[1].append(cupy.array(i + j))
     # step 2.b
     if hnb == 0 and cupy.isreal(poles[0]):
         update_order[0].append(cupy.array(1))
         update_order[1].append(cupy.array(1))
     update_order[0].extend(r_comp)
-    update_order[1].extend(r_comp+1)
+    update_order[1].extend(r_comp + 1)
     # step 2.c
-    r_j = cupy.arange(2, hnb+nb_real % 2)
+    r_j = cupy.arange(2, hnb + nb_real % 2)
     for j in r_j:
-        for i in range(hnb+1, nb_real+1):
-            idx_1 = i+j
+        for i in range(hnb + 1, nb_real + 1):
+            idx_1 = i + j
             if idx_1 > nb_real:
-                idx_1 = i+j-nb_real
+                idx_1 = i + j - nb_real
             update_order[0].append(cupy.array(i))
             update_order[1].append(cupy.array(idx_1))
     # step 2.d
@@ -2194,19 +2227,19 @@ def _YT_loop(ker_pole, transfer_matrix, poles, B, maxiter, rtol):
         update_order[0].append(cupy.array(1))
         update_order[1].append(cupy.array(1))
     update_order[0].extend(r_comp)
-    update_order[1].extend(r_comp+1)
+    update_order[1].extend(r_comp + 1)
     # step 3.a
-    for i in range(1, hnb+1):
+    for i in range(1, hnb + 1):
         update_order[0].append(cupy.array(i))
-        update_order[1].append(cupy.array(i+hnb))
+        update_order[1].append(cupy.array(i + hnb))
     # step 3.b
     if hnb == 0 and cupy.isreal(poles[0]):
         update_order[0].append(cupy.array(1))
         update_order[1].append(cupy.array(1))
     update_order[0].extend(r_comp)
-    update_order[1].extend(r_comp+1)
+    update_order[1].extend(r_comp + 1)
 
-    update_order = cupy.array(update_order).T-1
+    update_order = cupy.array(update_order).T - 1
     stop = False
     nb_try = 0
     while nb_try < maxiter and not stop:
@@ -2223,7 +2256,7 @@ def _YT_loop(ker_pole, transfer_matrix, poles, B, maxiter, rtol):
                 # np.delete(transfer_matrix.get(), (i, j), axis=1)
                 idx = list(range(transfer_matrix.shape[1]))
                 idx.pop(i)
-                idx.pop(j-1)
+                idx.pop(j - 1)
                 transfer_matrix_not_i_j = transfer_matrix[:, idx]
 
                 # after merge of gh-4249 great speed improvements could be
@@ -2235,8 +2268,9 @@ def _YT_loop(ker_pole, transfer_matrix, poles, B, maxiter, rtol):
                 Q, _ = cupy.linalg.qr(transfer_matrix_not_i_j, mode="complete")
 
                 if cupy.isreal(poles[i]):
-                    assert cupy.isreal(poles[j]), "mixing real and complex " +\
-                        "in YT_real" + str(poles)
+                    assert cupy.isreal(poles[j]), (
+                        "mixing real and complex " + "in YT_real" + str(poles)
+                    )
                     _YT_real(ker_pole, Q, transfer_matrix, i, j)
                 else:
                     msg = "mixing real and complex in YT_real" + str(poles)
@@ -2244,12 +2278,12 @@ def _YT_loop(ker_pole, transfer_matrix, poles, B, maxiter, rtol):
                     _YT_complex(ker_pole, Q, transfer_matrix, i, j)
 
         sq_spacing = sqrt(cupy.finfo(cupy.float64).eps)
-        det_transfer_matrix = max((sq_spacing,
-                                  cupy.abs(cupy.linalg.det(transfer_matrix))))
+        det_transfer_matrix = max(
+            (sq_spacing, cupy.abs(cupy.linalg.det(transfer_matrix)))
+        )
         cur_rtol = cupy.abs(
-            (det_transfer_matrix -
-             det_transfer_matrixb) /
-            det_transfer_matrix)
+            (det_transfer_matrix - det_transfer_matrixb) / det_transfer_matrix
+        )
         if cur_rtol < rtol and det_transfer_matrix > sq_spacing:
             # Convergence test from YT page 21
             stop = True
@@ -2273,10 +2307,12 @@ def _KNV0_loop(ker_pole, transfer_matrix, poles, B, maxiter, rtol):
 
         sq_spacing = sqrt(sqrt(cupy.finfo(cupy.float64).eps))
 
-        det_transfer_matrix = max((sq_spacing,
-                                  cupy.abs(cupy.linalg.det(transfer_matrix))))
-        cur_rtol = cupy.abs((det_transfer_matrix - det_transfer_matrixb) /
-                            det_transfer_matrix)
+        det_transfer_matrix = max(
+            (sq_spacing, cupy.abs(cupy.linalg.det(transfer_matrix)))
+        )
+        cur_rtol = cupy.abs(
+            (det_transfer_matrix - det_transfer_matrixb) / det_transfer_matrix
+        )
         if cur_rtol < rtol and det_transfer_matrix > sq_spacing:
             # Convergence test from YT page 21
             stop = True
@@ -2405,7 +2441,7 @@ def place_poles(A, B, poles, method="YT", rtol=1e-3, maxiter=30):
     # to debug with numpy qr uncomment the line below
     # u, z = np.linalg.qr(B, mode="complete")
     # u, z = s_qr(B, mode="full")
-    u, z = cupy.linalg.qr(B, mode='complete')
+    u, z = cupy.linalg.qr(B, mode="complete")
     rankB = cupy.linalg.matrix_rank(B)
 
     u0 = u[:, :rankB]
@@ -2439,12 +2475,12 @@ def place_poles(A, B, poles, method="YT", rtol=1e-3, maxiter=30):
             p = poles[idx]
             diag_poles[idx, idx] = cupy.real(p)
             if ~cupy.isreal(p):
-                diag_poles[idx, idx+1] = -cupy.imag(p)
-                diag_poles[idx+1, idx+1] = cupy.real(p)
-                diag_poles[idx+1, idx] = cupy.imag(p)
+                diag_poles[idx, idx + 1] = -cupy.imag(p)
+                diag_poles[idx + 1, idx + 1] = cupy.real(p)
+                diag_poles[idx + 1, idx] = cupy.imag(p)
                 idx += 1  # skip next one
             idx += 1
-        gain_matrix = cupy.linalg.lstsq(B, diag_poles-A, rcond=-1)[0]
+        gain_matrix = cupy.linalg.lstsq(B, diag_poles - A, rcond=-1)[0]
         transfer_matrix = cupy.eye(A.shape[0])
         cur_rtol = cupy.nan
         nb_iter = cupy.nan
@@ -2462,7 +2498,7 @@ def place_poles(A, B, poles, method="YT", rtol=1e-3, maxiter=30):
             if skip_conjugate:
                 skip_conjugate = False
                 continue
-            pole_space_j = cupy.dot(u1.T, A-poles[j]*cupy.eye(B.shape[0])).T
+            pole_space_j = cupy.dot(u1.T, A - poles[j] * cupy.eye(B.shape[0])).T
 
             # after QR Q=Q0|Q1
             # only Q0 is used to reconstruct  the qr'ed (dot Q, R) matrix.
@@ -2475,7 +2511,7 @@ def place_poles(A, B, poles, method="YT", rtol=1e-3, maxiter=30):
             # Q, _ = s_qr(pole_space_j, mode="full")
             Q, _ = cupy.linalg.qr(pole_space_j, mode="complete")
 
-            ker_pole_j = Q[:, pole_space_j.shape[1]:]
+            ker_pole_j = Q[:, pole_space_j.shape[1] :]
 
             # We want to select one vector in ker_pole_j to build the transfer
             # matrix, however qr returns sometimes vectors with zeros on the
@@ -2494,11 +2530,11 @@ def place_poles(A, B, poles, method="YT", rtol=1e-3, maxiter=30):
             # ker_pole_j.shape[1]>1) for sure won't have a zero there.
 
             transfer_matrix_j = cupy.sum(ker_pole_j, axis=1)[:, None]
-            transfer_matrix_j = (transfer_matrix_j /
-                                 cupy.linalg.norm(transfer_matrix_j))
+            transfer_matrix_j = transfer_matrix_j / cupy.linalg.norm(transfer_matrix_j)
             if ~cupy.isreal(poles[j]):  # complex pole
-                transfer_matrix_j = cupy.hstack([cupy.real(transfer_matrix_j),
-                                                 cupy.imag(transfer_matrix_j)])
+                transfer_matrix_j = cupy.hstack(
+                    [cupy.real(transfer_matrix_j), cupy.imag(transfer_matrix_j)]
+                )
                 ker_pole.extend([ker_pole_j, ker_pole_j])
 
                 # Skip next pole as it is the conjugate
@@ -2509,12 +2545,12 @@ def place_poles(A, B, poles, method="YT", rtol=1e-3, maxiter=30):
             if j == 0:
                 transfer_matrix = transfer_matrix_j
             else:
-                transfer_matrix = cupy.hstack(
-                    (transfer_matrix, transfer_matrix_j))
+                transfer_matrix = cupy.hstack((transfer_matrix, transfer_matrix_j))
 
         if rankB > 1:  # otherwise there is nothing we can optimize
-            stop, cur_rtol, nb_iter = update_loop(ker_pole, transfer_matrix,
-                                                  poles, B, maxiter, rtol)
+            stop, cur_rtol, nb_iter = update_loop(
+                ker_pole, transfer_matrix, poles, B, maxiter, rtol
+            )
             if not stop and rtol > 0:
                 # if rtol<=0 the user has probably done that on purpose,
                 # don't annoy him
@@ -2529,26 +2565,29 @@ def place_poles(A, B, poles, method="YT", rtol=1e-3, maxiter=30):
         # Re(Complex_pole), Im(Complex_pole) now and will be Re-Im/Re+Im after
         transfer_matrix = transfer_matrix.astype(complex)
         idx = 0
-        while idx < poles.shape[0]-1:
+        while idx < poles.shape[0] - 1:
             if ~cupy.isreal(poles[idx]):
                 rel = transfer_matrix[:, idx].copy()
-                img = transfer_matrix[:, idx+1]
+                img = transfer_matrix[:, idx + 1]
                 # rel will be an array referencing a column of transfer_matrix
                 # if we don't copy() it will changer after the next line and
                 # and the line after will not yield the correct value
-                transfer_matrix[:, idx] = rel-1j*img
-                transfer_matrix[:, idx+1] = rel+1j*img
+                transfer_matrix[:, idx] = rel - 1j * img
+                transfer_matrix[:, idx + 1] = rel + 1j * img
                 idx += 1  # skip next one
             idx += 1
 
         try:
-            m = cupy.linalg.solve(transfer_matrix.T, cupy.diag(
-                poles) @ transfer_matrix.T).T
-            gain_matrix = cupy.linalg.solve(z, u0.T @ (m-A))
+            m = cupy.linalg.solve(
+                transfer_matrix.T, cupy.diag(poles) @ transfer_matrix.T
+            ).T
+            gain_matrix = cupy.linalg.solve(z, u0.T @ (m - A))
         except cupy.linalg.LinAlgError as e:
-            raise ValueError("The poles you've chosen can't be placed. "
-                             "Check the controllability matrix and try "
-                             "another set of poles") from e
+            raise ValueError(
+                "The poles you've chosen can't be placed. "
+                "Check the controllability matrix and try "
+                "another set of poles"
+            ) from e
 
     # Beware: Kautsky solves A+BK but the usual form is A-BK
     gain_matrix = -gain_matrix
@@ -2561,6 +2600,7 @@ def place_poles(A, B, poles, method="YT", rtol=1e-3, maxiter=30):
     # XXX: delegate to NumPy
     temp = (A - B @ gain_matrix).get()
     import numpy as np
+
     poles = np.linalg.eig(temp)[0]
     ordered_poles = _order_complex_poles(cupy.asarray(poles))
 
@@ -2574,6 +2614,7 @@ def place_poles(A, B, poles, method="YT", rtol=1e-3, maxiter=30):
 
 
 # ### dlsim and related functions ###
+
 
 def dlsim(system, u, t=None, x0=None):
     """
@@ -2619,8 +2660,9 @@ def dlsim(system, u, t=None, x0=None):
     """
     # Convert system to dlti-StateSpace
     if isinstance(system, lti):
-        raise AttributeError('dlsim can only be used with discrete-time dlti '
-                             'systems.')
+        raise AttributeError(
+            "dlsim can only be used with discrete-time dlti " "systems."
+        )
     elif not isinstance(system, dlti):
         system = dlti(*system[:-1], dt=system[-1])
 
@@ -2662,12 +2704,13 @@ def dlsim(system, u, t=None, x0=None):
 
     # Simulate the system
     for i in range(0, out_samples - 1):
-        xout[i+1, :] = system.A @ xout[i, :] + system.B @ u_dt[i, :]
+        xout[i + 1, :] = system.A @ xout[i, :] + system.B @ u_dt[i, :]
         yout[i, :] = system.C @ xout[i, :] + system.D @ u_dt[i, :]
 
     # Last point
-    yout[out_samples-1, :] = (system.C @ xout[out_samples-1, :] +
-                              system.D @ u_dt[out_samples-1, :])
+    yout[out_samples - 1, :] = (
+        system.C @ xout[out_samples - 1, :] + system.D @ u_dt[out_samples - 1, :]
+    )
 
     if is_ss_input:
         return tout, yout, xout
@@ -2715,8 +2758,9 @@ def dimpulse(system, x0=None, t=None, n=None):
     if isinstance(system, dlti):
         system = system._as_ss()
     elif isinstance(system, lti):
-        raise AttributeError('dimpulse can only be used with discrete-time '
-                             'dlti systems.')
+        raise AttributeError(
+            "dimpulse can only be used with discrete-time " "dlti systems."
+        )
     else:
         system = dlti(*system[:-1], dt=system[-1])._as_ss()
 
@@ -2789,8 +2833,9 @@ def dstep(system, x0=None, t=None, n=None):
     if isinstance(system, dlti):
         system = system._as_ss()
     elif isinstance(system, lti):
-        raise AttributeError('dstep can only be used with discrete-time dlti '
-                             'systems.')
+        raise AttributeError(
+            "dstep can only be used with discrete-time dlti " "systems."
+        )
     else:
         system = dlti(*system[:-1], dt=system[-1])._as_ss()
 
@@ -2870,8 +2915,9 @@ def dfreqresp(system, w=None, n=10000, whole=False):
     """
     if not isinstance(system, dlti):
         if isinstance(system, lti):
-            raise AttributeError('dfreqresp can only be used with '
-                                 'discrete-time systems.')
+            raise AttributeError(
+                "dfreqresp can only be used with " "discrete-time systems."
+            )
 
         system = dlti(*system[:-1], dt=system[-1])
 
@@ -2880,11 +2926,12 @@ def dfreqresp(system, w=None, n=10000, whole=False):
         system = system._as_tf()
 
     if not isinstance(system, (TransferFunction, ZerosPolesGain)):
-        raise ValueError('Unknown system type')
+        raise ValueError("Unknown system type")
 
     if system.inputs != 1 or system.outputs != 1:
-        raise ValueError("dfreqresp requires a SISO (single input, single "
-                         "output) system.")
+        raise ValueError(
+            "dfreqresp requires a SISO (single input, single " "output) system."
+        )
 
     if w is not None:
         worN = w
@@ -2898,8 +2945,9 @@ def dfreqresp(system, w=None, n=10000, whole=False):
         w, h = freqz(num, den, worN=worN, whole=whole)
 
     elif isinstance(system, ZerosPolesGain):
-        w, h = freqz_zpk(system.zeros, system.poles, system.gain, worN=worN,
-                         whole=whole)
+        w, h = freqz_zpk(
+            system.zeros, system.poles, system.gain, worN=worN, whole=whole
+        )
 
     return w, h
 
@@ -2962,6 +3010,7 @@ def dbode(system, w=None, n=100):
 
 # ### cont2discrete ###
 
+
 def cont2discrete(system, dt, method="zoh", alpha=None):
     """
     Transform a continuous to a discrete state-space system.
@@ -3020,69 +3069,78 @@ def cont2discrete(system, dt, method="zoh", alpha=None):
     if len(system) == 1:
         return system.to_discrete()
     if len(system) == 2:
-        sysd = cont2discrete(tf2ss(system[0], system[1]), dt, method=method,
-                             alpha=alpha)
+        sysd = cont2discrete(
+            tf2ss(system[0], system[1]), dt, method=method, alpha=alpha
+        )
         return ss2tf(sysd[0], sysd[1], sysd[2], sysd[3]) + (dt,)
     elif len(system) == 3:
-        sysd = cont2discrete(zpk2ss(system[0], system[1], system[2]), dt,
-                             method=method, alpha=alpha)
+        sysd = cont2discrete(
+            zpk2ss(system[0], system[1], system[2]), dt, method=method, alpha=alpha
+        )
         return ss2zpk(sysd[0], sysd[1], sysd[2], sysd[3]) + (dt,)
     elif len(system) == 4:
         a, b, c, d = system
     else:
-        raise ValueError("First argument must either be a tuple of 2 (tf), "
-                         "3 (zpk), or 4 (ss) arrays.")
+        raise ValueError(
+            "First argument must either be a tuple of 2 (tf), "
+            "3 (zpk), or 4 (ss) arrays."
+        )
 
-    if method == 'gbt':
+    if method == "gbt":
         if alpha is None:
-            raise ValueError("Alpha parameter must be specified for the "
-                             "generalized bilinear transform (gbt) method")
+            raise ValueError(
+                "Alpha parameter must be specified for the "
+                "generalized bilinear transform (gbt) method"
+            )
         elif alpha < 0 or alpha > 1:
-            raise ValueError("Alpha parameter must be within the interval "
-                             "[0,1] for the gbt method")
+            raise ValueError(
+                "Alpha parameter must be within the interval "
+                "[0,1] for the gbt method"
+            )
 
-    if method == 'gbt':
+    if method == "gbt":
         # This parameter is used repeatedly - compute once here
-        ima = cupy.eye(a.shape[0]) - alpha*dt*a
-        rhs = cupy.eye(a.shape[0]) + (1.0 - alpha)*dt*a
+        ima = cupy.eye(a.shape[0]) - alpha * dt * a
+        rhs = cupy.eye(a.shape[0]) + (1.0 - alpha) * dt * a
         ad = cupy.linalg.solve(ima, rhs)
-        bd = cupy.linalg.solve(ima, dt*b)
+        bd = cupy.linalg.solve(ima, dt * b)
 
         # Similarly solve for the output equation matrices
         cd = cupy.linalg.solve(ima.T, c.T)
         cd = cd.T
-        dd = d + alpha*(c @ bd)
+        dd = d + alpha * (c @ bd)
 
-    elif method == 'bilinear' or method == 'tustin':
+    elif method == "bilinear" or method == "tustin":
         return cont2discrete(system, dt, method="gbt", alpha=0.5)
 
-    elif method == 'euler' or method == 'forward_diff':
+    elif method == "euler" or method == "forward_diff":
         return cont2discrete(system, dt, method="gbt", alpha=0.0)
 
-    elif method == 'backward_diff':
+    elif method == "backward_diff":
         return cont2discrete(system, dt, method="gbt", alpha=1.0)
 
-    elif method == 'zoh':
+    elif method == "zoh":
         # Build an exponential matrix
         em_upper = cupy.hstack((a, b))
 
         # Need to stack zeros under the a and b matrices
-        em_lower = cupy.hstack((cupy.zeros((b.shape[1], a.shape[0])),
-                                cupy.zeros((b.shape[1], b.shape[1]))))
+        em_lower = cupy.hstack(
+            (cupy.zeros((b.shape[1], a.shape[0])), cupy.zeros((b.shape[1], b.shape[1])))
+        )
 
         em = cupy.vstack((em_upper, em_lower))
         ms = expm(dt * em)
 
         # Dispose of the lower rows
-        ms = ms[:a.shape[0], :]
+        ms = ms[: a.shape[0], :]
 
-        ad = ms[:, 0:a.shape[1]]
-        bd = ms[:, a.shape[1]:]
+        ad = ms[:, 0 : a.shape[1]]
+        bd = ms[:, a.shape[1] :]
 
         cd = c
         dd = d
 
-    elif method == 'foh':
+    elif method == "foh":
         # Size parameters for convenience
         n = a.shape[0]
         m = b.shape[1]
@@ -3099,18 +3157,19 @@ def cont2discrete(system, dt, method="zoh", alpha=None):
 
         # Get the three blocks from upper rows
         ms11 = ms[:n, 0:n]
-        ms12 = ms[:n, n:n + m]
-        ms13 = ms[:n, n + m:]
+        ms12 = ms[:n, n : n + m]
+        ms13 = ms[:n, n + m :]
 
         ad = ms11
         bd = ms12 - ms13 + ms11 @ ms13
         cd = c
         dd = d + c @ ms13
 
-    elif method == 'impulse':
+    elif method == "impulse":
         if not cupy.allclose(d, 0):
-            raise ValueError("Impulse method is only applicable"
-                             "to strictly proper systems")
+            raise ValueError(
+                "Impulse method is only applicable" "to strictly proper systems"
+            )
 
         ad = expm(a * dt)
         bd = ad @ b * dt

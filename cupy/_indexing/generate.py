@@ -27,8 +27,7 @@ class AxisConcatenator:
             trans1d += k2 + 1
         defaxes = list(range(ndmin))
         k1 = trans1d
-        axes = defaxes[:k1] + defaxes[k2:] + \
-            defaxes[k1:k2]
+        axes = defaxes[:k1] + defaxes[k2:] + defaxes[k1:k2]
         return obj.transpose(axes)
 
     def __init__(self, axis=0, matrix=False, ndmin=1, trans1d=-1):
@@ -53,8 +52,7 @@ class AxisConcatenator:
                 raise NotImplementedError
             elif isinstance(k, str):
                 if i != 0:
-                    raise ValueError(
-                        'special directives must be the first entry.')
+                    raise ValueError("special directives must be the first entry.")
                 raise NotImplementedError
             elif type(k) in numpy.ScalarType:
                 newobj = from_data.array(k, ndmin=ndmin)
@@ -185,7 +183,7 @@ def indices(dimensions, dtype=int):
     res = cupy.empty((N,) + dimensions, dtype=dtype)
     for i, dim in enumerate(dimensions):
         res[i] = cupy.arange(dim, dtype=dtype).reshape(
-            shape[:i] + (dim,) + shape[i + 1:]
+            shape[:i] + (dim,) + shape[i + 1 :]
         )
     return res
 
@@ -234,18 +232,18 @@ def ix_(*args):
     for k, new in enumerate(args):
         new = from_data.asarray(new)
         if new.ndim != 1:
-            raise ValueError('Cross index must be 1 dimensional')
+            raise ValueError("Cross index must be 1 dimensional")
         if new.size == 0:
             # Explicitly type empty arrays to avoid float default
             new = new.astype(numpy.intp)
         if cupy.issubdtype(new.dtype, cupy.bool_):
-            new, = new.nonzero()  # may synchronize
+            (new,) = new.nonzero()  # may synchronize
         new = new.reshape((1,) * k + (new.size,) + (1,) * (nd - k - 1))
         out.append(new)
     return tuple(out)
 
 
-def ravel_multi_index(multi_index, dims, mode='wrap', order='C'):
+def ravel_multi_index(multi_index, dims, mode="wrap", order="C"):
     """
     Converts a tuple of index arrays into an array of flat indices, applying
     boundary modes to the multi-index.
@@ -304,36 +302,38 @@ def ravel_multi_index(multi_index, dims, mode='wrap', order='C'):
     ndim = len(dims)
     if len(multi_index) != ndim:
         raise ValueError(
-            "parameter multi_index must be a sequence of "
-            "length {}".format(ndim))
+            "parameter multi_index must be a sequence of " "length {}".format(ndim)
+        )
 
     for d in dims:
         if not isinstance(d, numbers.Integral):
             raise TypeError(
-                "{} object cannot be interpreted as an integer".format(
-                    type(d)))
+                "{} object cannot be interpreted as an integer".format(type(d))
+            )
 
     if isinstance(mode, str):
-        mode = (mode, ) * ndim
+        mode = (mode,) * ndim
 
     if functools.reduce(operator.mul, dims) > cupy.iinfo(cupy.int64).max:
-        raise ValueError("invalid dims: array size defined by dims is larger "
-                         "than the maximum possible size")
+        raise ValueError(
+            "invalid dims: array size defined by dims is larger "
+            "than the maximum possible size"
+        )
 
     s = 1
     ravel_strides = [1] * ndim
 
-    order = 'C' if order is None else order.upper()
-    if order == 'C':
+    order = "C" if order is None else order.upper()
+    if order == "C":
         for i in range(ndim - 2, -1, -1):
             s = s * dims[i + 1]
             ravel_strides[i] = s
-    elif order == 'F':
+    elif order == "F":
         for i in range(1, ndim):
             s = s * dims[i - 1]
             ravel_strides[i] = s
     else:
-        raise ValueError('order not understood')
+        raise ValueError("order not understood")
 
     multi_index = cupy.broadcast_arrays(*multi_index)
     raveled_indices = cupy.zeros(multi_index[0].shape, dtype=cupy.int64)
@@ -341,11 +341,13 @@ def ravel_multi_index(multi_index, dims, mode='wrap', order='C'):
 
         if not isinstance(idx, cupy.ndarray):
             raise TypeError("elements of multi_index must be cupy arrays")
-        if not cupy.can_cast(idx, cupy.int64, 'same_kind'):
+        if not cupy.can_cast(idx, cupy.int64, "same_kind"):
             raise TypeError(
-                'multi_index entries could not be cast from dtype(\'{}\') to '
-                'dtype(\'{}\') according to the rule \'same_kind\''.format(
-                    idx.dtype, cupy.int64().dtype))
+                "multi_index entries could not be cast from dtype('{}') to "
+                "dtype('{}') according to the rule 'same_kind'".format(
+                    idx.dtype, cupy.int64().dtype
+                )
+            )
         idx = idx.astype(cupy.int64, copy=False)
 
         if _mode == "raise":
@@ -353,15 +355,15 @@ def ravel_multi_index(multi_index, dims, mode='wrap', order='C'):
                 raise ValueError("invalid entry in coordinates array")
         elif _mode == "clip":
             idx = cupy.clip(idx, 0, d - 1)
-        elif _mode == 'wrap':
+        elif _mode == "wrap":
             idx = idx % d
         else:
-            raise ValueError('Unrecognized mode: {}'.format(_mode))
+            raise ValueError("Unrecognized mode: {}".format(_mode))
         raveled_indices += stride * idx
     return raveled_indices
 
 
-def unravel_index(indices, dims, order='C'):
+def unravel_index(indices, dims, order="C"):
     """Converts array of flat indices into a tuple of coordinate arrays.
 
     Args:
@@ -391,23 +393,25 @@ def unravel_index(indices, dims, order='C'):
     .. seealso:: :func:`numpy.unravel_index`, :func:`ravel_multi_index`
 
     """
-    order = 'C' if order is None else order.upper()
-    if order == 'C':
+    order = "C" if order is None else order.upper()
+    if order == "C":
         dims = reversed(dims)
-    elif order == 'F':
+    elif order == "F":
         pass
     else:
-        raise ValueError('order not understood')
+        raise ValueError("order not understood")
 
-    if not cupy.can_cast(indices, cupy.int64, 'same_kind'):
+    if not cupy.can_cast(indices, cupy.int64, "same_kind"):
         raise TypeError(
-            'Iterator operand 0 dtype could not be cast '
-            'from dtype(\'{}\') to dtype(\'{}\') '
-            'according to the rule \'same_kind\''.format(
-                indices.dtype, cupy.int64().dtype))
+            "Iterator operand 0 dtype could not be cast "
+            "from dtype('{}') to dtype('{}') "
+            "according to the rule 'same_kind'".format(
+                indices.dtype, cupy.int64().dtype
+            )
+        )
 
     if (indices < 0).any():  # synchronize!
-        raise ValueError('invalid entry in index array')
+        raise ValueError("invalid entry in index array")
 
     unraveled_coords = []
     for dim in dims:
@@ -415,9 +419,9 @@ def unravel_index(indices, dims, order='C'):
         indices = indices // dim
 
     if (indices > 0).any():  # synchronize!
-        raise ValueError('invalid entry in index array')
+        raise ValueError("invalid entry in index array")
 
-    if order == 'C':
+    if order == "C":
         unraveled_coords = reversed(unraveled_coords)
     return tuple(unraveled_coords)
 
@@ -499,8 +503,10 @@ def tril_indices(n, k=0, m=None):
 
     tri_ = cupy.tri(n, m, k=k, dtype=bool)
 
-    return tuple(cupy.broadcast_to(inds, tri_.shape)[tri_]
-                 for inds in cupy.indices(tri_.shape, dtype=int))
+    return tuple(
+        cupy.broadcast_to(inds, tri_.shape)[tri_]
+        for inds in cupy.indices(tri_.shape, dtype=int)
+    )
 
 
 def tril_indices_from(arr, k=0):
@@ -560,8 +566,10 @@ def triu_indices(n, k=0, m=None):
 
     tri_ = ~cupy.tri(n, m, k=k - 1, dtype=bool)
 
-    return tuple(cupy.broadcast_to(inds, tri_.shape)[tri_]
-                 for inds in cupy.indices(tri_.shape, dtype=int))
+    return tuple(
+        cupy.broadcast_to(inds, tri_.shape)[tri_]
+        for inds in cupy.indices(tri_.shape, dtype=int)
+    )
 
 
 def triu_indices_from(arr, k=0):

@@ -49,12 +49,14 @@ def solve(a, b):
         if a.shape[-1] != b.size:
             raise ValueError(
                 "a must have (..., M, M) shape and b must have (M,) "
-                "for one-dimensional b")
+                "for one-dimensional b"
+            )
         b = cupy.broadcast_to(b, a.shape[:-1])
     elif a.shape[:-1] != b.shape[:-1]:
         raise ValueError(
             "a must have (..., M, M) shape and b must have (..., M, K) "
-            "for multidimensional b")
+            "for multidimensional b"
+        )
 
     if a.ndim > 2 and a.shape[-1] <= get_batched_gesv_limit():
         # Note: There is a low performance issue in batched_gesv when matrix is
@@ -67,19 +69,19 @@ def solve(a, b):
 
     if a.ndim == 2:
         # prevent 'a' and 'b' to be overwritten
-        a = a.astype(dtype, copy=True, order='F')
-        b = b.astype(dtype, copy=True, order='F')
+        a = a.astype(dtype, copy=True, order="F")
+        b = b.astype(dtype, copy=True, order="F")
         lapack.gesv(a, b)
         return b.astype(out_dtype, copy=False)
 
     # prevent 'a' to be overwritten
-    a = a.astype(dtype, copy=True, order='C')
+    a = a.astype(dtype, copy=True, order="C")
     x = cupy.empty_like(b, dtype=out_dtype)
     shape = a.shape[:-2]
     for i in range(numpy.prod(shape)):
         index = numpy.unravel_index(i, shape)
         # prevent 'b' to be overwritten
-        bi = b[index].astype(dtype, copy=True, order='F')
+        bi = b[index].astype(dtype, copy=True, order="F")
         lapack.gesv(a[index], bi)
         x[index] = bi
     return x
@@ -117,7 +119,7 @@ def tensorsolve(a, b, axes=None):
             allaxes.insert(a.ndim, k)
         a = a.transpose(allaxes)
 
-    oldshape = a.shape[-(a.ndim - b.ndim):]
+    oldshape = a.shape[-(a.ndim - b.ndim) :]
     prod = internal.prod(oldshape)
 
     a = a.reshape(-1, prod)
@@ -175,12 +177,14 @@ def lstsq(a, b, rcond=None):
     _util._assert_2d(a)
     # TODO(kataoka): Fix 0-dim
     if b.ndim > 2:
-        raise linalg.LinAlgError('{}-dimensional array given. Array must be at'
-                                 ' most two-dimensional'.format(b.ndim))
+        raise linalg.LinAlgError(
+            "{}-dimensional array given. Array must be at"
+            " most two-dimensional".format(b.ndim)
+        )
     m, n = a.shape[-2:]
     m2 = b.shape[0]
     if m != m2:
-        raise linalg.LinAlgError('Incompatible dimensions')
+        raise linalg.LinAlgError("Incompatible dimensions")
 
     u, s, vh = cupy.linalg.svd(a, full_matrices=False)
 
@@ -244,11 +248,11 @@ def inv(a):
     if a.size == 0:
         return cupy.empty(a.shape, out_dtype)
 
-    order = 'F' if a._f_contiguous else 'C'
+    order = "F" if a._f_contiguous else "C"
     # prevent 'a' to be overwritten
     a = a.astype(dtype, copy=True, order=order)
     b = cupy.eye(a.shape[0], dtype=dtype, order=order)
-    if order == 'F':
+    if order == "F":
         cupyx.lapack.gesv(a, b)
     else:
         cupyx.lapack.gesv(a.T, b.T)
@@ -274,8 +278,10 @@ def _batched_inv(a):
         getrf = cupy.cuda.cublas.zgetrfBatched
         getri = cupy.cuda.cublas.zgetriBatched
     else:
-        msg = ('dtype must be float32, float64, complex64 or complex128'
-               ' (actual: {})'.format(a.dtype))
+        msg = (
+            "dtype must be float32, float64, complex64 or complex128"
+            " (actual: {})".format(a.dtype)
+        )
         raise ValueError(msg)
 
     if 0 in a.shape:
@@ -283,7 +289,7 @@ def _batched_inv(a):
     a_shape = a.shape
 
     # copy is necessary to present `a` to be overwritten.
-    a = a.astype(dtype, order='C').reshape(-1, a_shape[-2], a_shape[-1])
+    a = a.astype(dtype, order="C").reshape(-1, a_shape[-2], a_shape[-1])
 
     handle = device.get_cublas_handle()
     batch_size = a.shape[0]
@@ -296,10 +302,18 @@ def _batched_inv(a):
     pivot_array = cupy.empty((batch_size, n), dtype=cupy.int32)
     info_array = cupy.empty((batch_size,), dtype=cupy.int32)
 
-    getrf(handle, n, a_array.data.ptr, lda, pivot_array.data.ptr,
-          info_array.data.ptr, batch_size)
+    getrf(
+        handle,
+        n,
+        a_array.data.ptr,
+        lda,
+        pivot_array.data.ptr,
+        info_array.data.ptr,
+        batch_size,
+    )
     cupy.linalg._util._check_cublas_info_array_if_synchronization_allowed(
-        getrf, info_array)
+        getrf, info_array
+    )
 
     c = cupy.empty_like(a)
     ldc = lda
@@ -308,10 +322,20 @@ def _batched_inv(a):
     stop = start + step * batch_size
     c_array = cupy.arange(start, stop, step, dtype=cupy.uintp)
 
-    getri(handle, n, a_array.data.ptr, lda, pivot_array.data.ptr,
-          c_array.data.ptr, ldc, info_array.data.ptr, batch_size)
+    getri(
+        handle,
+        n,
+        a_array.data.ptr,
+        lda,
+        pivot_array.data.ptr,
+        c_array.data.ptr,
+        ldc,
+        info_array.data.ptr,
+        batch_size,
+    )
     cupy.linalg._util._check_cublas_info_array_if_synchronization_allowed(
-        getri, info_array)
+        getri, info_array
+    )
 
     return c.reshape(a_shape).astype(out_dtype, copy=False)
 
@@ -393,7 +417,7 @@ def tensorinv(a, ind=2):
     _util._assert_cupy_array(a)
 
     if ind <= 0:
-        raise ValueError('Invalid ind argument')
+        raise ValueError("Invalid ind argument")
     oldshape = a.shape
     invshape = oldshape[ind:] + oldshape[:ind]
     prod = internal.prod(oldshape[ind:])

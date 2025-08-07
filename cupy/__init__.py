@@ -11,23 +11,26 @@ from cupy import _version
 
 _environment._detect_duplicate_installation()  # NOQA
 _environment._setup_win32_dll_directory()  # NOQA
-_environment._preload_library('cutensor')  # NOQA
+_environment._preload_library("cutensor")  # NOQA
 
 
 try:
     from cupy import _core  # NOQA
 except ImportError as exc:
-    raise ImportError(f'''
+    raise ImportError(
+        f"""
 ================================================================
 {_environment._diagnose_import_error()}
 
 Original error:
   {type(exc).__name__}: {exc}
 ================================================================
-''') from exc
+"""
+    ) from exc
 
 
 from cupy import cuda  # NOQA
+
 # Do not make `cupy.cupyx` available because it is confusing.
 import cupyx as _cupyx  # NOQA
 
@@ -43,6 +46,7 @@ from cupy import fft  # NOQA
 from cupy import linalg  # NOQA
 from cupy import polynomial  # NOQA
 from cupy import random  # NOQA
+
 # `cupy.sparse` is deprecated in v8
 from cupy import sparse  # NOQA
 from cupy import testing  # NOQA  # NOQA
@@ -135,6 +139,7 @@ from numpy import half  # NOQA
 from numpy import single  # NOQA
 from numpy import double  # NOQA
 from numpy import float64 as float_  # NOQA
+
 # from numpy import longfloat  # NOQA   # XXX
 from numpy import float16  # NOQA
 from numpy import float32  # NOQA
@@ -184,7 +189,7 @@ from numpy import complex128  # NOQA
 # -----------------------------------------------------------------------------
 # Array creation routines
 # -----------------------------------------------------------------------------
-from cupy._creation.basic import astype   # NOQA
+from cupy._creation.basic import astype  # NOQA
 from cupy._creation.basic import empty  # NOQA
 from cupy._creation.basic import empty_like  # NOQA
 from cupy._creation.basic import eye  # NOQA
@@ -230,7 +235,7 @@ from cupy._functional.piecewise import piecewise  # NOQA
 from cupy._functional.vectorize import vectorize  # NOQA
 from cupy.lib._shape_base import apply_along_axis  # NOQA
 from cupy.lib._shape_base import apply_over_axes  # NOQA
-from cupy.lib._shape_base import put_along_axis    # NOQA
+from cupy.lib._shape_base import put_along_axis  # NOQA
 
 # -----------------------------------------------------------------------------
 # Array manipulation routines
@@ -301,7 +306,7 @@ from cupy._manipulation.rearrange import roll  # NOQA
 from cupy._manipulation.rearrange import rot90  # NOQA
 
 # Borrowed from NumPy
-if hasattr(_numpy, 'broadcast_shapes'):  # NumPy 1.20
+if hasattr(_numpy, "broadcast_shapes"):  # NumPy 1.20
     from numpy import broadcast_shapes  # NOQA
 
 # -----------------------------------------------------------------------------
@@ -335,7 +340,7 @@ def binary_repr(num, width=None):
 # -----------------------------------------------------------------------------
 # Data type routines (mostly borrowed from NumPy)
 # -----------------------------------------------------------------------------
-def can_cast(from_, to, casting='safe'):
+def can_cast(from_, to, casting="safe"):
     """Returns True if cast between data types can occur according to the
     casting rule. If from is a scalar or array scalar, also returns True if the
     scalar value can be cast without overflow or truncation to an integer.
@@ -354,12 +359,12 @@ def common_type(*arrays):
     if len(arrays) == 0:
         return _numpy.float16
 
-    default_float_dtype = _numpy.dtype('float64')
+    default_float_dtype = _numpy.dtype("float64")
     dtypes = []
     for a in arrays:
-        if a.dtype.kind == 'b':
-            raise TypeError('can\'t get common type for non-numeric array')
-        elif a.dtype.kind in 'iu':
+        if a.dtype.kind == "b":
+            raise TypeError("can't get common type for non-numeric array")
+        elif a.dtype.kind in "iu":
             dtypes.append(default_float_dtype)
         else:
             dtypes.append(a.dtype)
@@ -373,8 +378,7 @@ def result_type(*arrays_and_dtypes):
 
     .. seealso:: :func:`numpy.result_type`
     """
-    dtypes = [a.dtype if isinstance(a, ndarray)
-              else a for a in arrays_and_dtypes]
+    dtypes = [a.dtype if isinstance(a, ndarray) else a for a in arrays_and_dtypes]
     return _numpy.result_type(*dtypes)
 
 
@@ -456,7 +460,9 @@ from cupy._io.formatting import format_float_scientific  # NOQA
 from cupy._io.text import savetxt  # NOQA
 
 
-def base_repr(number, base=2, padding=0):  # NOQA (needed to avoid redefinition of `number`)
+def base_repr(
+    number, base=2, padding=0
+):  # NOQA (needed to avoid redefinition of `number`)
     """Return a string representation of a number in the given base system.
 
     .. seealso:: :func:`numpy.base_repr`
@@ -759,7 +765,7 @@ from cupy._statistics.histogram import histogramdd  # NOQA
 # -----------------------------------------------------------------------------
 # Exceptions and Warnings
 # -----------------------------------------------------------------------------
-from cupy import exceptions   # NOQA
+from cupy import exceptions  # NOQA
 from cupy.exceptions import AxisError  # NOQA
 from cupy.exceptions import ComplexWarning  # NOQA
 from cupy.exceptions import ModuleDeprecationWarning  # undocumented # NOQA
@@ -811,7 +817,7 @@ from cupy._core import fromDlpack  # NOQA
 from cupy._core import from_dlpack  # NOQA
 
 
-def asnumpy(a, stream=None, order='C', out=None, *, blocking=True):
+def asnumpy(a, stream=None, order="C", out=None, *, blocking=True):
     """Returns an array on the host memory from an arbitrary source array.
 
     Args:
@@ -838,8 +844,7 @@ def asnumpy(a, stream=None, order='C', out=None, *, blocking=True):
     if isinstance(a, ndarray):
         return a.get(stream=stream, order=order, out=out, blocking=blocking)
     elif hasattr(a, "__cuda_array_interface__"):
-        return array(a).get(
-            stream=stream, order=order, out=out, blocking=blocking)
+        return array(a).get(stream=stream, order=order, out=out, blocking=blocking)
     else:
         temp = _numpy.asarray(a, order=order)
         if out is not None:
@@ -876,9 +881,15 @@ def get_array_module(*args):
 
     """
     for arg in args:
-        if isinstance(arg, (ndarray, _cupyx.scipy.sparse.spmatrix,
-                            _core.fusion._FusionVarArray,
-                            _core.new_fusion._ArrayProxy)):
+        if isinstance(
+            arg,
+            (
+                ndarray,
+                _cupyx.scipy.sparse.spmatrix,
+                _core.fusion._FusionVarArray,
+                _core.new_fusion._ArrayProxy,
+            ),
+        ):
             return _cupy
     return _numpy
 
@@ -933,9 +944,9 @@ def show_config(*, _full=False):
 
 
 _deprecated_apis = [
-    'int0',
-    'uint0',
-    'bool8',
+    "int0",
+    "uint0",
+    "bool8",
 ]
 
 
@@ -952,6 +963,7 @@ def issubclass_(arg1, arg2):
         return issubclass(arg1, arg2)
     except TypeError:
         return False
+
 
 # https://github.com/numpy/numpy/blob/v1.26.0/numpy/core/numerictypes.py#L229-L280   # NOQA
 
@@ -1079,22 +1091,22 @@ else:
 # np 2.0: XXX shims for things moved in np 2.0
 if _numpy.__version__ < "2":
     from numpy import format_parser  # NOQA
-    from numpy import DataSource     # NOQA
+    from numpy import DataSource  # NOQA
 else:
-    from numpy.rec import format_parser   # type: ignore [no-redef]  # NOQA
+    from numpy.rec import format_parser  # type: ignore [no-redef]  # NOQA
     from numpy.lib.npyio import DataSource  # NOQA
 
 
 # np 2.0: XXX shims for things removed without replacement
 if _numpy.__version__ < "2":
-    from numpy import find_common_type   # NOQA
+    from numpy import find_common_type  # NOQA
     from numpy import set_string_function  # NOQA
     from numpy import get_array_wrap  # NOQA
     from numpy import disp  # NOQA
     from numpy import safe_eval  # NOQA
 else:
 
-    _template = '''\
+    _template = """\
 ''This function has been removed in NumPy v2.
 Use {recommendation} instead.
 
@@ -1103,23 +1115,21 @@ implementation, so it cannot be used in environments with NumPy
 v2 installed. If you rely on this function and you cannot modify
 the code to use {recommendation}, please downgrade NumPy to v1.26
 or earlier.
-'''
+"""
 
     def find_common_type(*args, **kwds):
-        mesg = _template.format(
-            recommendation='`promote_types` or `result_type`'
-        )
+        mesg = _template.format(recommendation="`promote_types` or `result_type`")
         raise RuntimeError(mesg)
 
-    def set_string_function(*args, **kwds):   # type: ignore [misc]
-        mesg = _template.format(recommendation='`np.set_printoptions`')
+    def set_string_function(*args, **kwds):  # type: ignore [misc]
+        mesg = _template.format(recommendation="`np.set_printoptions`")
         raise RuntimeError(mesg)
 
-    def get_array_wrap(*args, **kwds):       # type: ignore [no-redef]
+    def get_array_wrap(*args, **kwds):  # type: ignore [no-redef]
         mesg = _template.format(recommendation="<no replacement>")
         raise RuntimeError(mesg)
 
-    def disp(*args, **kwds):   # type: ignore [misc]
+    def disp(*args, **kwds):  # type: ignore [misc]
         mesg = _template.format(recommendation="your own print function")
         raise RuntimeError(mesg)
 
@@ -1139,9 +1149,9 @@ def _embed_signatures(dirs):
     for name, value in dirs.items():
         if isinstance(value, ufunc):
             from cupy._core._kernel import _ufunc_doc_signature_formatter
+
             value.__doc__ = (
-                _ufunc_doc_signature_formatter(value, name) +
-                '\n\n' + value._doc
+                _ufunc_doc_signature_formatter(value, name) + "\n\n" + value._doc
             )
 
 

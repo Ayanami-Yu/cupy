@@ -17,7 +17,7 @@ else:
     nccl_version = -1
 
 
-@unittest.skipUnless(nccl_available, 'nccl is not installed')
+@unittest.skipUnless(nccl_available, "nccl is not installed")
 class TestNCCL(unittest.TestCase):
 
     def test_single_proc_ring(self):
@@ -26,13 +26,13 @@ class TestNCCL(unittest.TestCase):
         assert 0 == comm.rank_id()
         comm.destroy()
 
-    @unittest.skipUnless(nccl_version >= 2400, 'Using old NCCL')
+    @unittest.skipUnless(nccl_version >= 2400, "Using old NCCL")
     def test_abort(self):
         id = nccl.get_unique_id()
         comm = nccl.NcclCommunicator(1, id, 0)
         comm.abort()
 
-    @unittest.skipUnless(nccl_version >= 2400, 'Using old NCCL')
+    @unittest.skipUnless(nccl_version >= 2400, "Using old NCCL")
     def test_check_async_error(self):
         id = nccl.get_unique_id()
         comm = nccl.NcclCommunicator(1, id, 0)
@@ -53,9 +53,14 @@ class TestNCCL(unittest.TestCase):
             cuda.Device(comm.device_id()).use()
             sendbuf = cupy.arange(10)
             recvbuf = cupy.zeros_like(sendbuf)
-            comm.allReduce(sendbuf.data.ptr, recvbuf.data.ptr, 10,
-                           nccl.NCCL_INT64, nccl.NCCL_SUM,
-                           cuda.Stream.null.ptr)
+            comm.allReduce(
+                sendbuf.data.ptr,
+                recvbuf.data.ptr,
+                10,
+                nccl.NCCL_INT64,
+                nccl.NCCL_SUM,
+                cuda.Stream.null.ptr,
+            )
         nccl.groupEnd()
         assert cupy.allclose(sendbuf, recvbuf)
 
@@ -65,7 +70,7 @@ class TestNCCL(unittest.TestCase):
         assert 1 == comm.size()
 
     @testing.multi_gpu(2)
-    @unittest.skipUnless(nccl_version >= 2700, 'Using old NCCL')
+    @unittest.skipUnless(nccl_version >= 2700, "Using old NCCL")
     def test_send_recv(self):
         devs = [0, 1]
         comms = nccl.NcclCommunicator.initAll(devs)
@@ -78,13 +83,15 @@ class TestNCCL(unittest.TestCase):
             if rank == 0:
                 with cuda.Device(dev_id):
                     sendbuf = cupy.arange(10, dtype=cupy.int64)
-                    comm.send(sendbuf.data.ptr, 10, nccl.NCCL_INT64,
-                              1, cuda.Stream.null.ptr)
+                    comm.send(
+                        sendbuf.data.ptr, 10, nccl.NCCL_INT64, 1, cuda.Stream.null.ptr
+                    )
             elif rank == 1:
                 with cuda.Device(dev_id):
                     recvbuf = cupy.zeros(10, dtype=cupy.int64)
-                    comm.recv(recvbuf.data.ptr, 10, nccl.NCCL_INT64,
-                              0, cuda.Stream.null.ptr)
+                    comm.recv(
+                        recvbuf.data.ptr, 10, nccl.NCCL_INT64, 0, cuda.Stream.null.ptr
+                    )
         nccl.groupEnd()
 
         # check result
@@ -93,7 +100,7 @@ class TestNCCL(unittest.TestCase):
             assert (recvbuf == expected).all()
 
 
-@unittest.skipUnless(nccl_available, 'nccl is not installed')
+@unittest.skipUnless(nccl_available, "nccl is not installed")
 class TestExceptionPicklable(unittest.TestCase):
 
     def test(self):

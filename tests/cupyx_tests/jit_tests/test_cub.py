@@ -14,8 +14,7 @@ class TestCubWarpReduce:
         @jit.rawkernel()
         def warp_reduce_sum(x, y):
             WarpReduce = jit.cub.WarpReduce[dtype]
-            temp_storage = jit.shared_memory(
-                dtype=WarpReduce.TempStorage, size=1)
+            temp_storage = jit.shared_memory(dtype=WarpReduce.TempStorage, size=1)
             i, j = jit.blockIdx.x, jit.threadIdx.x
             value = x[i, j]
             aggregator = WarpReduce(temp_storage[0])
@@ -38,8 +37,7 @@ class TestCubWarpReduce:
         @jit.rawkernel()
         def warp_reduce_sum(x, y):
             WarpReduce = jit.cub.WarpReduce[dtype]
-            temp_storage = jit.shared_memory(
-                dtype=WarpReduce.TempStorage, size=1)
+            temp_storage = jit.shared_memory(dtype=WarpReduce.TempStorage, size=1)
             i, j = jit.blockIdx.x, jit.threadIdx.x
             value = x[i, j]
             aggregator = WarpReduce(temp_storage[0])
@@ -62,8 +60,7 @@ class TestCubWarpReduce:
         @jit.rawkernel()
         def warp_reduce_max(x, y):
             WarpReduce = jit.cub.WarpReduce[dtype]
-            temp_storage = jit.shared_memory(
-                dtype=WarpReduce.TempStorage, size=1)
+            temp_storage = jit.shared_memory(dtype=WarpReduce.TempStorage, size=1)
             i, j = jit.blockIdx.x, jit.threadIdx.x
             value = x[i, j]
             aggregator = WarpReduce(temp_storage[0])
@@ -89,8 +86,7 @@ class TestCubBlockReduce:
         @jit.rawkernel()
         def block_reduce_sum(x, y):
             BlockReduce = jit.cub.BlockReduce[dtype, 256]
-            temp_storage = jit.shared_memory(
-                dtype=BlockReduce.TempStorage, size=1)
+            temp_storage = jit.shared_memory(dtype=BlockReduce.TempStorage, size=1)
             i, j = jit.blockIdx.x, jit.threadIdx.x
             value = x[i, j]
             aggregator = BlockReduce(temp_storage[0])
@@ -112,8 +108,7 @@ class TestCubBlockReduce:
         @jit.rawkernel()
         def block_reduce_min(x, y):
             BlockReduce = jit.cub.BlockReduce[dtype, 256]
-            temp_storage = jit.shared_memory(
-                dtype=BlockReduce.TempStorage, size=1)
+            temp_storage = jit.shared_memory(dtype=BlockReduce.TempStorage, size=1)
             i, j = jit.blockIdx.x, jit.threadIdx.x
             value = x[i, j]
             aggregator = BlockReduce(temp_storage[0])

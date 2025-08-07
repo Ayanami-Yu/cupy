@@ -10,11 +10,12 @@ scalar_types = (numpy.generic, int, float, complex)
 
 
 def check_fusion(
-        generate_inputs_name='generate_inputs',
-        generate_inputs_args=None,
-        check_array=None,
-        check_array_kwargs=None,
-        accept_error=()):
+    generate_inputs_name="generate_inputs",
+    generate_inputs_args=None,
+    check_array=None,
+    check_array_kwargs=None,
+    accept_error=(),
+):
     """Decorator for tests for ``cupy.fuse``.
 
     This decorator checks the results of the original function is equals to
@@ -37,7 +38,7 @@ def check_fusion(
         check_array = testing.assert_allclose
     if check_array_kwargs is None:
         # TODO(imanishi): Relax tolerances only when comparing float16 arrays.
-        check_array_kwargs = {'rtol': 3e-3, 'atol': 3e-3}
+        check_array_kwargs = {"rtol": 3e-3, "atol": 3e-3}
     if not isinstance(accept_error, (tuple, list)):
         accept_error = (accept_error,)
 
@@ -111,13 +112,17 @@ def check_fusion(
                 return impl_cp(*args, **kwargs)
 
             args_np, kwargs_np = generate_inputs(
-                numpy, *generate_inputs_args, **generate_inputs_kwargs)
+                numpy, *generate_inputs_args, **generate_inputs_kwargs
+            )
             args_cp, kwargs_cp = generate_inputs(
-                cupy, *generate_inputs_args, **generate_inputs_kwargs)
+                cupy, *generate_inputs_args, **generate_inputs_kwargs
+            )
             args_fuse_np, kwargs_fuse_np = generate_inputs(
-                numpy, *generate_inputs_args, **generate_inputs_kwargs)
+                numpy, *generate_inputs_args, **generate_inputs_kwargs
+            )
             args_fuse_cp, kwargs_fuse_cp = generate_inputs(
-                cupy, *generate_inputs_args, **generate_inputs_kwargs)
+                cupy, *generate_inputs_args, **generate_inputs_kwargs
+            )
 
             result_np = call(impl_np, args_np, kwargs_np)
             result_cp = call(impl_cp, args_cp, kwargs_cp)
@@ -135,13 +140,16 @@ def check_fusion(
                 check(cupy, args_fuse_cp, args_np)
 
         return wrapper
+
     return deco
 
 
 def can_use_grid_synchronization():
     return (
-        not cupy.cuda.runtime.is_hip and
-        int(cupy.cuda.device.get_compute_capability()) >= 70 and
-        (cupy.cuda.runtime.runtimeGetVersion() <=
-         cupy.cuda.runtime.driverGetVersion())  # depends on PTX
+        not cupy.cuda.runtime.is_hip
+        and int(cupy.cuda.device.get_compute_capability()) >= 70
+        and (
+            cupy.cuda.runtime.runtimeGetVersion()
+            <= cupy.cuda.runtime.driverGetVersion()
+        )  # depends on PTX
     )

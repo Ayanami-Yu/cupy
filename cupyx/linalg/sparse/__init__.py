@@ -1,4 +1,3 @@
-
 # "NOQA" to suppress flake8 warning
 from __future__ import annotations
 

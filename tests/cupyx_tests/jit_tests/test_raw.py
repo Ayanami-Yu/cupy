@@ -49,13 +49,13 @@ class TestRaw:
         p, q, r = (2, 3, 4)
         x = cupy.arange(24).reshape(p, q, r)
         y = cupy.empty_like(x)
-        f(((p+1)//2, (q+1)//2, (r+1)//2), (2, 2, 2), (x, y, p, q, r))
+        f(((p + 1) // 2, (q + 1) // 2, (r + 1) // 2), (2, 2, 2), (x, y, p, q, r))
         assert (x == y).all()
 
     def test_raw_grid_invalid1(self):
         @jit.rawkernel()
         def f():
-            x, = jit.grid(1)  # cannot unpack an int
+            (x,) = jit.grid(1)  # cannot unpack an int
 
         with pytest.raises(ValueError):
             f((1,), (1,), ())
@@ -71,7 +71,8 @@ class TestRaw:
             f((1,), (1,), ())
 
     def test_raw_grid_invalid3(self):
-        for n in (0, 4, 'abc', [0], (1,)):
+        for n in (0, 4, "abc", [0], (1,)):
+
             @jit.rawkernel()
             def f():
                 x = jit.grid(n)  # n can only be 1, 2, 3 (as int)  # NOQA
@@ -262,7 +263,7 @@ class TestRaw:
     def test_syncwarp(self):
         @jit.rawkernel()
         def f(x):
-            laneId = jit.threadIdx.x & 0x1f
+            laneId = jit.threadIdx.x & 0x1F
             if laneId < 16:
                 x[laneId] = 1
             else:
@@ -278,7 +279,7 @@ class TestRaw:
     def test_syncwarp_mask(self):
         @jit.rawkernel()
         def f(x, m):
-            laneId = jit.threadIdx.x & 0x1f
+            laneId = jit.threadIdx.x & 0x1F
             if laneId < m:
                 x[laneId] = 1
                 jit.syncwarp(mask=(1 << m) - 1)
@@ -314,7 +315,7 @@ class TestRaw:
             for i in range(11):
                 # adds 0-10, but skips if the sum is greater than 3*i,
                 # skips 8 and 9, but not 10 (28 < 3*10), sum is 38
-                if z[tid] > 3*i:
+                if z[tid] > 3 * i:
                     continue
                 z[tid] += i
 
@@ -349,7 +350,7 @@ class TestRaw:
             for i in range(11):
                 # adds 0-10, but stops once the sum is greater than 3*i,
                 # breaks at 8 (28 > 3*8), sum is 28
-                if z[tid] > 3*i:
+                if z[tid] > 3 * i:
                     break
                 z[tid] += i
 
@@ -406,7 +407,7 @@ class TestRaw:
         else:
             testing.assert_allclose(a, e, rtol=1e-5, atol=1e-5)
 
-    @testing.for_dtypes('iILQfd' if runtime.is_hip else 'iILQefd')
+    @testing.for_dtypes("iILQfd" if runtime.is_hip else "iILQefd")
     def test_atomic_add(self, dtype):
         @jit.rawkernel()
         def f(x, index, out):
@@ -414,8 +415,9 @@ class TestRaw:
             jit.atomic_add(out, index[tid], x[tid])
 
         x = testing.shaped_random((1024,), dtype=dtype, seed=0)
-        index = testing.shaped_random(
-            (1024,), dtype=numpy.bool_, seed=1).astype(numpy.int32)
+        index = testing.shaped_random((1024,), dtype=numpy.bool_, seed=1).astype(
+            numpy.int32
+        )
         out = cupy.zeros((2,), dtype=dtype)
         f((32,), (32,), (x, index, out))
 
@@ -423,7 +425,7 @@ class TestRaw:
         cupy.add.at(expected, index, x)
         self._check(out, expected)
 
-    @testing.for_dtypes('iI')
+    @testing.for_dtypes("iI")
     def test_atomic_sub(self, dtype):
         @jit.rawkernel()
         def f(x, out):
@@ -432,12 +434,14 @@ class TestRaw:
                 jit.atomic_sub(out, 0, x[tid])
 
         x = cupy.ones((1024,), dtype=dtype)
-        out = cupy.sum(x, dtype=dtype).reshape(1,)
+        out = cupy.sum(x, dtype=dtype).reshape(
+            1,
+        )
         f((32,), (32,), (x, out))
         expected = cupy.zeros_like(out)
         self._check(out, expected)
 
-    @testing.for_dtypes('iILQf')
+    @testing.for_dtypes("iILQf")
     def test_atomic_exch(self, dtype):
         @jit.rawkernel()
         def f(x, out):
@@ -451,7 +455,7 @@ class TestRaw:
         expected = x[::-1]
         self._check(out, expected)
 
-    @testing.for_dtypes('iILQ')
+    @testing.for_dtypes("iILQ")
     def test_atomic_min(self, dtype):
         @jit.rawkernel()
         def f(x, out):
@@ -464,7 +468,7 @@ class TestRaw:
         f((32,), (32,), (x, out))  # effectively copy x to out
         self._check(out, x)
 
-    @testing.for_dtypes('iILQ')
+    @testing.for_dtypes("iILQ")
     def test_atomic_max(self, dtype):
         @jit.rawkernel()
         def f(x, out):
@@ -510,15 +514,15 @@ class TestRaw:
         expected = x
         self._check(out, expected)
 
-    @testing.for_dtypes('iILQ' if runtime.is_hip else 'iHILQ')
+    @testing.for_dtypes("iILQ" if runtime.is_hip else "iHILQ")
     def test_atomic_cas(self, dtype):
         if dtype == cupy.uint16:
             if (
-                runtime.is_hip or
-                runtime.runtimeGetVersion() < 10010 or
-                int(device.get_compute_capability()) < 70
+                runtime.is_hip
+                or runtime.runtimeGetVersion() < 10010
+                or int(device.get_compute_capability()) < 70
             ):
-                self.skipTest('not supported')
+                self.skipTest("not supported")
 
         @jit.rawkernel()
         def f(x, y, out):
@@ -536,7 +540,7 @@ class TestRaw:
         expected = cupy.zeros_like(out)
         self._check(out, expected)
 
-    @testing.for_dtypes('iILQ')
+    @testing.for_dtypes("iILQ")
     def test_atomic_and(self, dtype):
         @jit.rawkernel()
         def f(x, out):
@@ -551,7 +555,7 @@ class TestRaw:
         expected[1::2] = 1
         self._check(out, expected)
 
-    @testing.for_dtypes('iILQ')
+    @testing.for_dtypes("iILQ")
     def test_atomic_or(self, dtype):
         @jit.rawkernel()
         def f(x, out):
@@ -566,7 +570,7 @@ class TestRaw:
         expected = x | y
         self._check(out, expected)
 
-    @testing.for_dtypes('iILQ')
+    @testing.for_dtypes("iILQ")
     def test_atomic_xor(self, dtype):
         @jit.rawkernel()
         def f(x, out):
@@ -601,16 +605,16 @@ class TestRaw:
         assert bool((x == y).all())
 
     # TODO(leofang): test float16 ('e') once cupy/cupy#5346 is resolved
-    @testing.for_dtypes('iIlqfd' if runtime.is_hip else 'iIlLqQfd')
+    @testing.for_dtypes("iIlqfd" if runtime.is_hip else "iIlLqQfd")
     def test_shfl(self, dtype):
         # strictly speaking this function is invalid in Python (see the
         # discussion in cupy/cupy#5340), but it serves for our purpose
         @jit.rawkernel()
         def f(a, b):
-            laneId = jit.threadIdx.x & 0x1f
+            laneId = jit.threadIdx.x & 0x1F
             if laneId == 0:
                 value = a
-            value = jit.shfl_sync(0xffffffff, value, 0)
+            value = jit.shfl_sync(0xFFFFFFFF, value, 0)
             b[laneId] = value
 
         a = dtype(100)
@@ -621,8 +625,8 @@ class TestRaw:
     def test_shfl_width(self):
         @jit.rawkernel()
         def f(a, b, w):
-            laneId = jit.threadIdx.x & 0x1f
-            value = jit.shfl_sync(0xffffffff, b[jit.threadIdx.x], 0, width=w)
+            laneId = jit.threadIdx.x & 0x1F
+            value = jit.shfl_sync(0xFFFFFFFF, b[jit.threadIdx.x], 0, width=w)
             b[laneId] = value
 
         c = cupy.arange(32, dtype=cupy.int32)
@@ -634,22 +638,22 @@ class TestRaw:
             assert (b == c).all()
 
     # TODO(leofang): test float16 ('e') once cupy/cupy#5346 is resolved
-    @testing.for_dtypes('iIlqfd' if runtime.is_hip else 'iIlLqQfd')
+    @testing.for_dtypes("iIlqfd" if runtime.is_hip else "iIlLqQfd")
     def test_shfl_up(self, dtype):
         N = 5
 
         @jit.rawkernel()
         def f(a):
-            value = jit.shfl_up_sync(0xffffffff, a[jit.threadIdx.x], N)
+            value = jit.shfl_up_sync(0xFFFFFFFF, a[jit.threadIdx.x], N)
             a[jit.threadIdx.x] = value
 
         a = cupy.arange(32, dtype=dtype)
         f[1, 32](a)
-        expected = [i for i in range(N)] + [i for i in range(32-N)]
+        expected = [i for i in range(N)] + [i for i in range(32 - N)]
         assert (a == cupy.asarray(expected, dtype=dtype)).all()
 
     # TODO(leofang): test float16 ('e') once cupy/cupy#5346 is resolved
-    @testing.for_dtypes('iIlqfd' if runtime.is_hip else 'iIlLqQfd')
+    @testing.for_dtypes("iIlqfd" if runtime.is_hip else "iIlLqQfd")
     def test_shfl_down(self, dtype):
         N = 5
         # __shfl_down() on HIP does not seem to have the same behavior...
@@ -657,25 +661,25 @@ class TestRaw:
 
         @jit.rawkernel()
         def f(a):
-            value = jit.shfl_down_sync(0xffffffff, a[jit.threadIdx.x], N)
+            value = jit.shfl_down_sync(0xFFFFFFFF, a[jit.threadIdx.x], N)
             a[jit.threadIdx.x] = value
 
         a = cupy.arange(block, dtype=dtype)
         f[1, block](a)
         expected = [i for i in range(N, block)]
-        expected += [(block-N+i) for i in range(N)]
+        expected += [(block - N + i) for i in range(N)]
         assert (a == cupy.asarray(expected, dtype=dtype)).all()
 
     # TODO(leofang): test float16 ('e') once cupy/cupy#5346 is resolved
-    @testing.for_dtypes('iIlqfd' if runtime.is_hip else 'iIlLqQfd')
+    @testing.for_dtypes("iIlqfd" if runtime.is_hip else "iIlLqQfd")
     def test_shfl_xor(self, dtype):
         @jit.rawkernel()
         def f_shfl_xor(a):
-            laneId = jit.threadIdx.x & 0x1f
+            laneId = jit.threadIdx.x & 0x1F
             value = 31 - laneId
             i = 16
             while i >= 1:
-                value += jit.shfl_xor_sync(0xffffffff, value, i)
+                value += jit.shfl_xor_sync(0xFFFFFFFF, value, i)
                 i //= 2
             a[jit.threadIdx.x] = value
 
@@ -690,7 +694,7 @@ class TestRaw:
             return unknown_var  # NOQA
 
         x = cupy.zeros((10,), dtype=numpy.float32)
-        with pytest.raises(NameError, match='Unbound name: unknown_var'):
+        with pytest.raises(NameError, match="Unbound name: unknown_var"):
             f((1,), (1,), (x,))
 
     def test_laneid(self):
@@ -701,9 +705,9 @@ class TestRaw:
                 arr[x] = jit.laneid()
 
         N = cupy._core._get_warpsize()
-        x = cupy.zeros((N*2,), dtype=cupy.uint32)
-        f((1,), (N*2,), (x,))
-        y = cupy.arange(N*2, dtype=cupy.uint32) % N
+        x = cupy.zeros((N * 2,), dtype=cupy.uint32)
+        f((1,), (N * 2,), (x,))
+        y = cupy.arange(N * 2, dtype=cupy.uint32) % N
         assert (x == y).all()
 
     @pytest.mark.xfail(reason="XXX: np2.0: int32/uint32 compile failure")
@@ -788,9 +792,7 @@ class TestRaw:
 
         assert len(f.cached_codes) == 2
 
-    @pytest.mark.parametrize(
-        'unroll', (True, False, None, 5)
-    )
+    @pytest.mark.parametrize("unroll", (True, False, None, 5))
     def test_range(self, unroll):
 
         @jit.rawkernel()
@@ -811,15 +813,15 @@ class TestRaw:
         f[3, 10](x)
         assert (x == y + 10).all()
         if unroll is True:
-            assert '#pragma unroll\n' in f.cached_code
+            assert "#pragma unroll\n" in f.cached_code
         elif unroll is False:
-            assert '#pragma unroll(1)\n' in f.cached_code
+            assert "#pragma unroll(1)\n" in f.cached_code
         elif unroll is None:
-            assert 'unroll' not in f.cached_code
+            assert "unroll" not in f.cached_code
         elif unroll >= 0:
-            assert f'#pragma unroll({unroll})\n' in f.cached_code
+            assert f"#pragma unroll({unroll})\n" in f.cached_code
 
-    @pytest.mark.parametrize('ctype', (bool, int, float, complex))
+    @pytest.mark.parametrize("ctype", (bool, int, float, complex))
     def test_scalar_args(self, ctype):
         @jit.rawkernel()
         def f(x, y):

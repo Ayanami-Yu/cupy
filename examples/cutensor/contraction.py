@@ -11,11 +11,11 @@ import cupyx.time
 
 dtype = numpy.float32
 
-mode_a = ('m', 'h', 'k', 'n')
-mode_b = ('u', 'k', 'v', 'h')
-mode_c = ('m', 'u', 'n', 'v')
+mode_a = ("m", "h", "k", "n")
+mode_b = ("u", "k", "v", "h")
+mode_c = ("m", "u", "n", "v")
 
-extent = {'m': 96, 'n': 96, 'u': 96, 'v': 64, 'h': 64, 'k': 64}
+extent = {"m": 96, "n": 96, "u": 96, "v": 64, "h": 64, "k": 64}
 
 a = cupy.random.random([extent[i] for i in mode_a])
 b = cupy.random.random([extent[i] for i in mode_b])
@@ -30,11 +30,13 @@ beta = 1.0
 perf = cupyx.time.repeat(
     cutensor.contraction,
     (alpha, a, mode_a, b, mode_b, beta, c, mode_c),
-    n_warmup=1, n_repeat=5)
+    n_warmup=1,
+    n_repeat=5,
+)
 
 total_flops = 2 * numpy.prod(numpy.array(list(extent.values())))
 elapsed = perf.gpu_times.mean()
 
-print('dtype: {}'.format(numpy.dtype(dtype).name))
+print("dtype: {}".format(numpy.dtype(dtype).name))
 print(perf)
-print('GFLOPS: {}'.format(total_flops / elapsed / 1e9))
+print("GFLOPS: {}".format(total_flops / elapsed / 1e9))

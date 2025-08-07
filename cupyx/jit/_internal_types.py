@@ -26,13 +26,13 @@ class Data(Expr):
         self.ctype = ctype
         if not isinstance(ctype, _cuda_types.Unknown):
             try:
-                self.__doc__ = f'{str(ctype)} {code}\n{ctype.__doc__}'
+                self.__doc__ = f"{str(ctype)} {code}\n{ctype.__doc__}"
             except NotImplementedError:
-                self.__doc__ = f'{code}'
+                self.__doc__ = f"{code}"
 
     @property
     def obj(self):
-        raise ValueError(f'Constant value is required: {self.code}')
+        raise ValueError(f"Constant value is required: {self.code}")
 
     def __repr__(self) -> str:
         return f'<Data code = "{self.code}", type = {self.ctype}>'
@@ -44,15 +44,17 @@ class Data(Expr):
         if isinstance(x, Constant):
             if isinstance(x.obj, tuple):
                 elts = [Data.init(Constant(e), env) for e in x.obj]
-                elts_code = ', '.join([e.code for e in elts])
+                elts_code = ", ".join([e.code for e in elts])
                 # STD is defined in carray.cuh
                 if len(elts) == 2:
                     return Data(
-                        f'STD::make_pair({elts_code})',
-                        _cuda_types.Tuple([x.ctype for x in elts]))
+                        f"STD::make_pair({elts_code})",
+                        _cuda_types.Tuple([x.ctype for x in elts]),
+                    )
                 return Data(
-                    f'STD::make_tuple({elts_code})',
-                    _cuda_types.Tuple([x.ctype for x in elts]))
+                    f"STD::make_tuple({elts_code})",
+                    _cuda_types.Tuple([x.ctype for x in elts]),
+                )
             ctype = _cuda_typerules.get_ctype_from_scalar(env.mode, x.obj)
             code = _cuda_types.get_cuda_code_from_constant(x.obj, ctype)
             return Data(code, ctype)
@@ -75,11 +77,14 @@ class Constant(Expr):
 class Range(Expr):
 
     def __init__(
-            self, start: Data, stop: Data, step: Data,
-            ctype: _cuda_types.Scalar,
-            step_is_positive: bool | None,
-            *,
-            unroll: None | int | bool = None,
+        self,
+        start: Data,
+        stop: Data,
+        step: Data,
+        ctype: _cuda_types.Scalar,
+        step_is_positive: bool | None,
+        *,
+        unroll: None | int | bool = None,
     ) -> None:
         self.start = start
         self.stop = stop
@@ -97,7 +102,7 @@ class BuiltinFunc(Expr):
     def call(self, env: Environment, *args, **kwargs) -> Expr:
         for x in itertools.chain(args, kwargs.values()):
             if not isinstance(x, Constant):
-                raise TypeError('Arguments must be constants.')
+                raise TypeError("Arguments must be constants.")
         args = tuple([x.obj for x in args])
         kwargs = dict([(k, v.obj) for k, v in kwargs.items()])
         return self.call_const(env, *args, **kwargs)
@@ -109,10 +114,10 @@ class BuiltinFunc(Expr):
         self.__doc__ = type(self).__call__.__doc__
 
     def __call__(self) -> NoReturn:
-        raise RuntimeError('Cannot call this function from Python layer.')
+        raise RuntimeError("Cannot call this function from Python layer.")
 
     def __repr__(self) -> str:
-        return '<cupyx.jit function>'
+        return "<cupyx.jit function>"
 
     @classmethod
     def from_class_method(cls, method, ctype_self, instance):

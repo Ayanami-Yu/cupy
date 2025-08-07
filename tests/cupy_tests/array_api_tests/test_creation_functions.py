@@ -1,5 +1,6 @@
 from numpy.testing import assert_raises, assert_equal
 import cupy as cp
+
 # due to the module structure we can't import it from cupy.array_api._typing
 from cupy.cuda import Device
 
@@ -26,12 +27,12 @@ from cupy.array_api._array_object import Array
 def test_asarray_errors():
     # Test various protections against incorrect usage
     assert_raises(TypeError, lambda: Array([1]))
-#    assert_raises(TypeError, lambda: asarray(["a"]))  # TODO(leofang): fix this?
+    #    assert_raises(TypeError, lambda: asarray(["a"]))  # TODO(leofang): fix this?
     assert_raises(ValueError, lambda: asarray([1.0], dtype=cp.float16))
     assert_raises(OverflowError, lambda: asarray(2**100))
     # Preferably this would be OverflowError
     # assert_raises(OverflowError, lambda: asarray([2**100]))
-#    assert_raises(TypeError, lambda: asarray([2**100]))  # TODO(leofang): fix this?
+    #    assert_raises(TypeError, lambda: asarray([2**100]))  # TODO(leofang): fix this?
     assert_raises(ValueError, lambda: asarray([1], device="cpu"))  # numpy's pick
     assert_raises(ValueError, lambda: asarray([1], device="gpu"))
 
@@ -76,7 +77,9 @@ def test_empty_errors():
 
 
 def test_empty_like_errors():
-    assert_raises(ValueError, lambda: empty_like(asarray(1), device="cpu"))  # numpy's pick
+    assert_raises(
+        ValueError, lambda: empty_like(asarray(1), device="cpu")
+    )  # numpy's pick
     assert_raises(ValueError, lambda: empty_like(asarray(1), device="gpu"))
     assert_raises(ValueError, lambda: empty_like(asarray(1), dtype=int))
     assert_raises(ValueError, lambda: empty_like(asarray(1), dtype="i"))
@@ -100,7 +103,9 @@ def test_full_errors():
 
 
 def test_full_like_errors():
-    assert_raises(ValueError, lambda: full_like(asarray(1), 0, device="cpu"))  # numpy's pick
+    assert_raises(
+        ValueError, lambda: full_like(asarray(1), 0, device="cpu")
+    )  # numpy's pick
     assert_raises(ValueError, lambda: full_like(asarray(1), 0, device="gpu"))
     assert_raises(ValueError, lambda: full_like(asarray(1), 0, dtype=int))
     assert_raises(ValueError, lambda: full_like(asarray(1), 0, dtype="i"))
@@ -146,10 +151,14 @@ def test_zeros_like_errors():
     assert_raises(ValueError, lambda: zeros_like(asarray(1), dtype="i"))
     zeros_like(asarray(1), device=Device())  # on current device
 
+
 def test_meshgrid_dtype_errors():
     # Doesn't raise
     meshgrid()
-    meshgrid(asarray([1.], dtype=float32))
-    meshgrid(asarray([1.], dtype=float32), asarray([1.], dtype=float32))
+    meshgrid(asarray([1.0], dtype=float32))
+    meshgrid(asarray([1.0], dtype=float32), asarray([1.0], dtype=float32))
 
-    assert_raises(ValueError, lambda: meshgrid(asarray([1.], dtype=float32), asarray([1.], dtype=float64)))
+    assert_raises(
+        ValueError,
+        lambda: meshgrid(asarray([1.0], dtype=float32), asarray([1.0], dtype=float64)),
+    )

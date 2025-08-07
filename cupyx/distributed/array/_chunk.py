@@ -35,8 +35,7 @@ class _ArrayPlaceholder:
     def reshape(self, new_shape: tuple[int, ...]) -> _ArrayPlaceholder:
         return _ArrayPlaceholder(new_shape, self.device)
 
-    def to_ndarray(
-            self, mode: _modes.Mode, dtype: numpy.dtype) -> ndarray:
+    def to_ndarray(self, mode: _modes.Mode, dtype: numpy.dtype) -> ndarray:
         with self.device:
             if mode is _modes.REPLICA:
                 data = _creation_basic.empty(self.shape, dtype)
@@ -53,15 +52,17 @@ class _Chunk:
     ready: Event
     index: tuple[slice, ...]
     updates: list[_data_transfer._PartialUpdate]
-    prevent_gc: Any = None     # TODO: Release it to avoid OOM
+    prevent_gc: Any = None  # TODO: Release it to avoid OOM
 
     # Rule: whenever data is DataPlaceholder, ready is empty
 
     def __init__(
-        self, data: ndarray | _ArrayPlaceholder, ready: Event,
+        self,
+        data: ndarray | _ArrayPlaceholder,
+        ready: Event,
         index: tuple[slice, ...],
         updates: list[_data_transfer._PartialUpdate] | None = None,
-        prevent_gc: Any = None
+        prevent_gc: Any = None,
     ) -> None:
         self.array = data
         self.ready = ready
@@ -71,7 +72,9 @@ class _Chunk:
 
     @classmethod
     def create_placeholder(
-        cls, shape: tuple[int, ...], device: int | Device,
+        cls,
+        shape: tuple[int, ...],
+        device: int | Device,
         index: tuple[slice, ...],
         updates: list[_data_transfer._PartialUpdate] | None = None,
     ) -> _Chunk:
@@ -94,7 +97,9 @@ class _Chunk:
             yield stream
 
     def add_update(
-        self, update: _data_transfer._AsyncData, idx: tuple[slice, ...],
+        self,
+        update: _data_transfer._AsyncData,
+        idx: tuple[slice, ...],
     ) -> None:
         self.updates.append((update, idx))
 
@@ -108,8 +113,9 @@ class _Chunk:
                 data = self.array.copy()
                 ready = stream.record()
 
-        return _Chunk(data, ready, self.index, list(self.updates),
-                      prevent_gc=self.prevent_gc)
+        return _Chunk(
+            data, ready, self.index, list(self.updates), prevent_gc=self.prevent_gc
+        )
 
     def flush(self, mode: _modes.Mode) -> None:
         """Apply all updates in-place."""
@@ -126,15 +132,16 @@ class _Chunk:
                 if mode is _modes.REPLICA:
                     self.array[idx] = update_data.array
                 else:
-                    self.array[idx] = mode.func(
-                        self.array[idx], update_data.array)
+                    self.array[idx] = mode.func(self.array[idx], update_data.array)
 
             stream.record(self.ready)
             self.prevent_gc = (self.prevent_gc, self.updates)
             self.updates = []
 
     def apply_to(
-        self, target: _Chunk, mode: _modes.Mode,
+        self,
+        target: _Chunk,
+        mode: _modes.Mode,
         shape: tuple[int, ...],
         comms: dict[int, _data_transfer._Communicator],
         streams: dict[int, Stream],
@@ -152,26 +159,28 @@ class _Chunk:
         src_idx = src_chunk.index
         dst_idx = dst_chunk.index
 
-        intersection = _index_arith._index_intersection(
-            src_idx, dst_idx, shape)
+        intersection = _index_arith._index_intersection(src_idx, dst_idx, shape)
         if intersection is None:
             return
 
-        src_new_idx = _index_arith._index_for_subindex(
-            src_idx, intersection, shape)
-        dst_new_idx = _index_arith._index_for_subindex(
-            dst_idx, intersection, shape)
+        src_new_idx = _index_arith._index_for_subindex(src_idx, intersection, shape)
+        dst_new_idx = _index_arith._index_for_subindex(dst_idx, intersection, shape)
 
         data_to_transfer = _data_transfer._AsyncData(
-            src_chunk.array[src_new_idx], src_chunk.ready,
-            src_chunk.prevent_gc)
+            src_chunk.array[src_new_idx], src_chunk.ready, src_chunk.prevent_gc
+        )
 
         if mode is not _modes.REPLICA and not mode.idempotent:
             data_to_transfer = data_to_transfer.copy()
 
         update = _data_transfer._transfer(
-            comms[src_dev], streams[src_dev], data_to_transfer,
-            comms[dst_dev], streams[dst_dev], dst_dev)
+            comms[src_dev],
+            streams[src_dev],
+            data_to_transfer,
+            comms[dst_dev],
+            streams[dst_dev],
+            dst_dev,
+        )
         dst_chunk.add_update(update, dst_new_idx)
 
         if mode is not _modes.REPLICA and not mode.idempotent:
@@ -182,15 +191,17 @@ class _Chunk:
                 stream.record(src_chunk.ready)
 
     def set_identity_on_intersection(
-        self, idx: tuple[slice, ...], shape: tuple[int, ...], identity,
+        self,
+        idx: tuple[slice, ...],
+        shape: tuple[int, ...],
+        identity,
     ) -> None:
         assert isinstance(self.array, ndarray)
 
         intersection = _index_arith._index_intersection(self.index, idx, shape)
         if intersection is None:
             return
-        self_new_idx = _index_arith._index_for_subindex(
-            self.index, intersection, shape)
+        self_new_idx = _index_arith._index_for_subindex(self.index, intersection, shape)
         with self.on_ready() as stream:
             self.array[self_new_idx] = identity
             stream.record(self.ready)
@@ -206,9 +217,11 @@ class _Chunk:
 
 
 def _all_reduce_intersections(
-    op_mode: _modes._OpMode, shape: tuple[int, ...],
+    op_mode: _modes._OpMode,
+    shape: tuple[int, ...],
     chunk_map: dict[int, list[_Chunk]],
-    comms: dict[int, _Communicator], streams: dict[int, Stream],
+    comms: dict[int, _Communicator],
+    streams: dict[int, Stream],
 ) -> None:
     chunks_list = list(chain.from_iterable(chunk_map.values()))
 
@@ -227,5 +240,4 @@ def _all_reduce_intersections(
 
         for i in range(j):
             dst_chunk = chunks_list[i]
-            src_chunk.apply_to(
-                dst_chunk, _modes.REPLICA, shape, comms, streams)
+            src_chunk.apply_to(dst_chunk, _modes.REPLICA, shape, comms, streams)

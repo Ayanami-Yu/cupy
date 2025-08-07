@@ -32,13 +32,15 @@ class CreateMock:
 def mock_fusion_history():
     def wrapper(impl):
         def new_impl(self):
-            target = 'cupy._core._fusion_trace.TraceImpl'
+            target = "cupy._core._fusion_trace.TraceImpl"
             with mock.patch(target, CreateMock(target)) as m:
                 numpy_result = impl(self, numpy, m)
             with mock.patch(target, CreateMock(target)) as m:
                 cupy_result = impl(self, cupy, m)
             testing.assert_array_list_equal(numpy_result, cupy_result)
+
         return new_impl
+
     return wrapper
 
 
@@ -53,8 +55,8 @@ class TestFusionCache(unittest.TestCase):
         result = []
         m.check_call_count(xp, 0)
 
-        x = testing.shaped_random((3, 4), xp, 'int32', scale=10, seed=0)
-        y = testing.shaped_random((3, 4), xp, 'int32', scale=10, seed=1)
+        x = testing.shaped_random((3, 4), xp, "int32", scale=10, seed=0)
+        y = testing.shaped_random((3, 4), xp, "int32", scale=10, seed=1)
         result.append(f(x, y))
         m.check_call_count(xp, 1)
 
@@ -72,28 +74,28 @@ class TestFusionCache(unittest.TestCase):
         result = []
         m.check_call_count(xp, 0)
 
-        x = testing.shaped_random((3, 4), xp, 'int32', scale=10, seed=0)
-        y = testing.shaped_random((3, 4), xp, 'int32', scale=10, seed=1)
+        x = testing.shaped_random((3, 4), xp, "int32", scale=10, seed=0)
+        y = testing.shaped_random((3, 4), xp, "int32", scale=10, seed=1)
         result.append(f(x, y))
         m.check_call_count(xp, 1)
 
-        x = testing.shaped_random((3, 4), xp, 'int32', scale=10, seed=2)
-        y = testing.shaped_random((3, 4), xp, 'int16', scale=10, seed=3)
+        x = testing.shaped_random((3, 4), xp, "int32", scale=10, seed=2)
+        y = testing.shaped_random((3, 4), xp, "int16", scale=10, seed=3)
         result.append(f(x, y))
         m.check_call_count(xp, 2)
 
-        x = testing.shaped_random((3, 4), xp, 'int32', scale=10, seed=4)
-        y = testing.shaped_random((3, 4), xp, 'int16', scale=10, seed=5)
+        x = testing.shaped_random((3, 4), xp, "int32", scale=10, seed=4)
+        y = testing.shaped_random((3, 4), xp, "int16", scale=10, seed=5)
         result.append(f(x, y))
         m.check_call_count(xp, 2)
 
-        x = testing.shaped_random((3, 4), xp, 'int16', scale=10, seed=6)
-        y = testing.shaped_random((3, 4), xp, 'int32', scale=10, seed=7)
+        x = testing.shaped_random((3, 4), xp, "int16", scale=10, seed=6)
+        y = testing.shaped_random((3, 4), xp, "int32", scale=10, seed=7)
         result.append(f(x, y))
         m.check_call_count(xp, 3)
 
-        x = testing.shaped_random((3, 4), xp, 'int32', scale=10, seed=8)
-        y = testing.shaped_random((3, 4), xp, 'int32', scale=10, seed=9)
+        x = testing.shaped_random((3, 4), xp, "int32", scale=10, seed=8)
+        y = testing.shaped_random((3, 4), xp, "int32", scale=10, seed=9)
         result.append(f(x, y))
         m.check_call_count(xp, 3)
 
@@ -108,39 +110,39 @@ class TestFusionCache(unittest.TestCase):
         result = []
         m.check_call_count(xp, 0)
 
-        x = testing.shaped_random((3, 4), xp, 'int32', scale=10, seed=0)
-        y = testing.shaped_random((3, 4), xp, 'int32', scale=10, seed=1)
+        x = testing.shaped_random((3, 4), xp, "int32", scale=10, seed=0)
+        y = testing.shaped_random((3, 4), xp, "int32", scale=10, seed=1)
         result.append(f(x, y))
         m.check_call_count(xp, 1)
 
-        x = testing.shaped_random((4, 5), xp, 'int32', scale=10, seed=2)
-        y = testing.shaped_random((4, 5), xp, 'int32', scale=10, seed=3)
+        x = testing.shaped_random((4, 5), xp, "int32", scale=10, seed=2)
+        y = testing.shaped_random((4, 5), xp, "int32", scale=10, seed=3)
         result.append(f(x, y))
         m.check_call_count(xp, 1)
 
-        x = testing.shaped_random((5,), xp, 'int32', scale=10, seed=4)
-        y = testing.shaped_random((4, 5), xp, 'int32', scale=10, seed=5)
+        x = testing.shaped_random((5,), xp, "int32", scale=10, seed=4)
+        y = testing.shaped_random((4, 5), xp, "int32", scale=10, seed=5)
         result.append(f(x, y))
         m.check_call_count(xp, 2)
 
-        x = testing.shaped_random((4, 3), xp, 'int32', scale=10, seed=6)
-        y = testing.shaped_random((4, 3), xp, 'int32', scale=10, seed=7)
+        x = testing.shaped_random((4, 3), xp, "int32", scale=10, seed=6)
+        y = testing.shaped_random((4, 3), xp, "int32", scale=10, seed=7)
         result.append(f(x, y))
         m.check_call_count(xp, 2)
 
-        x = testing.shaped_random((4, 1), xp, 'int32', scale=10, seed=8)
-        y = testing.shaped_random((4, 5), xp, 'int32', scale=10, seed=9)
+        x = testing.shaped_random((4, 1), xp, "int32", scale=10, seed=8)
+        y = testing.shaped_random((4, 5), xp, "int32", scale=10, seed=9)
         result.append(f(x, y))
         m.check_call_count(xp, 3)
 
-        x = testing.shaped_random((1, 1), xp, 'int32', scale=10, seed=8)
-        y = testing.shaped_random((1, 1), xp, 'int32', scale=10, seed=9)
+        x = testing.shaped_random((1, 1), xp, "int32", scale=10, seed=8)
+        y = testing.shaped_random((1, 1), xp, "int32", scale=10, seed=9)
         result.append(f(x, y))
         m.check_call_count(xp, 3)
 
-        x = testing.shaped_random((2, 5), xp, 'int32', scale=10, seed=10)
-        y = testing.shaped_random((4, 5), xp, 'int32', scale=10, seed=11)
-        with self.assertRaises(ValueError, msg='could not be broadcast'):
+        x = testing.shaped_random((2, 5), xp, "int32", scale=10, seed=10)
+        y = testing.shaped_random((4, 5), xp, "int32", scale=10, seed=11)
+        with self.assertRaises(ValueError, msg="could not be broadcast"):
             f(x, y)
         m.check_call_count(xp, 4)
 
@@ -155,22 +157,22 @@ class TestFusionCache(unittest.TestCase):
         result = []
         m.check_call_count(xp, 0)
 
-        x = testing.shaped_random((3, 4), xp, 'int32', scale=10, seed=0)
+        x = testing.shaped_random((3, 4), xp, "int32", scale=10, seed=0)
         y = x
         result.append(f(x, y))
         m.check_call_count(xp, 1)
 
-        x = testing.shaped_random((3, 4), xp, 'int32', scale=10, seed=2)
-        y = testing.shaped_random((3, 4), xp, 'int32', scale=10, seed=3)
+        x = testing.shaped_random((3, 4), xp, "int32", scale=10, seed=2)
+        y = testing.shaped_random((3, 4), xp, "int32", scale=10, seed=3)
         result.append(f(x, y))
         m.check_call_count(xp, 2)
 
-        x = testing.shaped_random((3, 3), xp, 'int32', scale=10, seed=4)
+        x = testing.shaped_random((3, 3), xp, "int32", scale=10, seed=4)
         y = x
         result.append(f(x, y))
         m.check_call_count(xp, 2)
 
-        x = testing.shaped_random((3, 3), xp, 'int32', scale=10, seed=6)
+        x = testing.shaped_random((3, 3), xp, "int32", scale=10, seed=6)
         y = x.T
         result.append(f(x, y))
         m.check_call_count(xp, 3)

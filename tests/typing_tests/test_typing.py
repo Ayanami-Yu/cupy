@@ -11,6 +11,7 @@ import pytest
 
 try:
     import mypy.api
+
     NO_MYPY = False
 except ImportError:
     NO_MYPY = True
@@ -63,8 +64,10 @@ def run_mypy(tests: list[Path]) -> dict[Pos, MypyError]:
     mypy_fails: dict[Pos, MypyError] = {}
     for line in result[0].strip().split("\n"):
         if re.match(
-                r"^Found (\d)+ error(s?) in (\d)+ file(s?) "
-                r"\(checked (\d)+ source file(s?)\)$", line):
+            r"^Found (\d)+ error(s?) in (\d)+ file(s?) "
+            r"\(checked (\d)+ source file(s?)\)$",
+            line,
+        ):
             continue
         m = re.match(r"^(.+):(\d+): (error|note): (.+)$", line)
         assert m is not None, line
@@ -85,7 +88,8 @@ def test_typecheck() -> None:
 
     with tempfile.TemporaryDirectory() as tmpdir:
         shutil.copytree(
-            test_dir, tmpdir + "/typing_tests",
+            test_dir,
+            tmpdir + "/typing_tests",
             ignore=shutil.ignore_patterns("*.py", "_numpy.pyi", ".gitignore"),
         )
 

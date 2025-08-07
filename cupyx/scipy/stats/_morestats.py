@@ -65,5 +65,5 @@ def boxcox_llf(lmb, data):
         logx = lmb * logdata
         logvar = _log_var(logx) - 2 * math.log(abs(lmb))
 
-    res = (lmb - 1) * cupy.sum(logdata, axis=0) - N/2 * logvar
+    res = (lmb - 1) * cupy.sum(logdata, axis=0) - N / 2 * logvar
     return res.astype(dtype, copy=False)

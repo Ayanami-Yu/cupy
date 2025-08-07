@@ -9,14 +9,15 @@ from cupy import _core
 
 
 gammaln = _core.create_ufunc(
-    'cupyx_scipy_special_gammaln', ('l->d', 'e->d', 'f->f', 'd->d'),
-    '''
+    "cupyx_scipy_special_gammaln",
+    ("l->d", "e->d", "f->f", "d->d"),
+    """
     if (isinf(out0_type(in0)) && in0 < 0) {
         out0 = -1.0 / 0.0;
     } else {
         out0 = lgamma(out0_type(in0));
     }
-    ''',
+    """,
     doc="""Logarithm of the absolute value of the Gamma function.
 
     Args:
@@ -28,7 +29,8 @@ gammaln = _core.create_ufunc(
 
     .. seealso:: :data:`scipy.special.gammaln`
 
-    """)
+    """,
+)
 
 
 def multigammaln(a, d):
@@ -60,7 +62,7 @@ def multigammaln(a, d):
         raise ValueError("condition a > 0.5 * (d-1) not met")
     res = (d * (d - 1) * 0.25) * numpy.log(numpy.pi)
     gam0 = gammaln(a)
-    if a.dtype.kind != 'f':
+    if a.dtype.kind != "f":
         # make sure all integer dtypes do the summation with float64
         gam0 = gam0.astype(cupy.float64)
     res = res + gam0

@@ -6,11 +6,13 @@ cuvs_available = False
 pylibraft_available = False
 try:
     from cuvs.distance import pairwise_distance
+
     cuvs_available = True
 except ImportError:
     try:
         # cuVS distance primitives were previously in pylibraft
         from pylibraft.distance import pairwise_distance
+
         pylibraft_available = True
     except ImportError:
         cuvs_available = False
@@ -38,8 +40,7 @@ def _validate_pdist_input(X, m, n, metric_info, **kwargs):
 
 class MetricInfo:
 
-    def __init__(self, canonical_name=None, aka=None,
-                 validator=None, types=None):
+    def __init__(self, canonical_name=None, aka=None, validator=None, types=None):
         self.canonical_name_ = canonical_name
         self.aka_ = aka
         self.validator_ = validator
@@ -47,68 +48,33 @@ class MetricInfo:
 
 
 _METRIC_INFOS = [
-    MetricInfo(
-        canonical_name="canberra",
-        aka={'canberra'}
-    ),
+    MetricInfo(canonical_name="canberra", aka={"canberra"}),
     MetricInfo(
         canonical_name="chebyshev",
-        aka={"chebychev", "chebyshev", "cheby", "cheb", "ch"}
+        aka={"chebychev", "chebyshev", "cheby", "cheb", "ch"},
     ),
-    MetricInfo(
-        canonical_name="cityblock",
-        aka={"cityblock", "cblock", "cb", "c"}
-    ),
-    MetricInfo(
-        canonical_name="correlation",
-        aka={"correlation", "co"}
-    ),
-    MetricInfo(
-        canonical_name="cosine",
-        aka={"cosine", "cos"}
-    ),
+    MetricInfo(canonical_name="cityblock", aka={"cityblock", "cblock", "cb", "c"}),
+    MetricInfo(canonical_name="correlation", aka={"correlation", "co"}),
+    MetricInfo(canonical_name="cosine", aka={"cosine", "cos"}),
     MetricInfo(
         canonical_name="hamming",
         aka={"matching", "hamming", "hamm", "ha", "h"},
-        types=["double", "bool"]
+        types=["double", "bool"],
     ),
     MetricInfo(
         canonical_name="euclidean",
         aka={"euclidean", "euclid", "eu", "e"},
     ),
-    MetricInfo(
-        canonical_name="jensenshannon",
-        aka={"jensenshannon", "js"}
-    ),
-    MetricInfo(
-        canonical_name="minkowski",
-        aka={"minkowski", "mi", "m", "pnorm"}
-    ),
-    MetricInfo(
-        canonical_name="russellrao",
-        aka={"russellrao"},
-        types=["bool"]
-    ),
-    MetricInfo(
-        canonical_name="sqeuclidean",
-        aka={"sqeuclidean", "sqe", "sqeuclid"}
-    ),
-    MetricInfo(
-        canonical_name="hellinger",
-        aka={"hellinger"}
-    ),
-    MetricInfo(
-        canonical_name="kl_divergence",
-        aka={"kl_divergence", "kl_div", "kld"}
-    )
-
-
+    MetricInfo(canonical_name="jensenshannon", aka={"jensenshannon", "js"}),
+    MetricInfo(canonical_name="minkowski", aka={"minkowski", "mi", "m", "pnorm"}),
+    MetricInfo(canonical_name="russellrao", aka={"russellrao"}, types=["bool"]),
+    MetricInfo(canonical_name="sqeuclidean", aka={"sqeuclidean", "sqe", "sqeuclid"}),
+    MetricInfo(canonical_name="hellinger", aka={"hellinger"}),
+    MetricInfo(canonical_name="kl_divergence", aka={"kl_divergence", "kl_div", "kld"}),
 ]
 
 _METRICS = {info.canonical_name_: info for info in _METRIC_INFOS}
-_METRIC_ALIAS = dict((alias, info)
-                     for info in _METRIC_INFOS
-                     for alias in info.aka_)
+_METRIC_ALIAS = dict((alias, info) for info in _METRIC_INFOS for alias in info.aka_)
 
 _METRICS_NAMES = list(_METRICS.keys())
 
@@ -116,8 +82,10 @@ _METRICS_NAMES = list(_METRICS.keys())
 def check_soft_dependencies():
     if not cuvs_available:
         if not pylibraft_available:
-            raise RuntimeError('cuVS >= 24.12 or pylibraft < '
-                               '24.12 should be installed to use this feature')
+            raise RuntimeError(
+                "cuVS >= 24.12 or pylibraft < "
+                "24.12 should be installed to use this feature"
+            )
 
 
 def minkowski(u, v, p):
@@ -141,8 +109,10 @@ def minkowski(u, v, p):
     v_order = "F" if cupy.isfortran(v) else "C"
 
     if u_order != v_order:
-        raise ValueError('u and v must have the same layout '
-                         '(u.order=%s, v.order=%s' % (u_order, v_order))
+        raise ValueError(
+            "u and v must have the same layout "
+            "(u.order=%s, v.order=%s" % (u_order, v_order)
+        )
 
     output_arr = cupy.empty((1, 1), dtype=u.dtype, order=u_order)
 
@@ -172,8 +142,10 @@ def canberra(u, v):
     v_order = "F" if cupy.isfortran(v) else "C"
 
     if u_order != v_order:
-        raise ValueError('u and v must have the same layout '
-                         '(u.order=%s, v.order=%s' % (u_order, v_order))
+        raise ValueError(
+            "u and v must have the same layout "
+            "(u.order=%s, v.order=%s" % (u_order, v_order)
+        )
 
     output_arr = cupy.empty((1, 1), dtype=u.dtype, order=u_order)
 
@@ -203,8 +175,10 @@ def chebyshev(u, v):
     v_order = "F" if cupy.isfortran(v) else "C"
 
     if u_order != v_order:
-        raise ValueError('u and v must have the same layout '
-                         '(u.order=%s, v.order=%s' % (u_order, v_order))
+        raise ValueError(
+            "u and v must have the same layout "
+            "(u.order=%s, v.order=%s" % (u_order, v_order)
+        )
 
     output_arr = cupy.empty((1, 1), dtype=u.dtype, order=u_order)
 
@@ -235,8 +209,10 @@ def cityblock(u, v):
     v_order = "F" if cupy.isfortran(v) else "C"
 
     if u_order != v_order:
-        raise ValueError('u and v must have the same layout '
-                         '(u.order=%s, v.order=%s' % (u_order, v_order))
+        raise ValueError(
+            "u and v must have the same layout "
+            "(u.order=%s, v.order=%s" % (u_order, v_order)
+        )
 
     output_arr = cupy.empty((1, 1), dtype=u.dtype, order=u_order)
 
@@ -271,8 +247,10 @@ def correlation(u, v):
     v_order = "F" if cupy.isfortran(v) else "C"
 
     if u_order != v_order:
-        raise ValueError('u and v must have the same layout '
-                         '(u.order=%s, v.order=%s' % (u_order, v_order))
+        raise ValueError(
+            "u and v must have the same layout "
+            "(u.order=%s, v.order=%s" % (u_order, v_order)
+        )
 
     output_arr = cupy.empty((1, 1), dtype=u.dtype, order=u_order)
 
@@ -304,8 +282,10 @@ def cosine(u, v):
     v_order = "F" if cupy.isfortran(v) else "C"
 
     if u_order != v_order:
-        raise ValueError('u and v must have the same layout '
-                         '(u.order=%s, v.order=%s' % (u_order, v_order))
+        raise ValueError(
+            "u and v must have the same layout "
+            "(u.order=%s, v.order=%s" % (u_order, v_order)
+        )
 
     output_arr = cupy.empty((1, 1), dtype=u.dtype, order=u_order)
 
@@ -339,8 +319,10 @@ def hamming(u, v):
     v_order = "F" if cupy.isfortran(v) else "C"
 
     if u_order != v_order:
-        raise ValueError('u and v must have the same layout '
-                         '(u.order=%s, v.order=%s' % (u_order, v_order))
+        raise ValueError(
+            "u and v must have the same layout "
+            "(u.order=%s, v.order=%s" % (u_order, v_order)
+        )
 
     output_arr = cupy.empty((1, 1), dtype=u.dtype, order=u_order)
 
@@ -370,8 +352,10 @@ def euclidean(u, v):
     v_order = "F" if cupy.isfortran(v) else "C"
 
     if u_order != v_order:
-        raise ValueError('u and v must have the same layout '
-                         '(u.order=%s, v.order=%s' % (u_order, v_order))
+        raise ValueError(
+            "u and v must have the same layout "
+            "(u.order=%s, v.order=%s" % (u_order, v_order)
+        )
 
     output_arr = cupy.empty((1, 1), dtype=u.dtype, order=u_order)
 
@@ -405,8 +389,10 @@ def jensenshannon(u, v):
     v_order = "F" if cupy.isfortran(v) else "C"
 
     if u_order != v_order:
-        raise ValueError('u and v must have the same layout '
-                         '(u.order=%s, v.order=%s' % (u_order, v_order))
+        raise ValueError(
+            "u and v must have the same layout "
+            "(u.order=%s, v.order=%s" % (u_order, v_order)
+        )
 
     output_arr = cupy.empty((1, 1), dtype=u.dtype, order=u_order)
 
@@ -440,8 +426,10 @@ def russellrao(u, v):
     v_order = "F" if cupy.isfortran(v) else "C"
 
     if u_order != v_order:
-        raise ValueError('u and v must have the same layout '
-                         '(u.order=%s, v.order=%s' % (u_order, v_order))
+        raise ValueError(
+            "u and v must have the same layout "
+            "(u.order=%s, v.order=%s" % (u_order, v_order)
+        )
 
     output_arr = cupy.empty((1, 1), dtype=u.dtype, order=u_order)
 
@@ -472,8 +460,10 @@ def sqeuclidean(u, v):
     v_order = "F" if cupy.isfortran(v) else "C"
 
     if u_order != v_order:
-        raise ValueError('u and v must have the same layout '
-                         '(u.order=%s, v.order=%s' % (u_order, v_order))
+        raise ValueError(
+            "u and v must have the same layout "
+            "(u.order=%s, v.order=%s" % (u_order, v_order)
+        )
 
     output_arr = cupy.empty((1, 1), dtype=u.dtype, order=u_order)
 
@@ -505,8 +495,10 @@ def hellinger(u, v):
     v_order = "F" if cupy.isfortran(v) else "C"
 
     if u_order != v_order:
-        raise ValueError('u and v must have the same layout '
-                         '(u.order=%s, v.order=%s' % (u_order, v_order))
+        raise ValueError(
+            "u and v must have the same layout "
+            "(u.order=%s, v.order=%s" % (u_order, v_order)
+        )
 
     output_arr = cupy.empty((1, 1), dtype=u.dtype, order=u_order)
 
@@ -540,8 +532,10 @@ def kl_divergence(u, v):
     v_order = "F" if cupy.isfortran(v) else "C"
 
     if u_order != v_order:
-        raise ValueError('u and v must have the same layout '
-                         '(u.order=%s, v.order=%s' % (u_order, v_order))
+        raise ValueError(
+            "u and v must have the same layout "
+            "(u.order=%s, v.order=%s" % (u_order, v_order)
+        )
 
     output_arr = cupy.empty((1, 1), dtype=u.dtype, order=u_order)
     pairwise_distance(u, v, output_arr, "kl_divergence")
@@ -549,7 +543,7 @@ def kl_divergence(u, v):
     return output_arr[0, 0]
 
 
-def cdist(XA, XB, metric='euclidean', out=None, **kwargs):
+def cdist(XA, XB, metric="euclidean", out=None, **kwargs):
     """Compute distance between each pair of the two collections of inputs.
 
     Args:
@@ -580,31 +574,37 @@ def cdist(XA, XB, metric='euclidean', out=None, **kwargs):
     """
     check_soft_dependencies()
 
-    if pylibraft_available or \
-            (cuvs_available and XA.dtype not in ['float32', 'float64']):
-        XA = cupy.asarray(XA, dtype='float32')
+    if pylibraft_available or (
+        cuvs_available and XA.dtype not in ["float32", "float64"]
+    ):
+        XA = cupy.asarray(XA, dtype="float32")
 
-    if pylibraft_available or \
-            (cuvs_available and XB.dtype not in ['float32', 'float64']):
-        XB = cupy.asarray(XB, dtype='float32')
+    if pylibraft_available or (
+        cuvs_available and XB.dtype not in ["float32", "float64"]
+    ):
+        XB = cupy.asarray(XB, dtype="float32")
 
     XA_order = "F" if cupy.isfortran(XA) else "C"
     XB_order = "F" if cupy.isfortran(XB) else "C"
 
     if XA_order != XB_order:
-        raise ValueError('XA and XB must have the same layout '
-                         '(XA.order=%s, XB.order=%s' % (XA_order, XB_order))
+        raise ValueError(
+            "XA and XB must have the same layout "
+            "(XA.order=%s, XB.order=%s" % (XA_order, XB_order)
+        )
 
     s = XA.shape
     sB = XB.shape
 
     if len(s) != 2:
-        raise ValueError('XA must be a 2-dimensional array.')
+        raise ValueError("XA must be a 2-dimensional array.")
     if len(sB) != 2:
-        raise ValueError('XB must be a 2-dimensional array.')
+        raise ValueError("XB must be a 2-dimensional array.")
     if s[1] != sB[1]:
-        raise ValueError('XA and XB must have the same number of columns '
-                         '(i.e. feature dimension.)')
+        raise ValueError(
+            "XA and XB must have the same number of columns "
+            "(i.e. feature dimension.)"
+        )
 
     mA = s[0]
     mB = sB[0]
@@ -612,13 +612,15 @@ def cdist(XA, XB, metric='euclidean', out=None, **kwargs):
     p = kwargs["p"] if "p" in kwargs else 2.0
 
     if out is not None:
-        if (pylibraft_available and out.dtype != 'float32') or \
-                (cuvs_available and out.dtype not in ['float32', 'float64']):
+        if (pylibraft_available and out.dtype != "float32") or (
+            cuvs_available and out.dtype not in ["float32", "float64"]
+        ):
             out_order = "F" if cupy.isfortran(out) else "C"
             if out_order != XA_order:
-                raise ValueError('out must have same layout as input '
-                                 '(out.order=%s)' % out_order)
-            out = out.astype('float32', copy=False)
+                raise ValueError(
+                    "out must have same layout as input " "(out.order=%s)" % out_order
+                )
+            out = out.astype("float32", copy=False)
         if out.shape != (mA, mB):
             cupy.resize(out, (mA, mB))
 
@@ -626,18 +628,20 @@ def cdist(XA, XB, metric='euclidean', out=None, **kwargs):
         mstr = metric.lower()
         metric_info = _METRIC_ALIAS.get(mstr, None)
         if metric_info is not None:
-            output_arr = out if out is not None else cupy.empty((mA, mB),
-                                                                dtype=XA.dtype,
-                                                                order=XA_order)
+            output_arr = (
+                out
+                if out is not None
+                else cupy.empty((mA, mB), dtype=XA.dtype, order=XA_order)
+            )
             pairwise_distance(XA, XB, output_arr, metric, p)
             return output_arr
         else:
-            raise ValueError('Unknown Distance Metric: %s' % mstr)
+            raise ValueError("Unknown Distance Metric: %s" % mstr)
     else:
-        raise TypeError('2nd argument metric must be a string identifier')
+        raise TypeError("2nd argument metric must be a string identifier")
 
 
-def pdist(X, metric='euclidean', *, out=None, **kwargs):
+def pdist(X, metric="euclidean", *, out=None, **kwargs):
     """Compute distance between observations in n-dimensional space.
 
     Args:
@@ -690,7 +694,9 @@ def distance_matrix(x, y, p=2.0):
     n, kk = y.shape
 
     if k != kk:
-        raise ValueError("x contains %d-dimensional vectors but y "
-                         "contains %d-dimensional vectors" % (k, kk))
+        raise ValueError(
+            "x contains %d-dimensional vectors but y "
+            "contains %d-dimensional vectors" % (k, kk)
+        )
 
     return cdist(x, y, metric="minkowski", p=p)

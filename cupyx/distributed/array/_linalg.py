@@ -57,7 +57,7 @@ def _find_blocking(
         start, stop, step = indices
 
         if step != 1:
-            raise RuntimeError('Step other than 1 is not supported')
+            raise RuntimeError("Step other than 1 is not supported")
 
         partitions.append(start)
         partitions.append(stop)
@@ -72,7 +72,7 @@ def _find_blocking(
 
     def to_unique_sorted(partitions):
         if len(partitions) == 0:
-            raise RuntimeError('Array has no chunk')
+            raise RuntimeError("Array has no chunk")
 
         partitions.sort()
 
@@ -90,7 +90,7 @@ def _find_blocking(
     def check_indices(indices, partitions):
         start, stop, _ = indices
         if partitions.index(start) + 1 != partitions.index(stop):
-            raise RuntimeError('Inconsistent index mapping')
+            raise RuntimeError("Inconsistent index mapping")
 
     for i_indices, k_indices in location_map_a.keys():
         check_indices(i_indices, i_partitions)
@@ -132,14 +132,16 @@ def _make_execution_plan(
                     plan.append((block_a, block_b, dev))
                 else:
                     raise RuntimeError(
-                        'There is no device that can perform multiplication'
-                        f' between block {block_a} and {block_b}')
+                        "There is no device that can perform multiplication"
+                        f" between block {block_a} and {block_b}"
+                    )
 
     return plan
 
 
 def _convert_to_tuples(
-    slices: tuple[slice, ...], shape: tuple[int, ...],
+    slices: tuple[slice, ...],
+    shape: tuple[int, ...],
 ) -> tuple[_SliceIndices, ...]:
     assert len(slices) == len(shape)
     return tuple(s.indices(length) for s, length in zip(slices, shape))
@@ -152,7 +154,8 @@ def _convert_to_slices(
 
 
 def _group_by_batch(
-    shape: tuple[int, ...], index_map: dict[int, list[tuple[slice, ...]]],
+    shape: tuple[int, ...],
+    index_map: dict[int, list[tuple[slice, ...]]],
 ) -> dict[_BatchIdx, _BlockLocationMap]:
     location_maps: dict[_BatchIdx, _BlockLocationMap] = {}
 
@@ -171,58 +174,50 @@ def _group_by_batch(
 
 def _reshape_array_with(
     arr: _array.DistributedArray,
-    f_shape: Callable[[tuple[int,   ...]], tuple[int,   ...]],
-    f_idx:   Callable[[tuple[slice, ...]], tuple[slice, ...]],
+    f_shape: Callable[[tuple[int, ...]], tuple[int, ...]],
+    f_idx: Callable[[tuple[slice, ...]], tuple[slice, ...]],
 ) -> _array.DistributedArray:
     def reshape_chunk(chunk: _chunk._Chunk) -> _chunk._Chunk:
         data = chunk.array.reshape(f_shape(chunk.array.shape))
         index = f_idx(chunk.index)
         updates = [(data, f_idx(idx)) for data, idx in chunk.updates]
-        return _chunk._Chunk(
-            data, chunk.ready, index, updates, chunk.prevent_gc)
+        return _chunk._Chunk(data, chunk.ready, index, updates, chunk.prevent_gc)
 
     chunks_map = {}
     for dev, chunks in arr._chunks_map.items():
         chunks_map[dev] = [reshape_chunk(chunk) for chunk in chunks]
 
     shape = f_shape(arr.shape)
-    return _array.DistributedArray(
-        shape, arr.dtype, chunks_map, arr._mode, arr._comms)
+    return _array.DistributedArray(shape, arr.dtype, chunks_map, arr._mode, arr._comms)
 
 
 def _prepend_one_to_shape(arr) -> _array.DistributedArray:
     return _reshape_array_with(
-        arr,
-        lambda shape: (1,) + shape,
-        lambda idx: (slice(None),) + idx)
+        arr, lambda shape: (1,) + shape, lambda idx: (slice(None),) + idx
+    )
 
 
 def _append_one_to_shape(arr) -> _array.DistributedArray:
     return _reshape_array_with(
-        arr,
-        lambda shape: shape + (1,),
-        lambda idx: idx + (slice(None),))
+        arr, lambda shape: shape + (1,), lambda idx: idx + (slice(None),)
+    )
 
 
 def _pop_from_shape(arr) -> _array.DistributedArray:
     assert arr.shape[-1] == 1
-    return _reshape_array_with(
-        arr,
-        lambda shape: shape[:-1],
-        lambda idx: idx[:-1])
+    return _reshape_array_with(arr, lambda shape: shape[:-1], lambda idx: idx[:-1])
 
 
 def _pop_front_from_shape(arr) -> _array.DistributedArray:
     assert arr.shape[0] == 1
-    return _reshape_array_with(
-        arr,
-        lambda shape: shape[1:],
-        lambda idx: idx[1:])
+    return _reshape_array_with(arr, lambda shape: shape[1:], lambda idx: idx[1:])
 
 
 def matmul(
-    a: _array.DistributedArray, b: _array.DistributedArray,
-    out: _array.DistributedArray | None = None, **kwargs,
+    a: _array.DistributedArray,
+    b: _array.DistributedArray,
+    out: _array.DistributedArray | None = None,
+    **kwargs,
 ) -> _array.DistributedArray:
     """Matrix multiplication between distributed arrays.
 
@@ -268,15 +263,17 @@ def matmul(
     .. seealso:: :obj:`numpy.matmul`
     """
     if out is not None:
-        raise RuntimeError('Argument `out` is not supported')
-    for param in ('subok', 'axes', 'axis'):
+        raise RuntimeError("Argument `out` is not supported")
+    for param in ("subok", "axes", "axis"):
         if param in kwargs:
-            raise RuntimeError(f'Argument `{param}` is not supported')
-    if (not isinstance(a, _array.DistributedArray)
-            or not isinstance(b, _array.DistributedArray)):
+            raise RuntimeError(f"Argument `{param}` is not supported")
+    if not isinstance(a, _array.DistributedArray) or not isinstance(
+        b, _array.DistributedArray
+    ):
         raise RuntimeError(
-            'Mixing a distributed array with a non-distributed array is not'
-            ' supported')
+            "Mixing a distributed array with a non-distributed array is not"
+            " supported"
+        )
 
     a = a._to_op_mode(_modes.REPLICA)
     b = b._to_op_mode(_modes.REPLICA)
@@ -292,12 +289,12 @@ def matmul(
     n, m = a.shape[-2:]
     m2, p = b.shape[-2:]
     if m != m2 or a.shape[:-2] != b.shape[:-2]:
-        raise ValueError('Shapes are incompatible')
+        raise ValueError("Shapes are incompatible")
 
     location_maps_a = _group_by_batch(a.shape, a.index_map)
     location_maps_b = _group_by_batch(b.shape, b.index_map)
     if location_maps_a.keys() != location_maps_b.keys():
-        raise RuntimeError('Mismatched batch shapes')
+        raise RuntimeError("Mismatched batch shapes")
 
     chunks_map: dict[int, list[_chunk._Chunk]] = {dev: [] for dev in a.devices}
     dtype = None
@@ -323,17 +320,20 @@ def matmul(
                 stream.wait_event(chunk_b.ready)
 
                 chunk_ab_array = cupy.linalg._product.matmul(
-                    chunk_a.array, chunk_b.array, **kwargs)
+                    chunk_a.array, chunk_b.array, **kwargs
+                )
 
                 chunk_ab = _chunk._Chunk(
-                    chunk_ab_array, stream.record(), index,
-                    prevent_gc=(chunk_a, chunk_b))
+                    chunk_ab_array,
+                    stream.record(),
+                    index,
+                    prevent_gc=(chunk_a, chunk_b),
+                )
                 chunks_map[dev].append(chunk_ab)
                 dtype = chunk_ab_array.dtype
 
     shape = a.shape[:-2] + (n, p)
-    res = _array.DistributedArray(
-        shape, dtype, chunks_map, _modes.SUM, a._comms)
+    res = _array.DistributedArray(shape, dtype, chunks_map, _modes.SUM, a._comms)
 
     if one_prepended:
         res = _pop_front_from_shape(res)
@@ -383,9 +383,9 @@ def make_2d_index_map(
         assert len(devices[i]) == len(j_partitions) - 1
         for j in range(len(devices[i])):
             i_start = i_partitions[i]
-            i_stop = i_partitions[i+1]
+            i_stop = i_partitions[i + 1]
             j_start = j_partitions[j]
-            j_stop = j_partitions[j+1]
+            j_stop = j_partitions[j + 1]
 
             idx = (slice(i_start, i_stop), slice(j_start, j_stop))
 

@@ -24,6 +24,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 """
+
 from __future__ import annotations
 
 
@@ -33,7 +34,12 @@ import cupy
 
 import cupyx.scipy.signal._signaltools as filtering
 from cupyx.scipy.signal._arraytools import (
-    odd_ext, even_ext, zero_ext, const_ext, _as_strided)
+    odd_ext,
+    even_ext,
+    zero_ext,
+    const_ext,
+    _as_strided,
+)
 from cupyx.scipy.signal.windows._windows import get_window
 
 
@@ -43,8 +49,8 @@ def _get_raw_typename(dtype):
 
 def _get_module_func_raw(module, func_name, *template_args):
     args_dtypes = [_get_raw_typename(arg.dtype) for arg in template_args]
-    template = '_'.join(args_dtypes)
-    kernel_name = f'{func_name}_{template}' if template_args else func_name
+    template = "_".join(args_dtypes)
+    kernel_name = f"{func_name}_{template}" if template_args else func_name
     kernel = module.get_function(kernel_name)
     return kernel
 
@@ -192,9 +198,10 @@ extern "C" __global__ void __launch_bounds__( 512 ) _cupy_lombscargle_float64(
 
 
 LOMBSCARGLE_MODULE = cupy.RawModule(
-    code=LOMBSCARGLE_KERNEL, options=('-std=c++11',),
-    name_expressions=['_cupy_lombscargle_float32',
-                      '_cupy_lombscargle_float64'])
+    code=LOMBSCARGLE_KERNEL,
+    options=("-std=c++11",),
+    name_expressions=["_cupy_lombscargle_float32", "_cupy_lombscargle_float64"],
+)
 
 
 def _lombscargle(x, y, freqs, pgram, y_dot):
@@ -203,7 +210,8 @@ def _lombscargle(x, y, freqs, pgram, y_dot):
     num_blocks = device_id.attributes["MultiProcessorCount"] * 20
     block_sz = 512
     lombscargle_kernel = _get_module_func_raw(
-        LOMBSCARGLE_MODULE, '_cupy_lombscargle', x)
+        LOMBSCARGLE_MODULE, "_cupy_lombscargle", x
+    )
 
     args = (x.shape[0], freqs.shape[0], x, y, freqs, pgram, y_dot)
     lombscargle_kernel((num_blocks,), (block_sz,), args)
@@ -313,8 +321,7 @@ def _spectral_helper(
     """
     if mode not in ["psd", "stft"]:
         raise ValueError(
-            f"Unknown value for mode {mode}, must be one of: "
-            "{'psd', 'stft'}"
+            f"Unknown value for mode {mode}, must be one of: " "{'psd', 'stft'}"
         )
 
     boundary_funcs = {
@@ -355,15 +362,13 @@ def _spectral_helper(
         xouter.pop(axis)
         youter.pop(axis)
         try:
-            outershape = cupy.broadcast(
-                cupy.empty(xouter), cupy.empty(youter)).shape
+            outershape = cupy.broadcast(cupy.empty(xouter), cupy.empty(youter)).shape
         except ValueError:
             raise ValueError("x and y cannot be broadcast together.")
 
     if same_data:
         if x.size == 0:
-            return (
-                cupy.empty(x.shape), cupy.empty(x.shape), cupy.empty(x.shape))
+            return (cupy.empty(x.shape), cupy.empty(x.shape), cupy.empty(x.shape))
     else:
         if x.size == 0 or y.size == 0:
             outshape = outershape + (min([x.shape[axis], y.shape[axis]]),)
@@ -472,8 +477,7 @@ def _spectral_helper(
         if cupy.iscomplexobj(x):
             sides = "twosided"
             warnings.warn(
-                "Input data is complex, switching to "
-                "return_onesided=False"
+                "Input data is complex, switching to " "return_onesided=False"
             )
         else:
             sides = "onesided"
@@ -481,8 +485,7 @@ def _spectral_helper(
                 if cupy.iscomplexobj(y):
                     sides = "twosided"
                     warnings.warn(
-                        "Input data is complex, switching to "
-                        "return_onesided=False"
+                        "Input data is complex, switching to " "return_onesided=False"
                     )
     else:
         sides = "twosided"
@@ -497,8 +500,9 @@ def _spectral_helper(
 
     if not same_data:
         # All the same operations on the y data
-        result_y = _fft_helper(y, win, detrend_func,  # NOQA
-                               nperseg, noverlap, nfft, sides)
+        result_y = _fft_helper(
+            y, win, detrend_func, nperseg, noverlap, nfft, sides  # NOQA
+        )
         result = cupy.conj(result) * result_y
     elif mode == "psd":
         result = cupy.conj(result) * result
@@ -592,8 +596,7 @@ def _triage_segments(window, nperseg, input_length):
         elif nperseg is not None:
             if nperseg != win.shape[0]:
                 raise ValueError(
-                    "value specified for nperseg is different"
-                    " from length of window"
+                    "value specified for nperseg is different" " from length of window"
                 )
     return win, nperseg
 

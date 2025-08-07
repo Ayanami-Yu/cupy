@@ -43,13 +43,13 @@ def logsumexp(a, axis=None, b=None, keepdims=False, return_sign=False):
     scipy.special.logsumexp
 
     """
-    if a.dtype.kind in 'biu':
+    if a.dtype.kind in "biu":
         a = a.astype(cp.float64)
 
     if b is not None:
         a, b = cp.broadcast_arrays(a, b)
         if cp.any(b == 0):
-            a = a + 0.  # promote to at least float
+            a = a + 0.0  # promote to at least float
             a[b == 0] = -cp.inf
 
     a_max = cp.max(a.real, axis=axis, keepdims=True)
@@ -66,7 +66,7 @@ def logsumexp(a, axis=None, b=None, keepdims=False, return_sign=False):
 
     s = cp.sum(tmp, axis=axis, keepdims=keepdims)
     if return_sign:
-        if s.dtype.char == 'c':
+        if s.dtype.char == "c":
             sgn = s / cp.where(s == 0, 1, cp.abs(s))
         else:
             sgn = cp.sign(s)

@@ -34,8 +34,8 @@ _typeclasses = (bool, numpy.bool_, numbers.Number)
 
 if (3, 8) <= sys.version_info:
     from typing import Literal
-    _CastingType = Optional[
-        Literal['no', 'equiv', 'safe', 'same_kind', 'unsafe']]
+
+    _CastingType = Optional[Literal["no", "equiv", "safe", "same_kind", "unsafe"]]
 else:
     _CastingType = str
 
@@ -59,11 +59,14 @@ class _JitCompileError(Exception):
 
     def reraise(self, pycode):
         start = self.node.lineno
-        end = getattr(self.node, 'end_lineno', start)
-        pycode = '\n'.join([
-            (f'> {line}' if start <= i + 1 <= end else f'  {line}').rstrip()
-            for i, line in enumerate(pycode.split('\n'))])
-        raise self.error_type(self.mes + '\n\n' + pycode)
+        end = getattr(self.node, "end_lineno", start)
+        pycode = "\n".join(
+            [
+                (f"> {line}" if start <= i + 1 <= end else f"  {line}").rstrip()
+                for i, line in enumerate(pycode.split("\n"))
+            ]
+        )
+        raise self.error_type(self.mes + "\n\n" + pycode)
 
 
 def transpile_function_wrapper(func):
@@ -88,7 +91,7 @@ def _parse_function_object(func):
     an exception message in case of an error).
     """
     if not callable(func):
-        raise ValueError('`func` must be a callable object.')
+        raise ValueError("`func` must be a callable object.")
 
     try:
         # ``filename`` can be any of:
@@ -100,17 +103,17 @@ def _parse_function_object(func):
         # Built-in function or method, or inside Doctest
         filename = None
 
-    if filename == '<stdin>':
+    if filename == "<stdin>":
         raise RuntimeError(
-            f'JIT needs access to the Python source code for {func}'
-            ' but it cannot be retrieved within the Python interactive'
-            ' interpreter. Consider using IPython instead.')
+            f"JIT needs access to the Python source code for {func}"
+            " but it cannot be retrieved within the Python interactive"
+            " interpreter. Consider using IPython instead."
+        )
 
-    if func.__name__ != '<lambda>':
+    if func.__name__ != "<lambda>":
         lines, _ = inspect.getsourcelines(func)
         num_indent = len(lines[0]) - len(lines[0].lstrip())
-        source = ''.join([
-            line.replace(' ' * num_indent, '', 1) for line in lines])
+        source = "".join([line.replace(" " * num_indent, "", 1) for line in lines])
         tree = ast.parse(source)
         assert isinstance(tree, ast.Module)
         assert len(tree.body) == 1
@@ -119,9 +122,10 @@ def _parse_function_object(func):
     if filename is None:
         # filename is needed for lambdas.
         raise ValueError(
-            f'JIT needs access to Python source code for {func}'
-            ' but could not be located.\n'
-            '(hint: it is likely you passed a built-in function or method)')
+            f"JIT needs access to Python source code for {func}"
+            " but could not be located.\n"
+            "(hint: it is likely you passed a built-in function or method)"
+        )
 
     # Extract the AST of the lambda from the AST of the whole source file
     # that defines that lambda.
@@ -130,27 +134,37 @@ def _parse_function_object(func):
 
     # Use ``linecache.getlines`` instead of directly opening a file to
     # support notebook environments.
-    full_source = ''.join(linecache.getlines(filename))
+    full_source = "".join(linecache.getlines(filename))
     source, start_line = inspect.getsourcelines(func)
     end_line = start_line + len(source)
-    source = ''.join(source)
+    source = "".join(source)
 
     tree = ast.parse(full_source)
 
-    nodes = [node for node in ast.walk(tree)
-             if isinstance(node, ast.Lambda)
-             and start_line <= node.lineno < end_line]
+    nodes = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Lambda) and start_line <= node.lineno < end_line
+    ]
     if len(nodes) > 1:
         # TODO(kmaehashi): can be improved by heuristics (e.g. number of args)
-        raise ValueError('Multiple callables are found near the'
-                         f' definition of {func}, and JIT could not'
-                         ' identify the source code for it.')
+        raise ValueError(
+            "Multiple callables are found near the"
+            f" definition of {func}, and JIT could not"
+            " identify the source code for it."
+        )
     node = nodes[0]
-    return ast.FunctionDef(
-        name='_lambda_kernel', args=node.args,
-        body=[ast.Return(node.body)],
-        decorator_list=[], returns=None, type_comment=None,
-    ), source
+    return (
+        ast.FunctionDef(
+            name="_lambda_kernel",
+            args=node.args,
+            body=[ast.Return(node.body)],
+            decorator_list=[],
+            returns=None,
+            type_comment=None,
+        ),
+        source,
+    )
 
 
 class Generated:
@@ -159,9 +173,10 @@ class Generated:
         # list of str
         self.codes: list[str] = []
         # (function, in_types) => Optional(function_name, return_type)
-        self.device_function: \
-            dict[tuple[Any, tuple[_cuda_types.TypeBase, ...]],
-                 tuple[str, _cuda_types.TypeBase]] = {}
+        self.device_function: dict[
+            tuple[Any, tuple[_cuda_types.TypeBase, ...]],
+            tuple[str, _cuda_types.TypeBase],
+        ] = {}
         # whether to use cooperative launch
         self.enable_cg = False
         # whether to include cooperative_groups.h
@@ -171,12 +186,15 @@ class Generated:
         # whether to include cuda/barrier
         self.include_cuda_barrier = False
         # compiler options
-        self.options = ('-DCUPY_JIT_MODE', '--std=c++17',
-                        # WAR: for compiling any CCCL header
-                        '-DCUB_DISABLE_BF16_SUPPORT',)
+        self.options = (
+            "-DCUPY_JIT_MODE",
+            "--std=c++17",
+            # WAR: for compiling any CCCL header
+            "-DCUB_DISABLE_BF16_SUPPORT",
+        )
         # workaround for hipRTC: as of ROCm 4.1.0 hipRTC still does not
         # recognize "-D", so we have to compile using hipcc...
-        self.backend = 'nvcc' if runtime.is_hip else 'nvrtc'
+        self.backend = "nvcc" if runtime.is_hip else "nvrtc"
         # workaround for CUB/libcudacxx headers: they can be compiled by NVRTC
         # but they need Jitify; Thrust headers can only be compiled by NVCC
         # for now. We keep Jitify off by default to reduce overhead.
@@ -202,9 +220,10 @@ def transpile(func, attributes, mode, in_types, ret_type):
     generated = Generated()
     in_types = tuple(in_types)
     name, return_type = _transpile_func_obj(
-        func, attributes, mode, in_types, ret_type, generated)
+        func, attributes, mode, in_types, ret_type, generated
+    )
     func_name, _ = generated.device_function[(func, in_types)]
-    code = '\n'.join(generated.codes)
+    code = "\n".join(generated.codes)
     backend = generated.backend
     options = generated.options
     jitify = generated.jitify
@@ -214,8 +233,14 @@ def transpile(func, attributes, mode, in_types, ret_type):
         print(code)
 
     return Result(
-        func_name=func_name, code=code, return_type=return_type, jitify=jitify,
-        enable_cooperative_groups=enable_cg, backend=backend, options=options)
+        func_name=func_name,
+        code=code,
+        return_type=return_type,
+        jitify=jitify,
+        enable_cooperative_groups=enable_cg,
+        backend=backend,
+        options=options,
+    )
 
 
 def _transpile_func_obj(func, attributes, mode, in_types, ret_type, generated):
@@ -230,22 +255,30 @@ def _transpile_func_obj(func, attributes, mode, in_types, ret_type, generated):
 
     cvars = inspect.getclosurevars(func)
     consts = dict(**cvars.globals, **cvars.nonlocals, **cvars.builtins)
-    attributes = ' '.join(attributes)
+    attributes = " ".join(attributes)
     name = tree.name
     if len(generated.device_function) > 0:
-        name += '_' + str(len(generated.device_function))
+        name += "_" + str(len(generated.device_function))
     generated.device_function[(func, in_types)] = None
 
     cuda_code, env = _transpile_function(
-        tree, name, attributes, mode, consts,
-        in_types, ret_type, generated, source=source)
+        tree,
+        name,
+        attributes,
+        mode,
+        consts,
+        in_types,
+        ret_type,
+        generated,
+        source=source,
+    )
 
     generated.device_function[(func, in_types)] = (name, env.ret_type)
     generated.add_code(cuda_code)
     return name, env.ret_type
 
 
-def _indent(lines: list[str], spaces: str = '  ') -> list[str]:
+def _indent(lines: list[str], spaces: str = "  ") -> list[str]:
     return [spaces + line for line in lines]
 
 
@@ -273,12 +306,12 @@ class Environment:
     """
 
     def __init__(
-            self,
-            mode: str,
-            consts: dict[str, Constant],
-            params: dict[str, Data],
-            ret_type: _cuda_types.TypeBase,
-            generated: Generated,
+        self,
+        mode: str,
+        consts: dict[str, Constant],
+        params: dict[str, Data],
+        ret_type: _cuda_types.TypeBase,
+        generated: Generated,
     ):
         self.mode = mode
         self.consts = consts
@@ -298,10 +331,9 @@ class Environment:
             return self.consts[key]
         return None
 
-    def get_fresh_variable_name(
-            self, prefix: str = '', suffix: str = '') -> str:
+    def get_fresh_variable_name(self, prefix: str = "", suffix: str = "") -> str:
         self.count += 1
-        name = f'{prefix}{self.count}{suffix}'
+        name = f"{prefix}{self.count}{suffix}"
         if self[name] is None:
             return name
         else:
@@ -309,8 +341,8 @@ class Environment:
 
 
 def _transpile_function(
-        func, name, attributes, mode, consts,
-        in_types, ret_type, generated, *, source):
+    func, name, attributes, mode, consts, in_types, ret_type, generated, *, source
+):
     """Transpile the function
     Args:
         func (ast.FunctionDef): Target function.
@@ -329,8 +361,8 @@ def _transpile_function(
     """
     try:
         return _transpile_function_internal(
-            func, name, attributes, mode, consts,
-            in_types, ret_type, generated)
+            func, name, attributes, mode, consts, in_types, ret_type, generated
+        )
     except _JitCompileError as e:
         exc = e
         if _is_debug_mode:
@@ -342,55 +374,56 @@ def _transpile_function(
 
 
 def _transpile_function_internal(
-        func, name, attributes, mode, consts, in_types, ret_type, generated):
+    func, name, attributes, mode, consts, in_types, ret_type, generated
+):
     consts = dict([(k, Constant(v)) for k, v, in consts.items()])
 
     if not isinstance(func, ast.FunctionDef):
         # TODO(asi1024): Support for `ast.ClassDef`.
-        raise NotImplementedError('Not supported: {}'.format(type(func)))
+        raise NotImplementedError("Not supported: {}".format(type(func)))
     if len(func.decorator_list) > 0:
         for deco in func.decorator_list:
             deco_code = ast.unparse(deco)
-            if not any(word in deco_code
-                       for word in ['rawkernel', 'vectorize']):
+            if not any(word in deco_code for word in ["rawkernel", "vectorize"]):
                 warnings.warn(
-                    f'Decorator {deco_code} may not supported in JIT.',
-                    RuntimeWarning)
+                    f"Decorator {deco_code} may not supported in JIT.", RuntimeWarning
+                )
     arguments = func.args
     if arguments.vararg is not None:
-        raise NotImplementedError('`*args` is not supported currently.')
+        raise NotImplementedError("`*args` is not supported currently.")
     if len(arguments.kwonlyargs) > 0:  # same length with `kw_defaults`.
         raise NotImplementedError(
-            'keyword only arguments are not supported currently .')
+            "keyword only arguments are not supported currently ."
+        )
     if arguments.kwarg is not None:
-        raise NotImplementedError('`**kwargs` is not supported currently.')
+        raise NotImplementedError("`**kwargs` is not supported currently.")
     if len(arguments.defaults) > 0:
-        raise NotImplementedError(
-            'Default values are not supported currently.')
+        raise NotImplementedError("Default values are not supported currently.")
 
     args = [arg.arg for arg in arguments.args]
     if len(args) != len(in_types):
         raise TypeError(
-            f'{name}() takes {len(args)} positional arguments '
-            f'but {len(in_types)} were given.')
+            f"{name}() takes {len(args)} positional arguments "
+            f"but {len(in_types)} were given."
+        )
     params = dict([(x, Data(x, t)) for x, t in zip(args, in_types)])
     env = Environment(mode, consts, params, ret_type, generated)
     body = _transpile_stmts(func.body, True, env)
-    params_s = ', '.join([t.declvar(x, None) for x, t in zip(args, in_types)])
-    local_vars = [v.ctype.declvar(n, None) + ';' for n, v in env.decls.items()]
+    params_s = ", ".join([t.declvar(x, None) for x, t in zip(args, in_types)])
+    local_vars = [v.ctype.declvar(n, None) + ";" for n, v in env.decls.items()]
 
     if env.ret_type is None:
         env.ret_type = _cuda_types.void
 
-    head = f'{attributes} {env.ret_type} {name}({params_s})'
+    head = f"{attributes} {env.ret_type} {name}({params_s})"
     code = CodeBlock(head, local_vars + body)
     return str(code), env
 
 
 def _eval_operand(
-        op: ast.AST,
-        args: Sequence[Constant | Data],
-        env: Environment,
+    op: ast.AST,
+    args: Sequence[Constant | Data],
+    env: Environment,
 ) -> Constant | Data:
     if is_constants(*args):
         pyfunc = _cuda_typerules.get_pyfunc(type(op))
@@ -400,11 +433,11 @@ def _eval_operand(
         x, y = args
         x = Data.init(x, env)
         y = Data.init(y, env)
-        if hasattr(x.ctype, '_add'):
+        if hasattr(x.ctype, "_add"):
             out = x.ctype._add(env, x, y)
             if out is not NotImplemented:
                 return out
-        if hasattr(y.ctype, '_radd'):
+        if hasattr(y.ctype, "_radd"):
             out = y.ctype._radd(env, x, y)
             if out is not NotImplemented:
                 return out
@@ -413,11 +446,11 @@ def _eval_operand(
         x, y = args
         x = Data.init(x, env)
         y = Data.init(y, env)
-        if hasattr(x.ctype, '_sub'):
+        if hasattr(x.ctype, "_sub"):
             out = x.ctype._sub(env, x, y)
             if out is not NotImplemented:
                 return out
-        if hasattr(y.ctype, '_rsub'):
+        if hasattr(y.ctype, "_rsub"):
             out = y.ctype._rsub(env, x, y)
             if out is not NotImplemented:
                 return out
@@ -427,13 +460,13 @@ def _eval_operand(
 
 
 def _call_ufunc(
-        ufunc: _kernel.ufunc,
-        args: Sequence[Constant | Data],
-        dtype: numpy.dtype | None,
-        env: Environment,
+    ufunc: _kernel.ufunc,
+    args: Sequence[Constant | Data],
+    dtype: numpy.dtype | None,
+    env: Environment,
 ) -> Data:
     if len(args) != ufunc.nin:
-        raise ValueError('invalid number of arguments')
+        raise ValueError("invalid number of arguments")
 
     in_types = []
     for x in args:
@@ -442,33 +475,34 @@ def _call_ufunc(
         elif isinstance(x.ctype, _cuda_types.Scalar):
             t = x.ctype.dtype
         else:
-            raise TypeError(f'cupy.ufunc: {x.ctype} is unsupported')
+            raise TypeError(f"cupy.ufunc: {x.ctype} is unsupported")
         in_types.append(t)
 
     op = _cuda_typerules.guess_routine(ufunc, tuple(in_types), dtype, env.mode)
 
     if op is None:
         raise TypeError(
-            f'"{ufunc.name}" does not support for the input types: {in_types}')
+            f'"{ufunc.name}" does not support for the input types: {in_types}'
+        )
 
     if op.error_func is not None:
         op.error_func()
 
-    if ufunc.nout == 1 and op.routine.startswith('out0 = '):
+    if ufunc.nout == 1 and op.routine.startswith("out0 = "):
         out_type = _cuda_types.Scalar(op.out_types[0])
-        expr = op.routine.replace('out0 = ', '')
+        expr = op.routine.replace("out0 = ", "")
 
         in_params = []
         for x, t in zip(args, op.in_types):
-            x = _astype_scalar(x, _cuda_types.Scalar(t), 'same_kind', env)
+            x = _astype_scalar(x, _cuda_types.Scalar(t), "same_kind", env)
             x = Data.init(x, env)
             in_params.append(x)
 
         can_use_inline_expansion = True
         for i in range(ufunc.nin):
-            if len(list(re.finditer(r'in{}'.format(i), op.routine))) > 1:
+            if len(list(re.finditer(r"in{}".format(i), op.routine))) > 1:
                 can_use_inline_expansion = False
-            if f'in{i}_type' in op.routine:
+            if f"in{i}_type" in op.routine:
                 can_use_inline_expansion = False
 
         env.generated.add_code(ufunc._preamble)
@@ -476,13 +510,14 @@ def _call_ufunc(
         if can_use_inline_expansion:
             # Code pass for readable generated code
             for i, x in enumerate(in_params):
-                expr = expr.replace(f'in{i}', x.code)
-            expr = '(' + expr.replace('out0_type', str(out_type)) + ')'
+                expr = expr.replace(f"in{i}", x.code)
+            expr = "(" + expr.replace("out0_type", str(out_type)) + ")"
         else:
-            template_typenames = ', '.join([
-                f'typename in{i}_type' for i in range(ufunc.nin)])
-            ufunc_name = f'{ufunc.name}_{str(numpy.dtype(op.out_types[0]))}'
-            params = ', '.join([f'in{i}_type in{i}' for i in range(ufunc.nin)])
+            template_typenames = ", ".join(
+                [f"typename in{i}_type" for i in range(ufunc.nin)]
+            )
+            ufunc_name = f"{ufunc.name}_{str(numpy.dtype(op.out_types[0]))}"
+            params = ", ".join([f"in{i}_type in{i}" for i in range(ufunc.nin)])
             ufunc_code = f"""template <{template_typenames}>
 __device__ {out_type} {ufunc_name}({params}) {{
     typedef {out_type} out0_type;
@@ -490,17 +525,17 @@ __device__ {out_type} {ufunc_name}({params}) {{
 }}
 """
             env.generated.add_code(ufunc_code)
-            in_params_code = ', '.join([a.code for a in in_params])
-            expr = f'{ufunc_name}({in_params_code})'
+            in_params_code = ", ".join([a.code for a in in_params])
+            expr = f"{ufunc_name}({in_params_code})"
         return Data(expr, out_type)
 
-    raise NotImplementedError(f'ufunc `{ufunc.name}` is not supported.')
+    raise NotImplementedError(f"ufunc `{ufunc.name}` is not supported.")
 
 
 def _transpile_stmts(
-        stmts: list[ast.stmt],
-        is_toplevel: bool,
-        env: Environment,
+    stmts: list[ast.stmt],
+    is_toplevel: bool,
+    env: Environment,
 ) -> _CodeType:
     codeblocks = []
     for stmt in stmts:
@@ -510,9 +545,9 @@ def _transpile_stmts(
 
 @transpile_function_wrapper
 def _transpile_stmt(
-        stmt: ast.stmt,
-        is_toplevel: bool,
-        env: Environment,
+    stmt: ast.stmt,
+    is_toplevel: bool,
+    env: Environment,
 ) -> _CodeType:
     """Transpile the statement.
 
@@ -520,31 +555,29 @@ def _transpile_stmt(
     """
 
     if isinstance(stmt, ast.ClassDef):
-        raise NotImplementedError('class is not supported currently.')
+        raise NotImplementedError("class is not supported currently.")
     if isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef)):
-        raise NotImplementedError(
-            'Nested functions are not supported currently.')
+        raise NotImplementedError("Nested functions are not supported currently.")
     if isinstance(stmt, ast.Return):
         value = _transpile_expr(stmt.value, env)
 
         if isinstance(value, Constant) and value.obj is None:
             # `return None` or `return` without value
-            return ['return;']
+            return ["return;"]
 
         value = Data.init(value, env)
         t = value.ctype
         if env.ret_type is None:
             env.ret_type = t
         elif env.ret_type != t:
-            raise ValueError(
-                f'Failed to infer the return type: {env.ret_type} or {t}')
-        return [f'return {value.code};']
+            raise ValueError(f"Failed to infer the return type: {env.ret_type} or {t}")
+        return [f"return {value.code};"]
     if isinstance(stmt, ast.Delete):
-        raise NotImplementedError('`del` is not supported currently.')
+        raise NotImplementedError("`del` is not supported currently.")
 
     if isinstance(stmt, ast.Assign):
         if len(stmt.targets) != 1:
-            raise NotImplementedError('Not implemented.')
+            raise NotImplementedError("Not implemented.")
 
         value = _transpile_expr(stmt.value, env)
         var = stmt.targets[0]
@@ -554,12 +587,11 @@ def _transpile_stmt(
             if not isinstance(value.obj, _typeclasses):
                 if is_toplevel:
                     if isinstance(env[name], Data):
-                        raise TypeError(f'Type mismatch of variable: `{name}`')
+                        raise TypeError(f"Type mismatch of variable: `{name}`")
                     env.consts[name] = value
                     return []
                 else:
-                    raise TypeError(
-                        'Cannot assign constant value not at top-level.')
+                    raise TypeError("Cannot assign constant value not at top-level.")
 
         value = Data.init(value, env)
         return _transpile_assign_stmt(var, env, value, is_toplevel)
@@ -568,23 +600,27 @@ def _transpile_stmt(
         value = _transpile_expr(stmt.value, env)
         target = _transpile_expr(stmt.target, env)
         if not isinstance(target, Data):
-            raise TypeError(f'Cannot augassign to {target.code}')
+            raise TypeError(f"Cannot augassign to {target.code}")
         value = Data.init(value, env)
-        tmp = Data(env.get_fresh_variable_name('_tmp_'), target.ctype)
+        tmp = Data(env.get_fresh_variable_name("_tmp_"), target.ctype)
         result = _eval_operand(stmt.op, (tmp, value), env)
         assert isinstance(target, Data)
         assert isinstance(result, Data)
         assert isinstance(target.ctype, _cuda_types.Scalar)
         assert isinstance(result.ctype, _cuda_types.Scalar)
-        _raise_if_invalid_cast(
-            result.ctype.dtype, target.ctype.dtype, 'same_kind')
+        _raise_if_invalid_cast(result.ctype.dtype, target.ctype.dtype, "same_kind")
 
-        return ['{ ' + target.ctype.declvar('&' + tmp.code, target) + '; ' +
-                target.ctype.assign(tmp, result) + '; }']
+        return [
+            "{ "
+            + target.ctype.declvar("&" + tmp.code, target)
+            + "; "
+            + target.ctype.assign(tmp, result)
+            + "; }"
+        ]
 
     if isinstance(stmt, ast.For):
         if len(stmt.orelse) > 0:
-            raise NotImplementedError('while-else is not supported.')
+            raise NotImplementedError("while-else is not supported.")
         assert isinstance(stmt.target, ast.Name)
         name = stmt.target.id
         iters = _transpile_expr(stmt.iter, env)
@@ -595,82 +631,84 @@ def _transpile_stmt(
             env.locals[name] = target
             env.decls[name] = target
         elif isinstance(loop_var, Constant):
-            raise TypeError('loop counter must not be constant value')
+            raise TypeError("loop counter must not be constant value")
         elif loop_var.ctype != iters.ctype:
             raise TypeError(
-                f'Data type mismatch of variable: `{name}`: '
-                f'{loop_var.ctype} != {iters.ctype}')
+                f"Data type mismatch of variable: `{name}`: "
+                f"{loop_var.ctype} != {iters.ctype}"
+            )
 
         if not isinstance(iters, _internal_types.Range):
-            raise NotImplementedError(
-                'for-loop is supported only for range iterator.')
+            raise NotImplementedError("for-loop is supported only for range iterator.")
 
         body = _transpile_stmts(stmt.body, False, env)
 
-        init_code = (f'{iters.ctype} '
-                     f'__it = {iters.start.code}, '
-                     f'__stop = {iters.stop.code}, '
-                     f'__step = {iters.step.code}')
-        cond = '__step >= 0 ? __it < __stop : __it > __stop'
+        init_code = (
+            f"{iters.ctype} "
+            f"__it = {iters.start.code}, "
+            f"__stop = {iters.stop.code}, "
+            f"__step = {iters.step.code}"
+        )
+        cond = "__step >= 0 ? __it < __stop : __it > __stop"
         if iters.step_is_positive is True:
-            cond = '__it < __stop'
+            cond = "__it < __stop"
         elif iters.step_is_positive is False:
-            cond = '__it > __stop'
+            cond = "__it > __stop"
 
-        head = f'for ({init_code}; {cond}; __it += __step)'
-        code: _CodeType = [CodeBlock(head, [f'{name} = __it;'] + body)]
+        head = f"for ({init_code}; {cond}; __it += __step)"
+        code: _CodeType = [CodeBlock(head, [f"{name} = __it;"] + body)]
 
         unroll = iters.unroll
         if unroll is True:
-            code = ['#pragma unroll'] + code
+            code = ["#pragma unroll"] + code
         elif unroll is not None:
-            code = [f'#pragma unroll({unroll})'] + code
+            code = [f"#pragma unroll({unroll})"] + code
         return code
 
     if isinstance(stmt, ast.AsyncFor):
-        raise ValueError('`async for` is not allowed.')
+        raise ValueError("`async for` is not allowed.")
     if isinstance(stmt, ast.While):
         if len(stmt.orelse) > 0:
-            raise NotImplementedError('while-else is not supported.')
+            raise NotImplementedError("while-else is not supported.")
         condition = _transpile_expr(stmt.test, env)
-        condition = _astype_scalar(condition, _cuda_types.bool_, 'unsafe', env)
+        condition = _astype_scalar(condition, _cuda_types.bool_, "unsafe", env)
         condition = Data.init(condition, env)
         body = _transpile_stmts(stmt.body, False, env)
-        head = f'while ({condition.code})'
+        head = f"while ({condition.code})"
         return [CodeBlock(head, body)]
     if isinstance(stmt, ast.If):
         condition = _transpile_expr(stmt.test, env)
         if is_constants(condition):
             stmts = stmt.body if condition.obj else stmt.orelse
             return _transpile_stmts(stmts, is_toplevel, env)
-        head = f'if ({condition.code})'
+        head = f"if ({condition.code})"
         then_body = _transpile_stmts(stmt.body, False, env)
         else_body = _transpile_stmts(stmt.orelse, False, env)
-        return [CodeBlock(head, then_body), CodeBlock('else', else_body)]
+        return [CodeBlock(head, then_body), CodeBlock("else", else_body)]
     if isinstance(stmt, (ast.With, ast.AsyncWith)):
-        raise ValueError('Switching contexts are not allowed.')
+        raise ValueError("Switching contexts are not allowed.")
     if isinstance(stmt, (ast.Raise, ast.Try)):
-        raise ValueError('throw/catch are not allowed.')
+        raise ValueError("throw/catch are not allowed.")
     if isinstance(stmt, ast.Assert):
         value = _transpile_expr(stmt.test, env)
         if is_constants(value):
             assert value.obj
-            return [';']
+            return [";"]
         else:
-            return ['assert(' + value + ');']
+            return ["assert(" + value + ");"]
     if isinstance(stmt, (ast.Import, ast.ImportFrom)):
-        raise ValueError('Cannot import modules from the target functions.')
+        raise ValueError("Cannot import modules from the target functions.")
     if isinstance(stmt, (ast.Global, ast.Nonlocal)):
-        raise ValueError('Cannot use global/nonlocal in the target functions.')
+        raise ValueError("Cannot use global/nonlocal in the target functions.")
     if isinstance(stmt, ast.Expr):
         value = _transpile_expr(stmt.value, env)
-        return [';'] if is_constants(value) else [value.code + ';']
+        return [";"] if is_constants(value) else [value.code + ";"]
     if isinstance(stmt, ast.Pass):
-        return [';']
+        return [";"]
     if isinstance(stmt, ast.Break):
-        return ['break;']
+        return ["break;"]
     if isinstance(stmt, ast.Continue):
-        return ['continue;']
+        return ["continue;"]
     assert False
 
 
@@ -689,8 +727,8 @@ def _transpile_expr(expr: ast.expr, env: Environment) -> _internal_types.Expr:
 
 
 def _transpile_expr_internal(
-        expr: ast.expr | None,
-        env: Environment,
+    expr: ast.expr | None,
+    env: Environment,
 ) -> _internal_types.Expr:
     if isinstance(expr, ast.BoolOp):
         values = [_transpile_expr(e, env) for e in expr.values]
@@ -706,12 +744,13 @@ def _transpile_expr_internal(
         value = _transpile_expr(expr.operand, env)
         return _eval_operand(expr.op, (value,), env)
     if isinstance(expr, ast.Lambda):
-        raise NotImplementedError('Not implemented.')
+        raise NotImplementedError("Not implemented.")
     if isinstance(expr, ast.Compare):
         values = [expr.left] + expr.comparators
         if len(values) != 2:
             raise NotImplementedError(
-                'Comparison of 3 or more values is not implemented.')
+                "Comparison of 3 or more values is not implemented."
+            )
         values = [_transpile_expr(e, env) for e in values]
         return _eval_operand(expr.ops[0], values, env)
     if isinstance(expr, ast.IfExp):
@@ -721,15 +760,16 @@ def _transpile_expr_internal(
 
         if isinstance(expr, Constant):
             return x if expr.obj else y
-        if cond.ctype.dtype.kind == 'c':
+        if cond.ctype.dtype.kind == "c":
             raise TypeError("Complex type value cannot be boolean condition.")
         x, y = _infer_type(x, y, env), _infer_type(y, x, env)
         if x.ctype.dtype != y.ctype.dtype:
             raise TypeError(
-                'Type mismatch in conditional expression.: '
-                f'{x.ctype.dtype} != {y.ctype.dtype}')
-        cond = _astype_scalar(cond, _cuda_types.bool_, 'unsafe', env)
-        return Data(f'({cond.code} ? {x.code} : {y.code})', x.ctype)
+                "Type mismatch in conditional expression.: "
+                f"{x.ctype.dtype} != {y.ctype.dtype}"
+            )
+        cond = _astype_scalar(cond, _cuda_types.bool_, "unsafe", env)
+        return Data(f"({cond.code} ? {x.code} : {y.code})", x.ctype)
 
     if isinstance(expr, ast.Call):
         func = _transpile_expr(expr.func, env)
@@ -757,23 +797,23 @@ def _transpile_expr_internal(
         if isinstance(func, _interface._JitRawKernel):
             if not func._device:
                 raise TypeError(
-                    f'Calling __global__ function {func._func.__name__} '
-                    'from __global__ function is not allowed.')
+                    f"Calling __global__ function {func._func.__name__} "
+                    "from __global__ function is not allowed."
+                )
             args = [Data.init(x, env) for x in args]
             in_types = tuple([x.ctype for x in args])
             fname, return_type = _transpile_func_obj(
-                func._func, ['__device__'], env.mode,
-                in_types, None, env.generated)
-            in_params = ', '.join([x.code for x in args])
-            return Data(f'{fname}({in_params})', return_type)
+                func._func, ["__device__"], env.mode, in_types, None, env.generated
+            )
+            in_params = ", ".join([x.code for x in args])
+            return Data(f"{fname}({in_params})", return_type)
 
         if isinstance(func, _kernel.ufunc):
             # ufunc call
-            dtype = kwargs.pop('dtype', Constant(None)).obj
+            dtype = kwargs.pop("dtype", Constant(None)).obj
             if len(kwargs) > 0:
                 name = next(iter(kwargs))
-                raise TypeError(
-                    f"'{name}' is an invalid keyword to ufunc {func.name}")
+                raise TypeError(f"'{name}' is an invalid keyword to ufunc {func.name}")
             return _call_ufunc(func, args, dtype, env)
 
         if is_constants(*args, *kwargs.values()):
@@ -785,10 +825,9 @@ def _transpile_expr_internal(
         if inspect.isclass(func) and issubclass(func, _typeclasses):
             # explicit typecast
             if len(args) != 1:
-                raise TypeError(
-                    f'function takes {func} invalid number of argument')
+                raise TypeError(f"function takes {func} invalid number of argument")
             ctype = _cuda_types.Scalar(func)
-            return _astype_scalar(args[0], ctype, 'unsafe', env)
+            return _astype_scalar(args[0], ctype, "unsafe", env)
 
         raise TypeError(f"Invalid function call '{func.__name__}'.")
 
@@ -804,7 +843,7 @@ def _transpile_expr_internal(
     if isinstance(expr, ast.Name):
         value = env[expr.id]
         if value is None:
-            raise NameError(f'Unbound name: {expr.id}')
+            raise NameError(f"Unbound name: {expr.id}")
         return value
     if isinstance(expr, ast.Attribute):
         value = _transpile_expr(expr.value, env)
@@ -816,7 +855,7 @@ def _transpile_expr_internal(
                 return attr(value)
             if isinstance(attr, Data):
                 return attr
-        raise AttributeError(f'Unknown attribute: {expr.attr}')
+        raise AttributeError(f"Unknown attribute: {expr.attr}")
 
     if isinstance(expr, ast.Tuple):
         elts = [_transpile_expr(x, env) for x in expr.elts]
@@ -825,49 +864,53 @@ def _transpile_expr_internal(
             return Constant(tuple([x.obj for x in elts]))
 
         elts = [Data.init(x, env) for x in elts]
-        elts_code = ', '.join([x.code for x in elts])
+        elts_code = ", ".join([x.code for x in elts])
         # STD is defined in carray.cuh
         if len(elts) == 2:
             return Data(
-                f'STD::make_pair({elts_code})',
-                _cuda_types.Tuple([x.ctype for x in elts]))
+                f"STD::make_pair({elts_code})",
+                _cuda_types.Tuple([x.ctype for x in elts]),
+            )
         else:
             return Data(
-                f'STD::make_tuple({elts_code})',
-                _cuda_types.Tuple([x.ctype for x in elts]))
+                f"STD::make_tuple({elts_code})",
+                _cuda_types.Tuple([x.ctype for x in elts]),
+            )
 
     if isinstance(expr, ast.Index):
         # Deprecated in Python 3.9
         return _transpile_expr(expr.value, env)  # type: ignore
 
-    raise ValueError('Not supported: type {}'.format(type(expr)))
+    raise ValueError("Not supported: type {}".format(type(expr)))
 
 
 def _emit_assign_stmt(
-        lvalue: Constant | Data,
-        rvalue: Data,
-        env: Environment,
+    lvalue: Constant | Data,
+    rvalue: Data,
+    env: Environment,
 ) -> _CodeType:
     if isinstance(lvalue, Constant):
-        raise TypeError('lvalue of assignment must not be constant value')
+        raise TypeError("lvalue of assignment must not be constant value")
 
-    if (isinstance(lvalue.ctype, _cuda_types.Scalar)
-            and isinstance(rvalue.ctype, _cuda_types.Scalar)):
-        rvalue = _astype_scalar(rvalue, lvalue.ctype, 'same_kind', env)
+    if isinstance(lvalue.ctype, _cuda_types.Scalar) and isinstance(
+        rvalue.ctype, _cuda_types.Scalar
+    ):
+        rvalue = _astype_scalar(rvalue, lvalue.ctype, "same_kind", env)
     elif lvalue.ctype != rvalue.ctype:
         raise TypeError(
-            f'Data type mismatch of variable: `{lvalue.code}`: '
-            f'{lvalue.ctype} != {rvalue.ctype}')
+            f"Data type mismatch of variable: `{lvalue.code}`: "
+            f"{lvalue.ctype} != {rvalue.ctype}"
+        )
 
-    return [lvalue.ctype.assign(lvalue, rvalue) + ';']
+    return [lvalue.ctype.assign(lvalue, rvalue) + ";"]
 
 
 def _transpile_assign_stmt(
-        target: ast.expr,
-        env: Environment,
-        value: Data,
-        is_toplevel: bool,
-        depth: int = 0,
+    target: ast.expr,
+    env: Environment,
+    value: Data,
+    is_toplevel: bool,
+    depth: int = 0,
 ) -> _CodeType:
     if isinstance(target, ast.Name):
         name = target.id
@@ -876,7 +919,7 @@ def _transpile_assign_stmt(
             lvalue = Data(name, value.ctype)
             env.locals[name] = lvalue
             if is_toplevel and depth == 0:
-                return [value.ctype.declvar(name, value) + ';']
+                return [value.ctype.declvar(name, value) + ";"]
             env.decls[name] = lvalue
         return _emit_assign_stmt(lvalue, value, env)
 
@@ -886,35 +929,35 @@ def _transpile_assign_stmt(
 
     if isinstance(target, ast.Tuple):
         if not isinstance(value.ctype, _cuda_types.Tuple):
-            raise ValueError(f'{value.ctype} cannot be unpack')
+            raise ValueError(f"{value.ctype} cannot be unpack")
         size = len(target.elts)
         if len(value.ctype.types) > size:
-            raise ValueError(f'too many values to unpack (expected {size})')
+            raise ValueError(f"too many values to unpack (expected {size})")
         if len(value.ctype.types) < size:
-            raise ValueError(f'not enough values to unpack (expected {size})')
-        codes = [value.ctype.declvar(f'_temp{depth}', value) + ';']
+            raise ValueError(f"not enough values to unpack (expected {size})")
+        codes = [value.ctype.declvar(f"_temp{depth}", value) + ";"]
         for i in range(size):
             # STD is defined in carray.cuh
-            code = f'STD::get<{i}>(_temp{depth})'
+            code = f"STD::get<{i}>(_temp{depth})"
             ctype = value.ctype.types[i]
             stmt = _transpile_assign_stmt(
-                target.elts[i], env, Data(code, ctype), is_toplevel, depth + 1)
+                target.elts[i], env, Data(code, ctype), is_toplevel, depth + 1
+            )
             codes.extend(stmt)
-        return [CodeBlock('', codes)]
+        return [CodeBlock("", codes)]
 
     assert False
 
 
 def _indexing(
-        array: _internal_types.Expr,
-        index: _internal_types.Expr,
-        env: Environment,
+    array: _internal_types.Expr,
+    index: _internal_types.Expr,
+    env: Environment,
 ) -> Data | Constant:
     if isinstance(array, Constant):
         if isinstance(index, Constant):
             return Constant(array.obj[index.obj])
-        raise TypeError(
-            f'{type(array.obj)} is not subscriptable with non-constants.')
+        raise TypeError(f"{type(array.obj)} is not subscriptable with non-constants.")
 
     array = Data.init(array, env)
 
@@ -923,8 +966,8 @@ def _indexing(
             i = index.obj
             t = array.ctype.types[i]
             # STD is defined in carray.cuh
-            return Data(f'STD::get<{i}>({array.code})', t)
-        raise TypeError('Tuple is not subscriptable with non-constants.')
+            return Data(f"STD::get<{i}>({array.code})", t)
+        raise TypeError("Tuple is not subscriptable with non-constants.")
 
     if isinstance(array.ctype, _cuda_types.ArrayBase):
         index = Data.init(index, env)
@@ -932,63 +975,58 @@ def _indexing(
         if isinstance(index.ctype, _cuda_types.Scalar):
             index_dtype = index.ctype.dtype
             if ndim == 0:
-                raise TypeError(
-                    'Scalar indexing is not supported for 0-dim array.')
+                raise TypeError("Scalar indexing is not supported for 0-dim array.")
             if ndim > 1:
                 new_carray = _cuda_types.CArray(
                     array.ctype.dtype,
                     array.ctype._ndim - 1,
                     array.ctype._c_contiguous,
-                    array.ctype._index_32_bits)
-                return Data(
-                    f'{array.code}._slicing({index.code})', new_carray)
-            if index_dtype.kind not in 'ui':
-                raise TypeError('Array indices must be integers.')
-            return Data(
-                f'{array.code}[{index.code}]', array.ctype.child_type)
+                    array.ctype._index_32_bits,
+                )
+                return Data(f"{array.code}._slicing({index.code})", new_carray)
+            if index_dtype.kind not in "ui":
+                raise TypeError("Array indices must be integers.")
+            return Data(f"{array.code}[{index.code}]", array.ctype.child_type)
         if isinstance(index.ctype, _cuda_types.Tuple):
             if ndim < len(index.ctype.types):
-                raise IndexError(
-                    f'The number of indices is beyond array dim: {ndim}')
+                raise IndexError(f"The number of indices is beyond array dim: {ndim}")
             for t in index.ctype.types:
                 if not isinstance(t, _cuda_types.Scalar):
-                    raise TypeError('Array indices must be scalar.')
-                if t.dtype.kind not in 'iu':
-                    raise TypeError('Array indices must be integer.')
+                    raise TypeError("Array indices must be scalar.")
+                if t.dtype.kind not in "iu":
+                    raise TypeError("Array indices must be integer.")
             if ndim > len(index.ctype.types):
                 new_carray = _cuda_types.CArray(
                     array.ctype.dtype,
                     array.ctype._ndim - len(index.ctype.types),
                     array.ctype._c_contiguous,
-                    array.ctype._index_32_bits)
-                params = f'{index.code}, Dim<{len(index.ctype.types)}>()'
-                return Data(f'{array.code}._slicing({params})', new_carray)
+                    array.ctype._index_32_bits,
+                )
+                params = f"{index.code}, Dim<{len(index.ctype.types)}>()"
+                return Data(f"{array.code}._slicing({params})", new_carray)
             if ndim == 0:
-                return Data(
-                    f'{array.code}[0]', array.ctype.child_type)
+                return Data(f"{array.code}[0]", array.ctype.child_type)
             if ndim == 1:
                 # STD is defined in carray.cuh
                 return Data(
-                    f'{array.code}[STD::get<0>({index.code})]',
-                    array.ctype.child_type)
-            return Data(
-                f'{array.code}._indexing({index.code})',
-                array.ctype.child_type)
+                    f"{array.code}[STD::get<0>({index.code})]", array.ctype.child_type
+                )
+            return Data(f"{array.code}._indexing({index.code})", array.ctype.child_type)
         if isinstance(index.ctype, _cuda_types.CArray):
-            raise TypeError('Advanced indexing is not supported.')
+            raise TypeError("Advanced indexing is not supported.")
         assert False  # Never reach.
 
-    raise TypeError(f'{array.code} is not subscriptable.')
+    raise TypeError(f"{array.code} is not subscriptable.")
 
 
-_T = TypeVar('_T', Constant, Data, Union[Constant, Data])
+_T = TypeVar("_T", Constant, Data, Union[Constant, Data])
 
 
 def _astype_scalar(
-        x: _T,
-        ctype: _cuda_types.Scalar,
-        casting: _CastingType,
-        env: Environment,
+    x: _T,
+    ctype: _cuda_types.Scalar,
+    casting: _CastingType,
+    env: Environment,
 ) -> _T:
     if isinstance(x, Constant):
         assert not isinstance(x, Data)
@@ -997,7 +1035,7 @@ def _astype_scalar(
     # if not isinstance(x, Data):
     #     raise TypeError(f'{x} is not scalar type.')
     if not isinstance(x.ctype, _cuda_types.Scalar):
-        raise TypeError(f'{x.code} is not scalar type.')
+        raise TypeError(f"{x.code} is not scalar type.")
     from_t = x.ctype.dtype
     to_t = ctype.dtype
     if from_t == to_t:
@@ -1007,25 +1045,26 @@ def _astype_scalar(
     #               unnecessary allowing to use `_raise_if_invalid_cast()`.
     if not numpy.can_cast(from_t.type(0), to_t, casting):
         raise TypeError(
-            f"Cannot cast from '{from_t}' to {to_t} "
-            f"with casting rule {casting}.")
-    if from_t.kind == 'c' and to_t.kind != 'c':
-        if to_t.kind != 'b':
+            f"Cannot cast from '{from_t}' to {to_t} " f"with casting rule {casting}."
+        )
+    if from_t.kind == "c" and to_t.kind != "c":
+        if to_t.kind != "b":
             warnings.warn(
-                'Casting complex values to real discards the imaginary part',
-                ComplexWarning)
-        return Data(f'({ctype})({x.code}.real())', ctype)
-    return Data(f'({ctype})({x.code})', ctype)
+                "Casting complex values to real discards the imaginary part",
+                ComplexWarning,
+            )
+        return Data(f"({ctype})({x.code}.real())", ctype)
+    return Data(f"({ctype})({x.code})", ctype)
 
 
 def _infer_type(
-        x: Constant | Data,
-        hint: Constant | Data,
-        env: Environment,
+    x: Constant | Data,
+    hint: Constant | Data,
+    env: Environment,
 ) -> Data:
     if not isinstance(x, Constant) or isinstance(x.obj, numpy.generic):
         return Data.init(x, env)
     hint = Data.init(hint, env)
     assert isinstance(hint.ctype, _cuda_types.Scalar)
-    cast_x = _astype_scalar(x, hint.ctype, 'same_kind', env)
+    cast_x = _astype_scalar(x, hint.ctype, "same_kind", env)
     return Data.init(cast_x, env)

@@ -41,12 +41,12 @@ def trimseq(seq):
 
     """
     if seq.ndim == 0:
-        raise TypeError('Input must be 1-d array')
+        raise TypeError("Input must be 1-d array")
     if seq.ndim > 1:
-        raise ValueError('Input must be 1-d array')
+        raise ValueError("Input must be 1-d array")
     if seq.size == 0:
         return seq
-    ret = cupy.trim_zeros(seq, trim='b')
+    ret = cupy.trim_zeros(seq, trim="b")
     if ret.size > 0:
         return ret
     return seq[:1]
@@ -68,11 +68,11 @@ def as_series(alist, trim=True):
     arrays = []
     for a in alist:
         if a.size == 0:
-            raise ValueError('Coefficient array is empty')
+            raise ValueError("Coefficient array is empty")
         if a.ndim > 1:
-            raise ValueError('Coefficient array is not 1-d')
-        if a.dtype.kind == 'b':
-            raise ValueError('Coefficient arrays have no common type')
+            raise ValueError("Coefficient array is not 1-d")
+        if a.dtype.kind == "b":
+            raise ValueError("Coefficient arrays have no common type")
         a = a.ravel()
         if trim:
             a = trimseq(a)
@@ -97,19 +97,20 @@ def trimcoef(c, tol=0):
 
     """
     if tol < 0:
-        raise ValueError('tol must be non-negative')
+        raise ValueError("tol must be non-negative")
     if c.size == 0:
-        raise ValueError('Coefficient array is empty')
+        raise ValueError("Coefficient array is empty")
     if c.ndim > 1:
-        raise ValueError('Coefficient array is not 1-d')
-    if c.dtype.kind == 'b':
-        raise ValueError('bool inputs are not allowed')
+        raise ValueError("Coefficient array is not 1-d")
+    if c.dtype.kind == "b":
+        raise ValueError("bool inputs are not allowed")
     if c.ndim == 0:
         c = c.ravel()
     c = c.astype(cupy.common_type(c), copy=False)
     filt = (cupy.abs(c) > tol)[::-1]
-    ind = c.size - cupy._manipulation.add_remove._first_nonzero_krnl(
-        filt, c.size).item()
+    ind = (
+        c.size - cupy._manipulation.add_remove._first_nonzero_krnl(filt, c.size).item()
+    )
     if ind == 0:
         return cupy.zeros_like(c[:1])
-    return c[: ind]
+    return c[:ind]

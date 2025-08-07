@@ -58,8 +58,7 @@ def complex_cepstrum(x, n=None):
         if samples == 1:
             center = 0
         ndelay = numpy.array(numpy.round(unwrapped[..., center] / numpy.pi))
-        unwrapped -= (numpy.pi * ndelay[..., None] * numpy.arange(samples)
-                      / center)
+        unwrapped -= numpy.pi * ndelay[..., None] * numpy.arange(samples) / center
         return unwrapped, ndelay
 
     spectrum = numpy.fft.fft(x, n=n)
@@ -108,16 +107,11 @@ def inverse_complex_cepstrum(ceps, ndelay):
         ndelay = numpy.array(ndelay)
         samples = phase.shape[-1]
         center = (samples + 1) // 2
-        wrapped = (
-            phase + numpy.pi * ndelay[..., None] * numpy.arange(samples)
-            / center
-        )
+        wrapped = phase + numpy.pi * ndelay[..., None] * numpy.arange(samples) / center
         return wrapped
 
     log_spectrum = numpy.fft.fft(ceps)
-    spectrum = numpy.exp(
-        log_spectrum.real + 1j * _wrap(log_spectrum.imag, ndelay)
-    )
+    spectrum = numpy.exp(log_spectrum.real + 1j * _wrap(log_spectrum.imag, ndelay))
     x = numpy.fft.ifft(spectrum).real
 
     return x

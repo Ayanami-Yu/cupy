@@ -10,10 +10,8 @@ def main():
             if peerDevice == device:
                 continue
             flag = cupy.cuda.runtime.deviceCanAccessPeer(device, peerDevice)
-            print(
-                f'Can access #{peerDevice} memory from #{device}: '
-                f'{flag == 1}')
+            print(f"Can access #{peerDevice} memory from #{device}: " f"{flag == 1}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

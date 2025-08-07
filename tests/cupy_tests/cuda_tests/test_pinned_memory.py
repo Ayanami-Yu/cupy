@@ -26,6 +26,7 @@ def mock_alloc(size):
 # -----------------------------------------------------------------------------
 # Memory pointer
 
+
 class TestMemoryPointer(unittest.TestCase):
 
     def test_int(self):

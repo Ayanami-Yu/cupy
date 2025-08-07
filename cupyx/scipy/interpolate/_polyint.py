@@ -6,7 +6,7 @@ from cupyx.scipy._lib._util import _asarray_validated, float_factorial
 
 def _isscalar(x):
     """Check whether x is if a scalar type, or 0-dim"""
-    return cupy.isscalar(x) or hasattr(x, 'shape') and x.shape == ()
+    return cupy.isscalar(x) or hasattr(x, "shape") and x.shape == ()
 
 
 class _Interpolator1D:
@@ -93,8 +93,11 @@ class _Interpolator1D:
         if self._y_axis != 0 and x_shape != ():
             nx = len(x_shape)
             ny = len(self._y_extra_shape)
-            s = (list(range(nx, nx + self._y_axis))
-                 + list(range(nx)) + list(range(nx + self._y_axis, nx + ny)))
+            s = (
+                list(range(nx, nx + self._y_axis))
+                + list(range(nx))
+                + list(range(nx + self._y_axis, nx + ny))
+            )
             y = y.transpose(s)
         return y
 
@@ -104,8 +107,10 @@ class _Interpolator1D:
         """
         yi = cupy.moveaxis(yi, self._y_axis, 0)
         if check and yi.shape[1:] != self._y_extra_shape:
-            ok_shape = "%r + (N,) + %r" % (self._y_extra_shape[-self._y_axis:],
-                                           self._y_extra_shape[:-self._y_axis])
+            ok_shape = "%r + (N,) + %r" % (
+                self._y_extra_shape[-self._y_axis :],
+                self._y_extra_shape[: -self._y_axis],
+            )
             raise ValueError("Data must be of shape %s" % ok_shape)
         return yi.reshape((yi.shape[0], -1))
 
@@ -119,17 +124,19 @@ class _Interpolator1D:
         if shape == ():
             shape = (1,)
         if xi is not None and shape[axis] != len(xi):
-            raise ValueError("x and y arrays must be equal in length along "
-                             "interpolation axis.")
+            raise ValueError(
+                "x and y arrays must be equal in length along " "interpolation axis."
+            )
 
-        self._y_axis = (axis % yi.ndim)
-        self._y_extra_shape = yi.shape[:self._y_axis]+yi.shape[self._y_axis+1:]
+        self._y_axis = axis % yi.ndim
+        self._y_extra_shape = yi.shape[: self._y_axis] + yi.shape[self._y_axis + 1 :]
         self.dtype = None
         self._set_dtype(yi.dtype)
 
     def _set_dtype(self, dtype, union=False):
-        if cupy.issubdtype(dtype, cupy.complexfloating) \
-                or cupy.issubdtype(self.dtype, cupy.complexfloating):
+        if cupy.issubdtype(dtype, cupy.complexfloating) or cupy.issubdtype(
+            self.dtype, cupy.complexfloating
+        ):
             self.dtype = cupy.complex128
         else:
             if not union or self.dtype != cupy.complex128:
@@ -169,9 +176,12 @@ class _Interpolator1DWithDerivatives(_Interpolator1D):
         if self._y_axis != 0 and x_shape != ():
             nx = len(x_shape)
             ny = len(self._y_extra_shape)
-            s = ([0] + list(range(nx+1, nx + self._y_axis+1))
-                 + list(range(1, nx+1)) +
-                 list(range(nx+1+self._y_axis, nx+ny+1)))
+            s = (
+                [0]
+                + list(range(nx + 1, nx + self._y_axis + 1))
+                + list(range(1, nx + 1))
+                + list(range(nx + 1 + self._y_axis, nx + ny + 1))
+            )
             y = y.transpose(s)
         return y
 
@@ -200,7 +210,7 @@ class _Interpolator1DWithDerivatives(_Interpolator1D):
 
         """
         x, x_shape = self._prepare_x(x)
-        y = self._evaluate_derivatives(x, der+1)
+        y = self._evaluate_derivatives(x, der + 1)
         return self._finish_y(y[der], x_shape)
 
 
@@ -313,9 +323,7 @@ class BarycentricInterpolator(_Interpolator1D):
         self.wi[:old_n] = old_wi
         for j in range(old_n, self.n):
             self.wi[:j] *= self._inv_capacity * (self.xi[j] - self.xi[:j])
-            self.wi[j] = cupy.prod(
-                self._inv_capacity * (self.xi[:j] - self.xi[j])
-            )
+            self.wi[j] = cupy.prod(self._inv_capacity * (self.xi[:j] - self.xi[j]))
         self.wi **= -1
 
     def __call__(self, x):
@@ -429,23 +437,23 @@ class KroghInterpolator(_Interpolator1DWithDerivatives):
         self.yi = self._reshape_yi(yi)
         self.n, self.r = self.yi.shape
 
-        c = cupy.zeros((self.n+1, self.r), dtype=self.dtype)
+        c = cupy.zeros((self.n + 1, self.r), dtype=self.dtype)
         c[0] = self.yi[0]
         Vk = cupy.zeros((self.n, self.r), dtype=self.dtype)
         for k in range(1, self.n):
             s = 0
-            while s <= k and xi[k-s] == xi[k]:
+            while s <= k and xi[k - s] == xi[k]:
                 s += 1
             s -= 1
-            Vk[0] = self.yi[k]/float_factorial(s)
-            for i in range(k-s):
+            Vk[0] = self.yi[k] / float_factorial(s)
+            for i in range(k - s):
                 if xi[i] == xi[k]:
                     raise ValueError("Elements if `xi` can't be equal.")
                 if s == 0:
-                    Vk[i+1] = (c[i]-Vk[i])/(xi[i]-xi[k])
+                    Vk[i + 1] = (c[i] - Vk[i]) / (xi[i] - xi[k])
                 else:
-                    Vk[i+1] = (Vk[i+1]-Vk[i])/(xi[i]-xi[k])
-            c[k] = Vk[k-s]
+                    Vk[i + 1] = (Vk[i + 1] - Vk[i]) / (xi[i] - xi[k])
+            c[k] = Vk[k - s]
         self.c = c
 
     def _evaluate(self, x):
@@ -453,8 +461,8 @@ class KroghInterpolator(_Interpolator1DWithDerivatives):
         p = cupy.zeros((len(x), self.r), dtype=self.dtype)
         p += self.c[0, cupy.newaxis, :]
         for k in range(1, self.n):
-            w = x - self.xi[k-1]
-            pi = w*pi
+            w = x - self.xi[k - 1]
+            pi = w * pi
             p += pi[:, cupy.newaxis] * self.c[k]
         return p
 
@@ -471,17 +479,17 @@ class KroghInterpolator(_Interpolator1DWithDerivatives):
         p += self.c[0, cupy.newaxis, :]
 
         for k in range(1, n):
-            w[k-1] = x - self.xi[k-1]
-            pi[k] = w[k-1] * pi[k-1]
+            w[k - 1] = x - self.xi[k - 1]
+            pi[k] = w[k - 1] * pi[k - 1]
             p += pi[k, :, cupy.newaxis] * self.c[k]
 
-        cn = cupy.zeros((max(der, n+1), len(x), r), dtype=self.dtype)
-        cn[:n+1, :, :] += self.c[:n+1, cupy.newaxis, :]
+        cn = cupy.zeros((max(der, n + 1), len(x), r), dtype=self.dtype)
+        cn[: n + 1, :, :] += self.c[: n + 1, cupy.newaxis, :]
         cn[0] = p
         for k in range(1, n):
-            for i in range(1, n-k+1):
-                pi[i] = w[k+i-1]*pi[i-1] + pi[i]
-                cn[k] = cn[k] + pi[i, :, cupy.newaxis]*cn[k+i]
+            for i in range(1, n - k + 1):
+                pi[i] = w[k + i - 1] * pi[i - 1] + pi[i]
+                cn[k] = cn[k] + pi[i, :, cupy.newaxis] * cn[k + i]
             cn[k] *= float_factorial(k)
 
         cn[n, :, :] = 0
@@ -527,7 +535,7 @@ def krogh_interpolate(xi, yi, x, der=0, axis=0):
     elif _isscalar(der):
         return P.derivative(x, der=der)
     else:
-        return P.derivatives(x, der=cupy.amax(der)+1)[der]
+        return P.derivatives(x, der=cupy.amax(der) + 1)[der]
 
 
 def _check_broadcast_up_to(arr_from, shape_to, name):
@@ -542,14 +550,15 @@ def _check_broadcast_up_to(arr_from, shape_to, name):
                 arr_from = cupy.ones(shape_to, arr_from.dtype) * arr_from
             return arr_from.ravel()
     # at least one check failed
-    raise ValueError(f'{name} argument must be able to broadcast up '
-                     f'to shape {shape_to} but had shape {shape_from}')
+    raise ValueError(
+        f"{name} argument must be able to broadcast up "
+        f"to shape {shape_to} but had shape {shape_from}"
+    )
 
 
 def _do_extrapolate(fill_value):
     """Helper to check if fill_value == "extrapolate" without warnings"""
-    return (isinstance(fill_value, str) and
-            fill_value == 'extrapolate')
+    return isinstance(fill_value, str) and fill_value == "extrapolate"
 
 
 class interp1d(_Interpolator1D):
@@ -628,10 +637,18 @@ class interp1d(_Interpolator1D):
     `kind` will change the behavior for duplicates.
     """  # NOQA
 
-    def __init__(self, x, y, kind='linear', axis=-1,
-                 copy=True, bounds_error=None, fill_value=cupy.nan,
-                 assume_sorted=False):
-        """ Initialize a 1-D linear interpolation class."""
+    def __init__(
+        self,
+        x,
+        y,
+        kind="linear",
+        axis=-1,
+        copy=True,
+        bounds_error=None,
+        fill_value=cupy.nan,
+        assume_sorted=False,
+    ):
+        """Initialize a 1-D linear interpolation class."""
         _Interpolator1D.__init__(self, x, y, axis=axis)
 
         self.bounds_error = bounds_error  # used by fill_value setter
@@ -643,17 +660,16 @@ class interp1d(_Interpolator1D):
         # if not copy:
         #    self.copy = copy_if_needed
 
-        if kind in ['zero', 'slinear', 'quadratic', 'cubic']:
-            order = {'zero': 0, 'slinear': 1,
-                     'quadratic': 2, 'cubic': 3}[kind]
-            kind = 'spline'
+        if kind in ["zero", "slinear", "quadratic", "cubic"]:
+            order = {"zero": 0, "slinear": 1, "quadratic": 2, "cubic": 3}[kind]
+            kind = "spline"
         elif isinstance(kind, int):
             order = kind
-            kind = 'spline'
-        elif kind not in ('linear', 'nearest', 'nearest-up', 'previous',
-                          'next'):
-            raise NotImplementedError("%s is unsupported: Use fitpack "
-                                      "routines for other types." % kind)
+            kind = "spline"
+        elif kind not in ("linear", "nearest", "nearest-up", "previous", "next"):
+            raise NotImplementedError(
+                "%s is unsupported: Use fitpack " "routines for other types." % kind
+            )
         x = cupy.array(x, copy=self.copy)
         y = cupy.array(y, copy=self.copy)
 
@@ -685,29 +701,29 @@ class interp1d(_Interpolator1D):
         # interpolation methods, in order to avoid circular references to self
         # stored in the bound instance methods, and therefore delayed garbage
         # collection.  See: https://docs.python.org/reference/datamodel.html
-        if kind in ('linear', 'nearest', 'nearest-up', 'previous', 'next'):
+        if kind in ("linear", "nearest", "nearest-up", "previous", "next"):
             # Make a "view" of the y array that is rotated to the interpolation
             # axis.
             minval = 1
-            if kind == 'nearest':
+            if kind == "nearest":
                 # Do division before addition to prevent possible integer
                 # overflow
-                self._side = 'left'
+                self._side = "left"
                 self.x_bds = self.x / 2.0
                 self.x_bds = self.x_bds[1:] + self.x_bds[:-1]
 
                 self._call = self.__class__._call_nearest
-            elif kind == 'nearest-up':
+            elif kind == "nearest-up":
                 # Do division before addition to prevent possible integer
                 # overflow
-                self._side = 'right'
+                self._side = "right"
                 self.x_bds = self.x / 2.0
                 self.x_bds = self.x_bds[1:] + self.x_bds[:-1]
 
                 self._call = self.__class__._call_nearest
-            elif kind == 'previous':
+            elif kind == "previous":
                 # Side for cupy.searchsorted and index for clipping
-                self._side = 'left'
+                self._side = "left"
                 self._ind = 0
                 # Move x by one floating point value to the left
                 self._x_shift = cupy.nextafter(self.x, -cupy.inf)
@@ -716,8 +732,8 @@ class interp1d(_Interpolator1D):
                     self._check_and_update_bounds_error_for_extrapolation()
                     # assume y is sorted by x ascending order here.
                     fill_value = (cupy.nan, cupy.take(self.y, -1, axis))
-            elif kind == 'next':
-                self._side = 'right'
+            elif kind == "next":
+                self._side = "right"
                 self._ind = 1
                 # Move x by one floating point value to the right
                 self._x_shift = cupy.nextafter(self.x, cupy.inf)
@@ -755,25 +771,24 @@ class interp1d(_Interpolator1D):
                     sx = self.x[~mask]
                     if sx.size == 0:
                         raise ValueError("`x` array is all-nan")
-                    xx = cupy.linspace(cupy.nanmin(self.x),
-                                       cupy.nanmax(self.x),
-                                       len(self.x))
+                    xx = cupy.linspace(
+                        cupy.nanmin(self.x), cupy.nanmax(self.x), len(self.x)
+                    )
                     rewrite_nan = True
                 if cupy.isnan(self._y).any():
                     yy = cupy.ones_like(self._y)
                     rewrite_nan = True
 
             from cupyx.scipy.interpolate import make_interp_spline
-            self._spline = make_interp_spline(xx, yy, k=order,
-                                              check_finite=False)
+
+            self._spline = make_interp_spline(xx, yy, k=order, check_finite=False)
             if rewrite_nan:
                 self._call = self.__class__._call_nan_spline
             else:
                 self._call = self.__class__._call_spline
 
         if len(self.x) < minval:
-            raise ValueError("x and y arrays must have at "
-                             "least %d entries" % minval)
+            raise ValueError("x and y arrays must have at " "least %d entries" % minval)
 
         self.fill_value = fill_value  # calls the setter, can modify bounds_err
 
@@ -790,23 +805,23 @@ class interp1d(_Interpolator1D):
             self._check_and_update_bounds_error_for_extrapolation()
             self._extrapolate = True
         else:
-            broadcast_shape = (self.y.shape[:self.axis] +
-                               self.y.shape[self.axis + 1:])
+            broadcast_shape = self.y.shape[: self.axis] + self.y.shape[self.axis + 1 :]
             if len(broadcast_shape) == 0:
                 broadcast_shape = (1,)
             # it's either a pair (_below_range, _above_range) or a single value
             # for both above and below range
             if isinstance(fill_value, tuple) and len(fill_value) == 2:
-                below_above = [cupy.asarray(fill_value[0]),
-                               cupy.asarray(fill_value[1])]
-                names = ('fill_value (below)', 'fill_value (above)')
+                below_above = [cupy.asarray(fill_value[0]), cupy.asarray(fill_value[1])]
+                names = ("fill_value (below)", "fill_value (above)")
                 for ii in range(2):
                     below_above[ii] = _check_broadcast_up_to(
-                        below_above[ii], broadcast_shape, names[ii])
+                        below_above[ii], broadcast_shape, names[ii]
+                    )
             else:
                 fill_value = cupy.asarray(fill_value)
-                below_above = [_check_broadcast_up_to(
-                    fill_value, broadcast_shape, 'fill_value')] * 2
+                below_above = [
+                    _check_broadcast_up_to(fill_value, broadcast_shape, "fill_value")
+                ] * 2
             self._fill_value_below, self._fill_value_above = below_above
             self._extrapolate = False
             if self.bounds_error is None:
@@ -816,8 +831,7 @@ class interp1d(_Interpolator1D):
 
     def _check_and_update_bounds_error_for_extrapolation(self):
         if self.bounds_error:
-            raise ValueError("Cannot extrapolate and raise "
-                             "at the same time.")
+            raise ValueError("Cannot extrapolate and raise " "at the same time.")
         self.bounds_error = False
 
     def _call_linear_np(self, x_new):
@@ -833,7 +847,7 @@ class interp1d(_Interpolator1D):
         # 3. Clip x_new_indices so that they are within the range of
         #    self.x indices and at least 1. Removes mis-interpolation
         #    of x_new[n] = x[0]
-        x_new_indices = x_new_indices.clip(1, len(self.x)-1).astype(int)
+        x_new_indices = x_new_indices.clip(1, len(self.x) - 1).astype(int)
 
         # 4. Calculate the slope of regions that each x_new value falls in.
         lo = x_new_indices - 1
@@ -849,12 +863,12 @@ class interp1d(_Interpolator1D):
         slope = (y_hi - y_lo) / (x_hi - x_lo)[:, None]
 
         # 5. Calculate the actual value for each entry in x_new.
-        y_new = slope*(x_new - x_lo)[:, None] + y_lo
+        y_new = slope * (x_new - x_lo)[:, None] + y_lo
 
         return y_new
 
     def _call_nearest(self, x_new):
-        """ Find nearest neighbor interpolated y_new = f(x_new)."""
+        """Find nearest neighbor interpolated y_new = f(x_new)."""
 
         # 2. Find where in the averaged data the values to interpolate
         #    would be inserted.
@@ -863,7 +877,7 @@ class interp1d(_Interpolator1D):
         x_new_indices = cupy.searchsorted(self.x_bds, x_new, side=self._side)
 
         # 3. Clip x_new_indices so that they are within the range of x indices.
-        x_new_indices = x_new_indices.clip(0, len(self.x)-1).astype(cupy.intp)
+        x_new_indices = x_new_indices.clip(0, len(self.x) - 1).astype(cupy.intp)
 
         # 4. Calculate the actual value for each entry in x_new.
         y_new = self._y[x_new_indices]
@@ -874,16 +888,14 @@ class interp1d(_Interpolator1D):
         """Use previous/next neighbor of x_new, y_new = f(x_new)."""
 
         # 1. Get index of left/right value
-        x_new_indices = cupy.searchsorted(
-            self._x_shift, x_new, side=self._side)
+        x_new_indices = cupy.searchsorted(self._x_shift, x_new, side=self._side)
 
         # 2. Clip x_new_indices so that they are within the range of x indices.
         xn = len(self.x) - self._ind
-        x_new_indices = x_new_indices.clip(1 - self._ind,
-                                           xn).astype(cupy.intp)
+        x_new_indices = x_new_indices.clip(1 - self._ind, xn).astype(cupy.intp)
 
         # 3. Calculate the actual value for each entry in x_new.
-        y_new = self._y[x_new_indices+self._ind-1]
+        y_new = self._y[x_new_indices + self._ind - 1]
 
         return y_new
 
@@ -931,14 +943,18 @@ class interp1d(_Interpolator1D):
 
         if self.bounds_error and below_bounds.any():
             below_bounds_value = x_new[cupy.argmax(below_bounds)]
-            raise ValueError(f"A value ({below_bounds_value}) in x_new is "
-                             f"below the interpolation range's minimum value "
-                             f"({self.x[0]}).")
+            raise ValueError(
+                f"A value ({below_bounds_value}) in x_new is "
+                f"below the interpolation range's minimum value "
+                f"({self.x[0]})."
+            )
         if self.bounds_error and above_bounds.any():
             above_bounds_value = x_new[cupy.argmax(above_bounds)]
-            raise ValueError(f"A value ({above_bounds_value}) in x_new is "
-                             f"above the interpolation range's maximum value "
-                             f"({self.x[-1]}).")
+            raise ValueError(
+                f"A value ({above_bounds_value}) in x_new is "
+                f"above the interpolation range's maximum value "
+                f"({self.x[-1]})."
+            )
 
         # !! Should we emit a warning if some values are out of bounds?
         # !! matlab does not.

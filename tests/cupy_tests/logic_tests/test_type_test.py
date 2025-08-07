@@ -9,24 +9,37 @@ from cupy import testing
 
 class TestIsScalar(testing.NumpyAliasBasicTestBase):
 
-    func = 'isscalar'
+    func = "isscalar"
 
-    @testing.with_requires('numpy>=1.18')
+    @testing.with_requires("numpy>=1.18")
     def test_argspec(self):
         super().test_argspec()
 
 
 @testing.parameterize(
-    *testing.product({
-        'value': [
-            0, 0.0, True,
-            numpy.int32(1), numpy.array([1, 2], numpy.int32),
-            numpy.complex128(1), numpy.complex128(1j),
-            numpy.complex128(1 + 1j),
-            None, 'abc', '', int, numpy.int32]}))
+    *testing.product(
+        {
+            "value": [
+                0,
+                0.0,
+                True,
+                numpy.int32(1),
+                numpy.array([1, 2], numpy.int32),
+                numpy.complex128(1),
+                numpy.complex128(1j),
+                numpy.complex128(1 + 1j),
+                None,
+                "abc",
+                "",
+                int,
+                numpy.int32,
+            ]
+        }
+    )
+)
 class TestIsScalarValues(testing.NumpyAliasValuesTestBase):
 
-    func = 'isscalar'
+    func = "isscalar"
 
     def setUp(self):
         self.args = (self.value,)
@@ -34,7 +47,7 @@ class TestIsScalarValues(testing.NumpyAliasValuesTestBase):
 
 class TestIsScalarValues2(testing.NumpyAliasValuesTestBase):
 
-    func = 'isscalar'
+    func = "isscalar"
 
     def setUp(self):
         value = object()
@@ -42,18 +55,20 @@ class TestIsScalarValues2(testing.NumpyAliasValuesTestBase):
 
 
 @testing.parameterize(
-    *testing.product({
-        'value': [
-            # C and F
-            numpy.ones(24, order='C'),
-            # C and not F
-            numpy.ones((4, 6), order='C'),
-            # not C and F
-            numpy.ones((4, 6), order='F'),
-            # not C and not F
-            numpy.ones((4, 6), order='C')[1:3][1:3],
-        ]
-    })
+    *testing.product(
+        {
+            "value": [
+                # C and F
+                numpy.ones(24, order="C"),
+                # C and not F
+                numpy.ones((4, 6), order="C"),
+                # not C and F
+                numpy.ones((4, 6), order="F"),
+                # not C and not F
+                numpy.ones((4, 6), order="C")[1:3][1:3],
+            ]
+        }
+    )
 )
 class TestIsFortran(unittest.TestCase):
 
@@ -63,8 +78,8 @@ class TestIsFortran(unittest.TestCase):
 
 
 @testing.parameterize(
-    {'func': 'iscomplex'},
-    {'func': 'isreal'},
+    {"func": "iscomplex"},
+    {"func": "isreal"},
 )
 class TestTypeTestingFunctions(unittest.TestCase):
 
@@ -81,13 +96,12 @@ class TestTypeTestingFunctions(unittest.TestCase):
     @testing.for_all_dtypes()
     @testing.numpy_cupy_array_equal()
     def test_list(self, xp, dtype):
-        return getattr(xp, self.func)(
-            testing.shaped_arange((2, 3), xp, dtype).tolist())
+        return getattr(xp, self.func)(testing.shaped_arange((2, 3), xp, dtype).tolist())
 
 
 @testing.parameterize(
-    {'func': 'iscomplexobj'},
-    {'func': 'isrealobj'},
+    {"func": "iscomplexobj"},
+    {"func": "isrealobj"},
 )
 class TestTypeTestingObjFunctions(unittest.TestCase):
 
@@ -104,5 +118,4 @@ class TestTypeTestingObjFunctions(unittest.TestCase):
     @testing.for_all_dtypes()
     @testing.numpy_cupy_equal()
     def test_list(self, xp, dtype):
-        return getattr(xp, self.func)(
-            testing.shaped_arange((2, 3), xp, dtype).tolist())
+        return getattr(xp, self.func)(testing.shaped_arange((2, 3), xp, dtype).tolist())

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import numpy
+
 try:
     import scipy.sparse
+
     _scipy_available = True
 except ImportError:
     _scipy_available = False
@@ -18,7 +20,6 @@ from cupyx.scipy.sparse import _sputils
 
 
 class coo_matrix(sparse_data._data_matrix):
-
     """COOrdinate format sparse matrix.
 
     This can be instantiated in several ways.
@@ -48,23 +49,24 @@ class coo_matrix(sparse_data._data_matrix):
 
     """
 
-    format = 'coo'
+    format = "coo"
 
     _sum_duplicates_diff = _core.ElementwiseKernel(
-        'raw T row, raw T col',
-        'T diff',
-        '''
+        "raw T row, raw T col",
+        "T diff",
+        """
         T diff_out = 1;
         if (i == 0 || row[i - 1] == row[i] && col[i - 1] == col[i]) {
           diff_out = 0;
         }
         diff = diff_out;
-        ''', 'cupyx_scipy_sparse_coo_sum_duplicates_diff')
+        """,
+        "cupyx_scipy_sparse_coo_sum_duplicates_diff",
+    )
 
     def __init__(self, arg1, shape=None, dtype=None, copy=False):
         if shape is not None and len(shape) != 2:
-            raise ValueError(
-                'Only two-dimensional sparse arrays are supported.')
+            raise ValueError("Only two-dimensional sparse arrays are supported.")
 
         if _base.issparse(arg1):
             x = arg1.asformat(self.format)
@@ -84,9 +86,9 @@ class coo_matrix(sparse_data._data_matrix):
         elif _util.isshape(arg1):
             m, n = arg1
             m, n = int(m), int(n)
-            data = cupy.zeros(0, dtype if dtype else 'd')
-            row = cupy.zeros(0, dtype='i')
-            col = cupy.zeros(0, dtype='i')
+            data = cupy.zeros(0, dtype if dtype else "d")
+            row = cupy.zeros(0, dtype="i")
+            col = cupy.zeros(0, dtype="i")
             # shape and copy argument is ignored
             shape = (m, n)
             copy = False
@@ -97,8 +99,8 @@ class coo_matrix(sparse_data._data_matrix):
             # Convert scipy.sparse to cupyx.scipy.sparse
             x = arg1.tocoo()
             data = cupy.array(x.data)
-            row = cupy.array(x.row, dtype='i')
-            col = cupy.array(x.col, dtype='i')
+            row = cupy.array(x.row, dtype="i")
+            col = cupy.array(x.col, dtype="i")
             copy = False
             if shape is None:
                 shape = arg1.shape
@@ -109,21 +111,27 @@ class coo_matrix(sparse_data._data_matrix):
             try:
                 data, (row, col) = arg1
             except (TypeError, ValueError):
-                raise TypeError('invalid input format')
+                raise TypeError("invalid input format")
 
-            if not (_base.isdense(data) and data.ndim == 1 and
-                    _base.isdense(row) and row.ndim == 1 and
-                    _base.isdense(col) and col.ndim == 1):
-                raise ValueError('row, column, and data arrays must be 1-D')
+            if not (
+                _base.isdense(data)
+                and data.ndim == 1
+                and _base.isdense(row)
+                and row.ndim == 1
+                and _base.isdense(col)
+                and col.ndim == 1
+            ):
+                raise ValueError("row, column, and data arrays must be 1-D")
             if not (len(data) == len(row) == len(col)):
                 raise ValueError(
-                    'row, column, and data array must all be the same length')
+                    "row, column, and data array must all be the same length"
+                )
 
             self.has_canonical_format = False
 
         elif _base.isdense(arg1):
             if arg1.ndim > 2:
-                raise TypeError('expected dimension <= 2 array or matrix')
+                raise TypeError("expected dimension <= 2 array or matrix")
             dense = cupy.atleast_2d(arg1)
             row, col = dense.nonzero()
             data = dense[row, col]
@@ -132,44 +140,48 @@ class coo_matrix(sparse_data._data_matrix):
             self.has_canonical_format = True
 
         else:
-            raise TypeError('invalid input format')
+            raise TypeError("invalid input format")
 
         if dtype is None:
             dtype = data.dtype
         else:
             dtype = numpy.dtype(dtype)
 
-        if dtype not in (numpy.bool_, numpy.float32, numpy.float64,
-                         numpy.complex64, numpy.complex128):
+        if dtype not in (
+            numpy.bool_,
+            numpy.float32,
+            numpy.float64,
+            numpy.complex64,
+            numpy.complex128,
+        ):
             raise ValueError(
-                'Only bool, float32, float64, complex64 and complex128'
-                ' are supported')
+                "Only bool, float32, float64, complex64 and complex128" " are supported"
+            )
 
         data = data.astype(dtype, copy=copy)
-        row = row.astype('i', copy=copy)
-        col = col.astype('i', copy=copy)
+        row = row.astype("i", copy=copy)
+        col = col.astype("i", copy=copy)
 
         if shape is None:
             if len(row) == 0 or len(col) == 0:
-                raise ValueError(
-                    'cannot infer dimensions from zero sized index arrays')
+                raise ValueError("cannot infer dimensions from zero sized index arrays")
             shape = (int(row.max()) + 1, int(col.max()) + 1)
 
         if len(data) > 0:
             if row.max() >= shape[0]:
-                raise ValueError('row index exceeds matrix dimensions')
+                raise ValueError("row index exceeds matrix dimensions")
             if col.max() >= shape[1]:
-                raise ValueError('column index exceeds matrix dimensions')
+                raise ValueError("column index exceeds matrix dimensions")
             if row.min() < 0:
-                raise ValueError('negative row index found')
+                raise ValueError("negative row index found")
             if col.min() < 0:
-                raise ValueError('negative column index found')
+                raise ValueError("negative column index found")
 
         sparse_data._data_matrix.__init__(self, data)
         self.row = row
         self.col = col
         if not _util.isshape(shape):
-            raise ValueError('invalid shape (must be a 2-tuple of int)')
+            raise ValueError("invalid shape (must be a 2-tuple of int)")
         self._shape = int(shape[0]), int(shape[1])
 
     def _with_data(self, data, copy=True):
@@ -180,11 +192,13 @@ class coo_matrix(sparse_data._data_matrix):
         if copy:
             return coo_matrix(
                 (data, (self.row.copy(), self.col.copy())),
-                shape=self.shape, dtype=data.dtype)
+                shape=self.shape,
+                dtype=data.dtype,
+            )
         else:
             return coo_matrix(
-                (data, (self.row, self.col)), shape=self.shape,
-                dtype=data.dtype)
+                (data, (self.row, self.col)), shape=self.shape, dtype=data.dtype
+            )
 
     def diagonal(self, k=0):
         """Returns the k-th diagonal of the matrix.
@@ -199,17 +213,17 @@ class coo_matrix(sparse_data._data_matrix):
         rows, cols = self.shape
         if k <= -rows or k >= cols:
             return cupy.empty(0, dtype=self.data.dtype)
-        diag = cupy.zeros(min(rows + min(k, 0), cols - max(k, 0)),
-                          dtype=self.dtype)
+        diag = cupy.zeros(min(rows + min(k, 0), cols - max(k, 0)), dtype=self.dtype)
         diag_mask = (self.row + k) == self.col
 
         if self.has_canonical_format:
             row = self.row[diag_mask]
             data = self.data[diag_mask]
         else:
-            diag_coo = coo_matrix((self.data[diag_mask],
-                                   (self.row[diag_mask], self.col[diag_mask])),
-                                  shape=self.shape)
+            diag_coo = coo_matrix(
+                (self.data[diag_mask], (self.row[diag_mask], self.col[diag_mask])),
+                shape=self.shape,
+            )
             diag_coo.sum_duplicates()
             row = diag_coo.row
             data = diag_coo.data
@@ -301,15 +315,14 @@ class coo_matrix(sparse_data._data_matrix):
 
         """
         if not _scipy_available:
-            raise RuntimeError('scipy is not available')
+            raise RuntimeError("scipy is not available")
 
         data = self.data.get(stream)
         row = self.row.get(stream)
         col = self.col.get(stream)
-        return scipy.sparse.coo_matrix(
-            (data, (row, col)), shape=self.shape)
+        return scipy.sparse.coo_matrix((data, (row, col)), shape=self.shape)
 
-    def reshape(self, *shape, order='C'):
+    def reshape(self, *shape, order="C"):
         """Gives a new shape to a sparse matrix without changing its data.
 
         Args:
@@ -333,25 +346,24 @@ class coo_matrix(sparse_data._data_matrix):
 
         nrows, ncols = self.shape
 
-        if order == 'C':  # C to represent matrix in row major format
+        if order == "C":  # C to represent matrix in row major format
             dtype = _sputils.get_index_dtype(
-                maxval=(ncols * max(0, nrows - 1) + max(0, ncols - 1)))
-            flat_indices = cupy.multiply(ncols, self.row,
-                                         dtype=dtype) + self.col
+                maxval=(ncols * max(0, nrows - 1) + max(0, ncols - 1))
+            )
+            flat_indices = cupy.multiply(ncols, self.row, dtype=dtype) + self.col
             new_row, new_col = divmod(flat_indices, shape[1])
-        elif order == 'F':
+        elif order == "F":
             dtype = _sputils.get_index_dtype(
-                maxval=(ncols * max(0, nrows - 1) + max(0, ncols - 1)))
-            flat_indices = cupy.multiply(ncols, self.row,
-                                         dtype=dtype) + self.row
+                maxval=(ncols * max(0, nrows - 1) + max(0, ncols - 1))
+            )
+            flat_indices = cupy.multiply(ncols, self.row, dtype=dtype) + self.row
             new_col, new_row = divmod(flat_indices, shape[0])
         else:
             raise ValueError("'order' must be 'C' or 'F'")
 
         new_data = self.data
 
-        return coo_matrix((new_data, (new_row, new_col)), shape=shape,
-                          copy=False)
+        return coo_matrix((new_data, (new_row, new_col)), shape=shape, copy=False)
 
     def sum_duplicates(self):
         """Eliminate duplicate matrix entries by adding them together.
@@ -411,47 +423,56 @@ class coo_matrix(sparse_data._data_matrix):
             col = src_col
         else:
             # TODO(leofang): move the kernels outside this method
-            index = cupy.cumsum(diff, dtype='i')
+            index = cupy.cumsum(diff, dtype="i")
             size = int(index[-1]) + 1
             data = cupy.zeros(size, dtype=self.data.dtype)
-            row = cupy.empty(size, dtype='i')
-            col = cupy.empty(size, dtype='i')
-            if self.data.dtype.kind == 'b':
+            row = cupy.empty(size, dtype="i")
+            col = cupy.empty(size, dtype="i")
+            if self.data.dtype.kind == "b":
                 cupy.ElementwiseKernel(
-                    'T src_data, int32 src_row, int32 src_col, int32 index',
-                    'raw T data, raw int32 row, raw int32 col',
-                    '''
+                    "T src_data, int32 src_row, int32 src_col, int32 index",
+                    "raw T data, raw int32 row, raw int32 col",
+                    """
                     if (src_data) data[index] = true;
                     row[index] = src_row;
                     col[index] = src_col;
-                    ''',
-                    'cupyx_scipy_sparse_coo_sum_duplicates_assign'
+                    """,
+                    "cupyx_scipy_sparse_coo_sum_duplicates_assign",
                 )(src_data, src_row, src_col, index, data, row, col)
-            elif self.data.dtype.kind == 'f':
+            elif self.data.dtype.kind == "f":
                 cupy.ElementwiseKernel(
-                    'T src_data, int32 src_row, int32 src_col, int32 index',
-                    'raw T data, raw int32 row, raw int32 col',
-                    '''
+                    "T src_data, int32 src_row, int32 src_col, int32 index",
+                    "raw T data, raw int32 row, raw int32 col",
+                    """
                     atomicAdd(&data[index], src_data);
                     row[index] = src_row;
                     col[index] = src_col;
-                    ''',
-                    'cupyx_scipy_sparse_coo_sum_duplicates_assign'
+                    """,
+                    "cupyx_scipy_sparse_coo_sum_duplicates_assign",
                 )(src_data, src_row, src_col, index, data, row, col)
-            elif self.data.dtype.kind == 'c':
+            elif self.data.dtype.kind == "c":
                 cupy.ElementwiseKernel(
-                    'T src_real, T src_imag, int32 src_row, int32 src_col, '
-                    'int32 index',
-                    'raw T real, raw T imag, raw int32 row, raw int32 col',
-                    '''
+                    "T src_real, T src_imag, int32 src_row, int32 src_col, "
+                    "int32 index",
+                    "raw T real, raw T imag, raw int32 row, raw int32 col",
+                    """
                     atomicAdd(&real[index], src_real);
                     atomicAdd(&imag[index], src_imag);
                     row[index] = src_row;
                     col[index] = src_col;
-                    ''',
-                    'cupyx_scipy_sparse_coo_sum_duplicates_assign_complex'
-                )(src_data.real, src_data.imag, src_row, src_col, index,
-                  data.real, data.imag, row, col)
+                    """,
+                    "cupyx_scipy_sparse_coo_sum_duplicates_assign_complex",
+                )(
+                    src_data.real,
+                    src_data.imag,
+                    src_row,
+                    src_col,
+                    index,
+                    data.real,
+                    data.imag,
+                    row,
+                    col,
+                )
 
         self.data = data
         self.row = row
@@ -509,7 +530,7 @@ class coo_matrix(sparse_data._data_matrix):
         # sum_duplicates and coosort change the underlying data
         x = self.copy()
         x.sum_duplicates()
-        cusparse.coosort(x, 'c')
+        cusparse.coosort(x, "c")
         x = cusparse.coo2csc(x)
         x.has_canonical_format = True
         return x
@@ -534,7 +555,7 @@ class coo_matrix(sparse_data._data_matrix):
         # sum_duplicates and coosort change the underlying data
         x = self.copy()
         x.sum_duplicates()
-        cusparse.coosort(x, 'r')
+        cusparse.coosort(x, "r")
         x = cusparse.coo2csr(x)
         x.has_canonical_format = True
         return x
@@ -553,18 +574,19 @@ class coo_matrix(sparse_data._data_matrix):
         """
         if axes is not None:
             raise ValueError(
-                'Sparse matrices do not support an \'axes\' parameter because '
-                'swapping dimensions is the only logical permutation.')
+                "Sparse matrices do not support an 'axes' parameter because "
+                "swapping dimensions is the only logical permutation."
+            )
         shape = self.shape[1], self.shape[0]
-        return coo_matrix(
-            (self.data, (self.col, self.row)), shape=shape, copy=copy)
+        return coo_matrix((self.data, (self.col, self.row)), shape=shape, copy=copy)
 
     def dot(self, other):
         """Ordinary dot product"""
         if _util.isscalarlike(other):
             return coo_matrix(
                 (self.data * other, (self.row, self.col)),
-                shape=self.shape, copy=True,
+                shape=self.shape,
+                copy=True,
             )
         else:
             return self @ other

@@ -42,6 +42,7 @@ class TestDeviceFunction(unittest.TestCase):
             @jit.rawkernel(device=True)
             def f(x, y):
                 return x + y + const
+
             return f
 
         x = testing.shaped_random((30,), dtype=numpy.int32, seed=0)
@@ -83,6 +84,7 @@ class TestDeviceFunction(unittest.TestCase):
                         x[tid] += x[tid + step]
                         jit.syncthreads()
                         g(step * 2)(x)
+
             return f
 
         x = testing.shaped_random((256,), dtype=numpy.int32, seed=0)

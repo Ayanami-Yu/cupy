@@ -80,13 +80,15 @@ def _index_for_subslice(a: slice, sub: slice, length: int) -> slice:
 
 
 def _index_intersection(
-    a_idx: tuple[slice, ...], b_idx: tuple[slice, ...],
+    a_idx: tuple[slice, ...],
+    b_idx: tuple[slice, ...],
     shape: tuple[int, ...],
 ) -> tuple[slice, ...] | None:
     # Return None if a, b are disjoint.
     assert len(a_idx) == len(b_idx)
-    result = tuple(_slice_intersection(a, b, length)
-                   for a, b, length in zip(a_idx, b_idx, shape))
+    result = tuple(
+        _slice_intersection(a, b, length) for a, b, length in zip(a_idx, b_idx, shape)
+    )
 
     if None in result:
         return None
@@ -95,13 +97,16 @@ def _index_intersection(
 
 
 def _index_for_subindex(
-    a_idx: tuple[slice, ...], sub_idx: tuple[slice, ...],
+    a_idx: tuple[slice, ...],
+    sub_idx: tuple[slice, ...],
     shape: tuple[int, ...],
 ) -> tuple[slice, ...]:
     assert len(a_idx) == len(sub_idx)
 
-    return tuple(_index_for_subslice(a, sub, length)
-                 for a, sub, length in zip(a_idx, sub_idx, shape))
+    return tuple(
+        _index_for_subslice(a, sub, length)
+        for a, sub, length in zip(a_idx, sub_idx, shape)
+    )
 
 
 def _shape_after_indexing(
@@ -124,8 +129,9 @@ def _normalize_index(shape: tuple[int, ...], idx: Any) -> tuple[slice, ...]:
     ndim = len(shape)
     if len(idx) > ndim:
         raise IndexError(
-            'too many indices for array:'
-            f' array is {ndim}-dimensional, but {len(idx)} were indexed')
+            "too many indices for array:"
+            f" array is {ndim}-dimensional, but {len(idx)} were indexed"
+        )
     idx = idx + (slice(None),) * (ndim - len(idx))
 
     new_idx = []
@@ -133,24 +139,26 @@ def _normalize_index(shape: tuple[int, ...], idx: Any) -> tuple[slice, ...]:
         if isinstance(idx[i], int):
             if idx[i] >= shape[i]:
                 raise IndexError(
-                    f'Index {idx[i]} is out of bounds'
-                    f' for axis {i} with size {shape[i]}')
+                    f"Index {idx[i]} is out of bounds"
+                    f" for axis {i} with size {shape[i]}"
+                )
             new_idx.append(slice(idx[i], idx[i] + 1, 1))
         elif isinstance(idx[i], slice):
             start, stop, step = idx[i].indices(shape[i])
             if step <= 0:
-                raise ValueError('Slice step must be positive.')
+                raise ValueError("Slice step must be positive.")
             if start == stop:
-                raise ValueError(f'The index is empty on axis {i}')
+                raise ValueError(f"The index is empty on axis {i}")
             new_idx.append(slice(start, stop, step))
         else:
-            raise ValueError(f'Invalid index on axis {i}')
+            raise ValueError(f"Invalid index on axis {i}")
 
     return tuple(new_idx)
 
 
 def _normalize_index_map(
-    shape: tuple[int, ...], index_map: dict[int, Any],
+    shape: tuple[int, ...],
+    index_map: dict[int, Any],
 ) -> dict[int, list[tuple[slice, ...]]]:
     new_index_map: dict[int, list[tuple[slice, ...]]] = {}
     for dev, idxs in index_map.items():

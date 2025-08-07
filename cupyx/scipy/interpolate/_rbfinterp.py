@@ -1,4 +1,5 @@
 """Module for RBF interpolation."""
+
 from __future__ import annotations
 
 import math
@@ -114,10 +115,9 @@ static __device__ float qunitic_f(float r)
 """
 
 linear = cp._core.create_ufunc(
-    'cupyx_scipy_interpolate_linear',
-    (('f->f', 'out0 = linear_f(in0)'),
-     'd->d'),
-    'out0 = linear(in0)',
+    "cupyx_scipy_interpolate_linear",
+    (("f->f", "out0 = linear_f(in0)"), "d->d"),
+    "out0 = linear(in0)",
     preamble=kernel_definitions,
     doc="""Linear kernel function.
 
@@ -126,10 +126,9 @@ linear = cp._core.create_ufunc(
 )
 
 cubic = cp._core.create_ufunc(
-    'cupyx_scipy_interpolate_cubic',
-    (('f->f', 'out0 = cubic_f(in0)'),
-     'd->d'),
-    'out0 = cubic(in0)',
+    "cupyx_scipy_interpolate_cubic",
+    (("f->f", "out0 = cubic_f(in0)"), "d->d"),
+    "out0 = cubic(in0)",
     preamble=kernel_definitions,
     doc="""Cubic kernel function.
 
@@ -138,10 +137,9 @@ cubic = cp._core.create_ufunc(
 )
 
 thin_plate_spline = cp._core.create_ufunc(
-    'cupyx_scipy_interpolate_thin_plate_spline',
-    (('f->f', 'out0 = thin_plate_spline_f(in0)'),
-     'd->d'),
-    'out0 = thin_plate_spline(in0)',
+    "cupyx_scipy_interpolate_thin_plate_spline",
+    (("f->f", "out0 = thin_plate_spline_f(in0)"), "d->d"),
+    "out0 = thin_plate_spline(in0)",
     preamble=kernel_definitions,
     doc="""Thin-plate spline kernel function.
 
@@ -151,10 +149,9 @@ thin_plate_spline = cp._core.create_ufunc(
 
 
 multiquadric = cp._core.create_ufunc(
-    'cupyx_scipy_interpolate_multiquadric',
-    (('f->f', 'out0 = multiquadric_f(in0)'),
-     'd->d'),
-    'out0 = multiquadric(in0)',
+    "cupyx_scipy_interpolate_multiquadric",
+    (("f->f", "out0 = multiquadric_f(in0)"), "d->d"),
+    "out0 = multiquadric(in0)",
     preamble=kernel_definitions,
     doc="""Multiquadric kernel function.
 
@@ -164,10 +161,9 @@ multiquadric = cp._core.create_ufunc(
 
 
 inverse_multiquadric = cp._core.create_ufunc(
-    'cupyx_scipy_interpolate_inverse_multiquadric',
-    (('f->f', 'out0 = inverse_multiquadric_f(in0)'),
-     'd->d'),
-    'out0 = inverse_multiquadric(in0)',
+    "cupyx_scipy_interpolate_inverse_multiquadric",
+    (("f->f", "out0 = inverse_multiquadric_f(in0)"), "d->d"),
+    "out0 = inverse_multiquadric(in0)",
     preamble=kernel_definitions,
     doc="""Inverse multiquadric kernel function.
 
@@ -177,10 +173,9 @@ inverse_multiquadric = cp._core.create_ufunc(
 
 
 inverse_quadratic = cp._core.create_ufunc(
-    'cupyx_scipy_interpolate_inverse_quadratic',
-    (('f->f', 'out0 = inverse_quadratic_f(in0)'),
-     'd->d'),
-    'out0 = inverse_quadratic(in0)',
+    "cupyx_scipy_interpolate_inverse_quadratic",
+    (("f->f", "out0 = inverse_quadratic_f(in0)"), "d->d"),
+    "out0 = inverse_quadratic(in0)",
     preamble=kernel_definitions,
     doc="""Inverse quadratic kernel function.
 
@@ -190,10 +185,9 @@ inverse_quadratic = cp._core.create_ufunc(
 
 
 gaussian = cp._core.create_ufunc(
-    'cupyx_scipy_interpolate_gaussian',
-    (('f->f', 'out0 = gaussian_f(in0)'),
-     'd->d'),
-    'out0 = gaussian(in0)',
+    "cupyx_scipy_interpolate_gaussian",
+    (("f->f", "out0 = gaussian_f(in0)"), "d->d"),
+    "out0 = gaussian(in0)",
     preamble=kernel_definitions,
     doc="""Gaussian kernel function.
 
@@ -203,10 +197,9 @@ gaussian = cp._core.create_ufunc(
 
 
 quintic = cp._core.create_ufunc(
-    'cupyx_scipy_interpolate_quintic',
-    (('f->f', 'out0 = quintic_f(in0)'),
-     'd->d'),
-    'out0 = quintic(in0)',
+    "cupyx_scipy_interpolate_quintic",
+    (("f->f", "out0 = quintic_f(in0)"), "d->d"),
+    "out0 = quintic(in0)",
     preamble=kernel_definitions,
     doc="""Quintic kernel function.
 
@@ -223,7 +216,7 @@ NAME_TO_FUNC = {
     "multiquadric": multiquadric,
     "inverse_multiquadric": inverse_multiquadric,
     "inverse_quadratic": inverse_quadratic,
-    "gaussian": gaussian
+    "gaussian": gaussian,
 }
 
 
@@ -231,6 +224,8 @@ def kernel_matrix(x, kernel_func, out):
     """Evaluate RBFs, with centers at `x`, at `x`."""
     delta = x[None, :, :] - x[:, None, :]
     out[...] = kernel_func(cp.linalg.norm(delta, axis=-1))
+
+
 # The above is equivalent to the original semi-scalar version:
 #        for j in range(i+1):
 #            out[i, j] = kernel_func(cp.linalg.norm(x[i] - x[j]))
@@ -241,6 +236,8 @@ def polynomial_matrix(x, powers, out):
     """Evaluate monomials, with exponents from `powers`, at `x`."""
     pwr = x[:, None, :] ** powers[None, :, :]
     cp.prod(pwr, axis=-1, out=out)
+
+
 # The above is equivalent to the following loop
 #    for i in range(x.shape[0]):
 #        for j in range(powers.shape[0]):
@@ -285,15 +282,15 @@ def _build_system(y, d, smoothing, kernel, epsilon, powers):
     # Shift and scale the polynomial domain to be between -1 and 1
     mins = cp.min(y, axis=0)
     maxs = cp.max(y, axis=0)
-    shift = (maxs + mins)/2
-    scale = (maxs - mins)/2
+    shift = (maxs + mins) / 2
+    scale = (maxs - mins) / 2
     # The scale may be zero if there is a single point or all the points have
     # the same value for some dimension. Avoid division by zero by replacing
     # zeros with ones.
     scale[scale == 0.0] = 1.0
 
     yeps = y * epsilon
-    yhat = (y - shift)/scale
+    yhat = (y - shift) / scale
 
     # Transpose to make the array fortran contiguous. This is required for
     # dgesv to not make a copy of lhs.
@@ -313,8 +310,7 @@ def _build_system(y, d, smoothing, kernel, epsilon, powers):
     return lhs, rhs, shift, scale
 
 
-def _build_evaluation_coefficients(x, y, kernel, epsilon, powers,
-                                   shift, scale):
+def _build_evaluation_coefficients(x, y, kernel, epsilon, powers, shift, scale):
     """Construct the coefficients needed to evaluate
     the RBF.
 
@@ -345,9 +341,9 @@ def _build_evaluation_coefficients(x, y, kernel, epsilon, powers,
     r = powers.shape[0]
     kernel_func = NAME_TO_FUNC[kernel]
 
-    yeps = y*epsilon
-    xeps = x*epsilon
-    xhat = (x - shift)/scale
+    yeps = y * epsilon
+    xeps = x * epsilon
+    xhat = (x - shift) / scale
 
     vec = cp.empty((q, p + r), dtype=float)
 
@@ -356,10 +352,10 @@ def _build_evaluation_coefficients(x, y, kernel, epsilon, powers,
     vec[:, :p] = kernel_func(cp.linalg.norm(delta, axis=-1))
 
     # Evaluate monomials, with exponents from `powers`, at the point `x`.
-    pwr = xhat[:, None, :]**powers[None, :, :]
+    pwr = xhat[:, None, :] ** powers[None, :, :]
     vec[:, p:] = cp.prod(pwr, axis=-1)
-#    for i in range(q):
-#        polynomial_vector(xhat[i], powers, vec[i, p:])
+    #    for i in range(q):
+    #        polynomial_vector(xhat[i], powers, vec[i, p:])
 
     return vec
 
@@ -375,7 +371,7 @@ _AVAILABLE = {
     "multiquadric",
     "inverse_multiquadric",
     "inverse_quadratic",
-    "gaussian"
+    "gaussian",
 }
 
 
@@ -393,7 +389,7 @@ _NAME_TO_MIN_DEGREE = {
     "linear": 0,
     "thin_plate_spline": 1,
     "cubic": 1,
-    "quintic": 2
+    "quintic": 2,
 }
 
 
@@ -465,9 +461,7 @@ def _build_and_solve_system(y, d, smoothing, kernel, epsilon, powers):
         Domain scaling used to create the polynomial matrix.
 
     """
-    lhs, rhs, shift, scale = _build_system(
-        y, d, smoothing, kernel, epsilon, powers
-    )
+    lhs, rhs, shift, scale = _build_system(y, d, smoothing, kernel, epsilon, powers)
     coeffs = cp.linalg.solve(lhs, rhs)
     return shift, scale, coeffs
 
@@ -584,12 +578,16 @@ class RBFInterpolator:
 
     """
 
-    def __init__(self, y, d,
-                 neighbors=None,
-                 smoothing=0.0,
-                 kernel="thin_plate_spline",
-                 epsilon=None,
-                 degree=None):
+    def __init__(
+        self,
+        y,
+        d,
+        neighbors=None,
+        smoothing=0.0,
+        kernel="thin_plate_spline",
+        epsilon=None,
+        degree=None,
+    ):
         y = cp.asarray(y, dtype=float, order="C")
         if y.ndim != 2:
             raise ValueError("`y` must be a 2-dimensional array.")
@@ -599,9 +597,7 @@ class RBFInterpolator:
         d_dtype = complex if cp.iscomplexobj(d) else float
         d = cp.asarray(d, dtype=d_dtype, order="C")
         if d.shape[0] != ny:
-            raise ValueError(
-                f"Expected the first axis of `d` to have length {ny}."
-            )
+            raise ValueError(f"Expected the first axis of `d` to have length {ny}.")
 
         d_shape = d.shape[1:]
         d = d.reshape((ny, -1))
@@ -617,8 +613,7 @@ class RBFInterpolator:
             smoothing = cp.asarray(smoothing, dtype=float, order="C")
             if smoothing.shape != (ny,):
                 raise ValueError(
-                    "Expected `smoothing` to be a scalar or have shape "
-                    f"({ny},)."
+                    "Expected `smoothing` to be a scalar or have shape " f"({ny},)."
                 )
 
         kernel = kernel.lower()
@@ -649,7 +644,7 @@ class RBFInterpolator:
                     f"is '{kernel}'. The interpolant may not be uniquely "
                     "solvable, and the smoothing parameter may have an "
                     "unintuitive effect.",
-                    UserWarning
+                    UserWarning,
                 )
 
         if neighbors is None:
@@ -693,8 +688,7 @@ class RBFInterpolator:
         self.epsilon = epsilon
         self.powers = powers
 
-    def _chunk_evaluator(self, x, y, shift, scale, coeffs,
-                         memory_budget=1000000):
+    def _chunk_evaluator(self, x, y, shift, scale, coeffs, memory_budget=1000000):
         """
         Evaluate the interpolation.
 
@@ -725,23 +719,19 @@ class RBFInterpolator:
             out = cp.empty((nx, self.d.shape[1]), dtype=float)
             for i in range(0, nx, chunksize):
                 vec = _build_evaluation_coefficients(
-                    x[i:i + chunksize, :],
+                    x[i : i + chunksize, :],
                     y,
                     self.kernel,
                     self.epsilon,
                     self.powers,
                     shift,
-                    scale)
-                out[i:i + chunksize, :] = cp.dot(vec, coeffs)
+                    scale,
+                )
+                out[i : i + chunksize, :] = cp.dot(vec, coeffs)
         else:
             vec = _build_evaluation_coefficients(
-                x,
-                y,
-                self.kernel,
-                self.epsilon,
-                self.powers,
-                shift,
-                scale)
+                x, y, self.kernel, self.epsilon, self.powers, shift, scale
+            )
             out = cp.dot(vec, coeffs)
 
         return out
@@ -766,8 +756,9 @@ class RBFInterpolator:
 
         nx, ndim = x.shape
         if ndim != self.y.shape[1]:
-            raise ValueError("Expected the second axis of `x` to have length "
-                             f"{self.y.shape[1]}.")
+            raise ValueError(
+                "Expected the second axis of `x` to have length " f"{self.y.shape[1]}."
+            )
 
         # Our memory budget for storing RBF coefficients is
         # based on how many floats in memory we already occupy
@@ -782,7 +773,9 @@ class RBFInterpolator:
                 self.y,
                 self._shift,
                 self._scale,
-                self._coeffs, memory_budget=memory_budget)
+                self._coeffs,
+                memory_budget=memory_budget,
+            )
         else:
             # Get the indices of the k nearest observation points to each
             # evaluation point.
@@ -823,13 +816,9 @@ class RBFInterpolator:
                     self.powers,
                 )
                 out[xidx] = self._chunk_evaluator(
-                    xnbr,
-                    ynbr,
-                    shift,
-                    scale,
-                    coeffs,
-                    memory_budget=memory_budget)
+                    xnbr, ynbr, shift, scale, coeffs, memory_budget=memory_budget
+                )
 
         out = out.view(self.d_dtype)
-        out = out.reshape((nx, ) + self.d_shape)
+        out = out.reshape((nx,) + self.d_shape)
         return out

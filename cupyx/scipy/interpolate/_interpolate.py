@@ -13,17 +13,19 @@ import numpy as np
 
 try:
     from math import comb
+
     _comb = comb
 except ImportError:
+
     def _comb(n, k):
         return math.factorial(n) // (math.factorial(n - k) * math.factorial(k))
 
 
 MAX_DIMS = 64
-TYPES = ['double', 'thrust::complex<double>']
-INT_TYPES = ['int', 'long long']
+TYPES = ["double", "thrust::complex<double>"]
+INT_TYPES = ["int", "long long"]
 
-INTERVAL_KERNEL = r'''
+INTERVAL_KERNEL = r"""
 #include <cupy/complex.cuh>
 
 #define le_or_ge(x, y, r) ((r) ? ((x) < (y)) : ((x) > (y)))
@@ -116,12 +118,13 @@ __global__ void find_breakpoint_position_nd(
     out[idx] = find_breakpoint_position(
         dim_breakpoints, xp, extrapolate, num_breakpoints, &asc);
 }
-'''
+"""
 
 INTERVAL_MODULE = cupy.RawModule(
-    code=INTERVAL_KERNEL, options=('-std=c++11',),
-    name_expressions=[
-        'find_breakpoint_position_1d', 'find_breakpoint_position_nd'])
+    code=INTERVAL_KERNEL,
+    options=("-std=c++11",),
+    name_expressions=["find_breakpoint_position_1d", "find_breakpoint_position_nd"],
+)
 
 PPOLY_KERNEL = r"""
 #include <cupy/complex.cuh>
@@ -390,12 +393,15 @@ __global__ void integrate(
 """
 
 PPOLY_MODULE = cupy.RawModule(
-    code=PPOLY_KERNEL, options=('-std=c++11',),
+    code=PPOLY_KERNEL,
+    options=("-std=c++11",),
     name_expressions=(
-        [f'eval_ppoly<{type_name}>' for type_name in TYPES] +
-        [f'eval_ppoly_nd<{type_name}>' for type_name in TYPES] +
-        [f'fix_continuity<{type_name}>' for type_name in TYPES] +
-        [f'integrate<{type_name}>' for type_name in TYPES]))
+        [f"eval_ppoly<{type_name}>" for type_name in TYPES]
+        + [f"eval_ppoly_nd<{type_name}>" for type_name in TYPES]
+        + [f"fix_continuity<{type_name}>" for type_name in TYPES]
+        + [f"integrate<{type_name}>" for type_name in TYPES]
+    ),
+)
 
 BPOLY_KERNEL = r"""
 #include <cupy/complex.cuh>
@@ -535,15 +541,16 @@ __global__ void eval_bpoly(
 """
 
 BPOLY_MODULE = cupy.RawModule(
-    code=BPOLY_KERNEL, options=('-std=c++11',),
-    name_expressions=(
-        [f'eval_bpoly<{type_name}>' for type_name in TYPES]))
+    code=BPOLY_KERNEL,
+    options=("-std=c++11",),
+    name_expressions=([f"eval_bpoly<{type_name}>" for type_name in TYPES]),
+)
 
 
 def _get_module_func(module, func_name, *template_args):
     args_dtypes = [get_typename(arg.dtype) for arg in template_args]
-    template = ', '.join(args_dtypes)
-    kernel_name = f'{func_name}<{template}>' if template_args else func_name
+    template = ", ".join(args_dtypes)
+    kernel_name = f"{func_name}<{template}>" if template_args else func_name
     kernel = module.get_function(kernel_name)
     return kernel
 
@@ -576,20 +583,23 @@ def _ppoly_evaluate(c, x, xp, dx, extrapolate, out):
     ascending = x[-1] >= x[0]
 
     intervals = cupy.empty(xp.shape, dtype=cupy.int64)
-    interval_kernel = INTERVAL_MODULE.get_function(
-        'find_breakpoint_position_1d')
-    interval_kernel(((xp.shape[0] + 128 - 1) // 128,), (128,),
-                    (x, xp, intervals, extrapolate, xp.shape[0], x.shape[0],
-                     ascending))
+    interval_kernel = INTERVAL_MODULE.get_function("find_breakpoint_position_1d")
+    interval_kernel(
+        ((xp.shape[0] + 128 - 1) // 128,),
+        (128,),
+        (x, xp, intervals, extrapolate, xp.shape[0], x.shape[0], ascending),
+    )
 
     # Compute coefficient displacement stride (in elements)
     c_shape = cupy.asarray(c.shape, dtype=cupy.int64)
     c_strides = cupy.asarray(c.strides, dtype=cupy.int64) // c.itemsize
 
-    ppoly_kernel = _get_module_func(PPOLY_MODULE, 'eval_ppoly', c)
-    ppoly_kernel(((xp.shape[0] + 128 - 1) // 128,), (128,),
-                 (c, x, xp, intervals, dx, c_shape, c_strides,
-                  xp.shape[0], out))
+    ppoly_kernel = _get_module_func(PPOLY_MODULE, "eval_ppoly", c)
+    ppoly_kernel(
+        ((xp.shape[0] + 128 - 1) // 128,),
+        (128,),
+        (c, x, xp, intervals, dx, c_shape, c_strides, xp.shape[0], out),
+    )
 
 
 def _ndppoly_evaluate(c, xs, ks, xp, dx, extrapolate, out):
@@ -638,16 +648,25 @@ def _ndppoly_evaluate(c, xs, ks, xp, dx, extrapolate, out):
     # Map each element on the input to their corresponding dimension
     intervals = cupy.empty(xp.shape, dtype=cupy.int64)
     dim_seq = cupy.arange(ndims, dtype=cupy.int64)
-    xp_dims = cupy.broadcast_to(
-        cupy.expand_dims(dim_seq, 0), (num_samples, ndims))
+    xp_dims = cupy.broadcast_to(cupy.expand_dims(dim_seq, 0), (num_samples, ndims))
     xp_dims = xp_dims.copy()
 
     # Compute n-dimensional intervals
-    interval_kernel = INTERVAL_MODULE.get_function(
-        'find_breakpoint_position_nd')
-    interval_kernel(((total_xp + 128 - 1) // 128,), (128,),
-                    (xs_complete, xp, intervals, extrapolate, total_xp,
-                     xp_dims, xs_sizes, xs_offsets))
+    interval_kernel = INTERVAL_MODULE.get_function("find_breakpoint_position_nd")
+    interval_kernel(
+        ((total_xp + 128 - 1) // 128,),
+        (128,),
+        (
+            xs_complete,
+            xp,
+            intervals,
+            extrapolate,
+            total_xp,
+            xp_dims,
+            xs_sizes,
+            xs_offsets,
+        ),
+    )
 
     # Compute coefficient displacement stride (in elements)
     c_shape = cupy.asarray(c.shape, dtype=cupy.int64)
@@ -658,11 +677,29 @@ def _ndppoly_evaluate(c, xs, ks, xp, dx, extrapolate, out):
     ks_strides = cupy.cumprod(cupy.r_[1, ks])
     ks_strides = ks_strides[:-1]
 
-    ppoly_kernel = _get_module_func(PPOLY_MODULE, 'eval_ppoly_nd', c)
-    ppoly_kernel(((num_samples + 128 - 1) // 128,), (128,),
-                 (c, xs_complete, xp, intervals, dx, ks, c2, c_shape,
-                  c_strides, xs_strides, xs_offsets, ks_strides, num_samples,
-                  ndims, num_ks, out))
+    ppoly_kernel = _get_module_func(PPOLY_MODULE, "eval_ppoly_nd", c)
+    ppoly_kernel(
+        ((num_samples + 128 - 1) // 128,),
+        (128,),
+        (
+            c,
+            xs_complete,
+            xp,
+            intervals,
+            dx,
+            ks,
+            c2,
+            c_shape,
+            c_strides,
+            xs_strides,
+            xs_offsets,
+            ks_strides,
+            num_samples,
+            ndims,
+            num_ks,
+            out,
+        ),
+    )
 
 
 def _fix_continuity(c, x, order):
@@ -686,9 +723,8 @@ def _fix_continuity(c, x, order):
     c_shape = cupy.asarray(c.shape, dtype=cupy.int64)
     c_strides = cupy.asarray(c.strides, dtype=cupy.int64) // c.itemsize
 
-    continuity_kernel = _get_module_func(PPOLY_MODULE, 'fix_continuity', c)
-    continuity_kernel((1,), (1,),
-                      (c, x, order, c_shape, c_strides, x.shape[0]))
+    continuity_kernel = _get_module_func(PPOLY_MODULE, "fix_continuity", c)
+    continuity_kernel((1,), (1,), (c, x, order, c_shape, c_strides, x.shape[0]))
 
 
 def _integrate(c, x, a, b, extrapolate, out):
@@ -722,23 +758,28 @@ def _integrate(c, x, a, b, extrapolate, out):
     start_interval = cupy.empty(a.shape, dtype=cupy.int64)
     end_interval = cupy.empty(b.shape, dtype=cupy.int64)
 
-    interval_kernel = INTERVAL_MODULE.get_function(
-        'find_breakpoint_position_1d')
-    interval_kernel(((a.shape[0] + 128 - 1) // 128,), (128,),
-                    (x, a, start_interval, extrapolate, a.shape[0], x.shape[0],
-                     ascending))
-    interval_kernel(((b.shape[0] + 128 - 1) // 128,), (128,),
-                    (x, b, end_interval, extrapolate, b.shape[0], x.shape[0],
-                     ascending))
+    interval_kernel = INTERVAL_MODULE.get_function("find_breakpoint_position_1d")
+    interval_kernel(
+        ((a.shape[0] + 128 - 1) // 128,),
+        (128,),
+        (x, a, start_interval, extrapolate, a.shape[0], x.shape[0], ascending),
+    )
+    interval_kernel(
+        ((b.shape[0] + 128 - 1) // 128,),
+        (128,),
+        (x, b, end_interval, extrapolate, b.shape[0], x.shape[0], ascending),
+    )
 
     # Compute coefficient displacement stride (in elements)
     c_shape = cupy.asarray(c.shape, dtype=cupy.int64)
     c_strides = cupy.asarray(c.strides, dtype=cupy.int64) // c.itemsize
 
-    int_kernel = _get_module_func(PPOLY_MODULE, 'integrate', c)
-    int_kernel(((c.shape[2] + 128 - 1) // 128,), (128,),
-               (c, x, a, b, start_interval, end_interval, c_shape, c_strides,
-                ascending, out))
+    int_kernel = _get_module_func(PPOLY_MODULE, "integrate", c)
+    int_kernel(
+        ((c.shape[2] + 128 - 1) // 128,),
+        (128,),
+        (c, x, a, b, start_interval, end_interval, c_shape, c_strides, ascending, out),
+    )
 
 
 def _bpoly_evaluate(c, x, xp, dx, extrapolate, out):
@@ -769,25 +810,40 @@ def _bpoly_evaluate(c, x, xp, dx, extrapolate, out):
     ascending = x[-1] >= x[0]
 
     intervals = cupy.empty(xp.shape, dtype=cupy.int64)
-    interval_kernel = INTERVAL_MODULE.get_function(
-        'find_breakpoint_position_1d')
-    interval_kernel(((xp.shape[0] + 128 - 1) // 128,), (128,),
-                    (x, xp, intervals, extrapolate, xp.shape[0], x.shape[0],
-                     ascending))
+    interval_kernel = INTERVAL_MODULE.get_function("find_breakpoint_position_1d")
+    interval_kernel(
+        ((xp.shape[0] + 128 - 1) // 128,),
+        (128,),
+        (x, xp, intervals, extrapolate, xp.shape[0], x.shape[0], ascending),
+    )
 
     # Compute coefficient displacement stride (in elements)
     c_shape = cupy.asarray(c.shape, dtype=cupy.int64)
     c_strides = cupy.asarray(c.strides, dtype=cupy.int64) // c.itemsize
 
-    wrk = cupy.empty((xp.shape[0] * (c.shape[0] - dx), 1, 1),
-                     dtype=_get_dtype(c))
+    wrk = cupy.empty((xp.shape[0] * (c.shape[0] - dx), 1, 1), dtype=_get_dtype(c))
     wrk_shape = cupy.asarray([c.shape[0] - dx, 1, 1], dtype=cupy.int64)
     wrk_strides = cupy.asarray(wrk.strides, dtype=cupy.int64) // wrk.itemsize
 
-    bpoly_kernel = _get_module_func(BPOLY_MODULE, 'eval_bpoly', c)
-    bpoly_kernel(((xp.shape[0] + 128 - 1) // 128,), (128,),
-                 (c, x, xp, intervals, dx, wrk, c_shape, c_strides, wrk_shape,
-                  wrk_strides, xp.shape[0], out))
+    bpoly_kernel = _get_module_func(BPOLY_MODULE, "eval_bpoly", c)
+    bpoly_kernel(
+        ((xp.shape[0] + 128 - 1) // 128,),
+        (128,),
+        (
+            c,
+            x,
+            xp,
+            intervals,
+            dx,
+            wrk,
+            c_shape,
+            c_strides,
+            wrk_shape,
+            wrk_strides,
+            xp.shape[0],
+            out,
+        ),
+    )
 
 
 def _ndim_coords_from_arrays(points, ndim=None):
@@ -814,7 +870,8 @@ def _ndim_coords_from_arrays(points, ndim=None):
 
 class _PPolyBase:
     """Base class for piecewise polynomials."""
-    __slots__ = ('c', 'x', 'extrapolate', 'axis')
+
+    __slots__ = ("c", "x", "extrapolate", "axis")
 
     def __init__(self, c, x, extrapolate=None, axis=0):
         self.c = cupy.asarray(c)
@@ -822,17 +879,17 @@ class _PPolyBase:
 
         if extrapolate is None:
             extrapolate = True
-        elif extrapolate != 'periodic':
+        elif extrapolate != "periodic":
             extrapolate = bool(extrapolate)
         self.extrapolate = extrapolate
 
         if self.c.ndim < 2:
-            raise ValueError("Coefficients array must be at least "
-                             "2-dimensional.")
+            raise ValueError("Coefficients array must be at least " "2-dimensional.")
 
         if not (0 <= axis < self.c.ndim - 1):
-            raise ValueError("axis=%s must be between 0 and %s" %
-                             (axis, self.c.ndim-1))
+            raise ValueError(
+                "axis=%s must be between 0 and %s" % (axis, self.c.ndim - 1)
+            )
 
         self.axis = axis
         if axis != 0:
@@ -842,8 +899,8 @@ class _PPolyBase:
             #                                               ^
             #                                              axis
             # So we roll two of them.
-            self.c = cupy.moveaxis(self.c, axis+1, 0)
-            self.c = cupy.moveaxis(self.c, axis+1, 0)
+            self.c = cupy.moveaxis(self.c, axis + 1, 0)
+            self.c = cupy.moveaxis(self.c, axis + 1, 0)
 
         if self.x.ndim != 1:
             raise ValueError("x must be 1-dimensional")
@@ -853,7 +910,7 @@ class _PPolyBase:
             raise ValueError("c must have at least 2 dimensions")
         if self.c.shape[0] == 0:
             raise ValueError("polynomial must be at least of order 0")
-        if self.c.shape[1] != self.x.size-1:
+        if self.c.shape[1] != self.x.size - 1:
             raise ValueError("number of coefficients != len(x)-1")
         dx = cupy.diff(self.x)
         if not (cupy.all(dx >= 0) or cupy.all(dx <= 0)):
@@ -863,8 +920,9 @@ class _PPolyBase:
         self.c = cupy.ascontiguousarray(self.c, dtype=dtype)
 
     def _get_dtype(self, dtype):
-        if (cupy.issubdtype(dtype, cupy.complexfloating)
-                or cupy.issubdtype(self.c.dtype, cupy.complexfloating)):
+        if cupy.issubdtype(dtype, cupy.complexfloating) or cupy.issubdtype(
+            self.c.dtype, cupy.complexfloating
+        ):
             return cupy.complex128
         else:
             return cupy.float64
@@ -921,11 +979,15 @@ class _PPolyBase:
         if x.ndim != 1:
             raise ValueError("invalid dimensions for x")
         if x.shape[0] != c.shape[1]:
-            raise ValueError("Shapes of x {} and c {} are incompatible"
-                             .format(x.shape, c.shape))
+            raise ValueError(
+                "Shapes of x {} and c {} are incompatible".format(x.shape, c.shape)
+            )
         if c.shape[2:] != self.c.shape[2:] or c.ndim != self.c.ndim:
-            raise ValueError("Shapes of c {} and self.c {} are incompatible"
-                             .format(c.shape, self.c.shape))
+            raise ValueError(
+                "Shapes of c {} and self.c {} are incompatible".format(
+                    c.shape, self.c.shape
+                )
+            )
 
         if c.size == 0:
             return
@@ -936,43 +998,43 @@ class _PPolyBase:
 
         if self.x[-1] >= self.x[0]:
             if not x[-1] >= x[0]:
-                raise ValueError("`x` is in the different order "
-                                 "than `self.x`.")
+                raise ValueError("`x` is in the different order " "than `self.x`.")
 
             if x[0] >= self.x[-1]:
-                action = 'append'
+                action = "append"
             elif x[-1] <= self.x[0]:
-                action = 'prepend'
+                action = "prepend"
             else:
-                raise ValueError("`x` is neither on the left or on the right "
-                                 "from `self.x`.")
+                raise ValueError(
+                    "`x` is neither on the left or on the right " "from `self.x`."
+                )
         else:
             if not x[-1] <= x[0]:
-                raise ValueError("`x` is in the different order "
-                                 "than `self.x`.")
+                raise ValueError("`x` is in the different order " "than `self.x`.")
 
             if x[0] <= self.x[-1]:
-                action = 'append'
+                action = "append"
             elif x[-1] >= self.x[0]:
-                action = 'prepend'
+                action = "prepend"
             else:
-                raise ValueError("`x` is neither on the left or on the right "
-                                 "from `self.x`.")
+                raise ValueError(
+                    "`x` is neither on the left or on the right " "from `self.x`."
+                )
 
         dtype = self._get_dtype(c.dtype)
 
         k2 = max(c.shape[0], self.c.shape[0])
         c2 = cupy.zeros(
-            (k2, self.c.shape[1] + c.shape[1]) + self.c.shape[2:],
-            dtype=dtype)
+            (k2, self.c.shape[1] + c.shape[1]) + self.c.shape[2:], dtype=dtype
+        )
 
-        if action == 'append':
-            c2[k2 - self.c.shape[0]:, :self.c.shape[1]] = self.c
-            c2[k2 - c.shape[0]:, self.c.shape[1]:] = c
+        if action == "append":
+            c2[k2 - self.c.shape[0] :, : self.c.shape[1]] = self.c
+            c2[k2 - c.shape[0] :, self.c.shape[1] :] = c
             self.x = cupy.r_[self.x, x]
-        elif action == 'prepend':
-            c2[k2 - self.c.shape[0]:, :c.shape[1]] = c
-            c2[k2 - c.shape[0]:, c.shape[1]:] = self.c
+        elif action == "prepend":
+            c2[k2 - self.c.shape[0] :, : c.shape[1]] = c
+            c2[k2 - c.shape[0] :, c.shape[1] :] = self.c
             self.x = cupy.r_[x, self.x]
 
         self.c = c2
@@ -1015,20 +1077,22 @@ class _PPolyBase:
 
         # With periodic extrapolation we map x to the segment
         # [self.x[0], self.x[-1]].
-        if extrapolate == 'periodic':
+        if extrapolate == "periodic":
             x = self.x[0] + (x - self.x[0]) % (self.x[-1] - self.x[0])
             extrapolate = False
 
-        out = cupy.empty((len(x), int(np.prod(self.c.shape[2:]))),
-                         dtype=self.c.dtype)
+        out = cupy.empty((len(x), int(np.prod(self.c.shape[2:]))), dtype=self.c.dtype)
         self._ensure_c_contiguous()
         self._evaluate(x, nu, extrapolate, out)
         out = out.reshape(x_shape + self.c.shape[2:])
         if self.axis != 0:
             # transpose to move the calculated values to the interpolation axis
             dims = list(range(out.ndim))
-            dims = (dims[x_ndim:x_ndim + self.axis] + dims[:x_ndim] +
-                    dims[x_ndim + self.axis:])
+            dims = (
+                dims[x_ndim : x_ndim + self.axis]
+                + dims[:x_ndim]
+                + dims[x_ndim + self.axis :]
+            )
             out = out.transpose(dims)
         return out
 
@@ -1082,8 +1146,14 @@ class PPoly(_PPolyBase):
     """
 
     def _evaluate(self, x, nu, extrapolate, out):
-        _ppoly_evaluate(self.c.reshape(self.c.shape[0], self.c.shape[1], -1),
-                        self.x, x, nu, bool(extrapolate), out)
+        _ppoly_evaluate(
+            self.c.reshape(self.c.shape[0], self.c.shape[1], -1),
+            self.x,
+            x,
+            nu,
+            bool(extrapolate),
+            out,
+        )
 
     def derivative(self, nu=1):
         """
@@ -1124,7 +1194,7 @@ class PPoly(_PPolyBase):
 
         # multiply by the correct rising factorials
         factor = spec.poch(cupy.arange(c2.shape[0], 0, -1), nu)
-        c2 *= factor[(slice(None),) + (None,)*(c2.ndim-1)]
+        c2 *= factor[(slice(None),) + (None,) * (c2.ndim - 1)]
 
         # construct a compatible polynomial
         return self.construct_fast(c2, self.x, self.extrapolate, self.axis)
@@ -1163,19 +1233,19 @@ class PPoly(_PPolyBase):
 
         c = cupy.zeros(
             (self.c.shape[0] + nu, self.c.shape[1]) + self.c.shape[2:],
-            dtype=self.c.dtype)
+            dtype=self.c.dtype,
+        )
         c[:-nu] = self.c
 
         # divide by the correct rising factorials
         factor = spec.poch(cupy.arange(self.c.shape[0], 0, -1), nu)
-        c[:-nu] /= factor[(slice(None),) + (None,) * (c.ndim-1)]
+        c[:-nu] /= factor[(slice(None),) + (None,) * (c.ndim - 1)]
 
         # fix continuity of added degrees of freedom
         self._ensure_c_contiguous()
-        _fix_continuity(c.reshape(c.shape[0], c.shape[1], -1),
-                        self.x, nu - 1)
+        _fix_continuity(c.reshape(c.shape[0], c.shape[1], -1), self.x, nu - 1)
 
-        if self.extrapolate == 'periodic':
+        if self.extrapolate == "periodic":
             extrapolate = False
         else:
             extrapolate = self.extrapolate
@@ -1213,12 +1283,11 @@ class PPoly(_PPolyBase):
             a, b = b, a
             sign = -1
 
-        range_int = cupy.empty(
-            (int(np.prod(self.c.shape[2:])),), dtype=self.c.dtype)
+        range_int = cupy.empty((int(np.prod(self.c.shape[2:])),), dtype=self.c.dtype)
         self._ensure_c_contiguous()
 
         # Compute the integral.
-        if extrapolate == 'periodic':
+        if extrapolate == "periodic":
             # Split the integral into the part over period (can be several
             # of them) and the remaining part.
 
@@ -1230,7 +1299,12 @@ class PPoly(_PPolyBase):
             if n_periods > 0:
                 _integrate(
                     self.c.reshape(self.c.shape[0], self.c.shape[1], -1),
-                    self.x, xs, xe, False, out=range_int)
+                    self.x,
+                    xs,
+                    xe,
+                    False,
+                    out=range_int,
+                )
                 range_int *= n_periods
             else:
                 range_int.fill(0)
@@ -1245,28 +1319,48 @@ class PPoly(_PPolyBase):
             if b <= xe:
                 _integrate(
                     self.c.reshape(self.c.shape[0], self.c.shape[1], -1),
-                    self.x, a, b, False, out=remainder_int)
+                    self.x,
+                    a,
+                    b,
+                    False,
+                    out=remainder_int,
+                )
                 range_int += remainder_int
             else:
                 _integrate(
                     self.c.reshape(self.c.shape[0], self.c.shape[1], -1),
-                    self.x, a, xe, False, out=remainder_int)
+                    self.x,
+                    a,
+                    xe,
+                    False,
+                    out=remainder_int,
+                )
                 range_int += remainder_int
 
                 _integrate(
                     self.c.reshape(self.c.shape[0], self.c.shape[1], -1),
-                    self.x, xs, xs + left + a - xe, False, out=remainder_int)
+                    self.x,
+                    xs,
+                    xs + left + a - xe,
+                    False,
+                    out=remainder_int,
+                )
                 range_int += remainder_int
         else:
             _integrate(
                 self.c.reshape(self.c.shape[0], self.c.shape[1], -1),
-                self.x, a, b, bool(extrapolate), out=range_int)
+                self.x,
+                a,
+                b,
+                bool(extrapolate),
+                out=range_int,
+            )
 
         # Return
         range_int *= sign
         return range_int.reshape(self.c.shape[2:])
 
-    def solve(self, y=0., discontinuity=True, extrapolate=None):
+    def solve(self, y=0.0, discontinuity=True, extrapolate=None):
         """
         Find real solutions of the equation ``pp(x) == y``.
 
@@ -1303,7 +1397,8 @@ class PPoly(_PPolyBase):
         At the moment, there is not an actual implementation.
         """
         raise NotImplementedError(
-            'At the moment there is not a GPU implementation for solve')
+            "At the moment there is not a GPU implementation for solve"
+        )
 
     def roots(self, discontinuity=True, extrapolate=None):
         """
@@ -1379,20 +1474,22 @@ class PPoly(_PPolyBase):
             If 'periodic', periodic extrapolation is used. Default is True.
         """
         if not isinstance(bp, BPoly):
-            raise TypeError(".from_bernstein_basis only accepts BPoly "
-                            "instances. Got %s instead." % type(bp))
+            raise TypeError(
+                ".from_bernstein_basis only accepts BPoly "
+                "instances. Got %s instead." % type(bp)
+            )
 
         dx = cupy.diff(bp.x)
         k = bp.c.shape[0] - 1  # polynomial order
 
-        rest = (None,)*(bp.c.ndim-2)
+        rest = (None,) * (bp.c.ndim - 2)
 
         c = cupy.zeros_like(bp.c)
-        for a in range(k+1):
-            factor = (-1)**a * _comb(k, a) * bp.c[a]
-            for s in range(a, k+1):
-                val = _comb(k-a, s-a) * (-1)**s
-                c[k-s] += factor * val / dx[(slice(None),)+rest]**s
+        for a in range(k + 1):
+            factor = (-1) ** a * _comb(k, a) * bp.c[a]
+            for s in range(a, k + 1):
+                val = _comb(k - a, s - a) * (-1) ** s
+                c[k - s] += factor * val / dx[(slice(None),) + rest] ** s
 
         if extrapolate is None:
             extrapolate = bp.extrapolate
@@ -1479,12 +1576,16 @@ class BPoly(_PPolyBase):
     def _evaluate(self, x, nu, extrapolate, out):
         # check derivative order
         if nu < 0:
-            raise NotImplementedError(
-                "Cannot do antiderivatives in the B-basis yet.")
+            raise NotImplementedError("Cannot do antiderivatives in the B-basis yet.")
 
         _bpoly_evaluate(
             self.c.reshape(self.c.shape[0], self.c.shape[1], -1),
-            self.x, x, nu, bool(extrapolate), out)
+            self.x,
+            x,
+            nu,
+            bool(extrapolate),
+            out,
+        )
 
     def derivative(self, nu=1):
         """
@@ -1525,10 +1626,10 @@ class BPoly(_PPolyBase):
             # finally, for an interval [y, y + dy] with dy != 1,
             # we need to correct for an extra power of dy
 
-            rest = (None,) * (self.c.ndim-2)
+            rest = (None,) * (self.c.ndim - 2)
 
             k = self.c.shape[0] - 1
-            dx = cupy.diff(self.x)[(None, slice(None))+rest]
+            dx = cupy.diff(self.x)[(None, slice(None)) + rest]
             c2 = k * cupy.diff(self.c, axis=0) / dx
 
         if c2.shape[0] == 0:
@@ -1573,11 +1674,11 @@ class BPoly(_PPolyBase):
         # Construct the indefinite integrals on individual intervals
         c, x = self.c, self.x
         k = c.shape[0]
-        c2 = cupy.zeros((k+1,) + c.shape[1:], dtype=c.dtype)
+        c2 = cupy.zeros((k + 1,) + c.shape[1:], dtype=c.dtype)
 
         c2[1:, ...] = cupy.cumsum(c, axis=0) / k
         delta = x[1:] - x[:-1]
-        c2 *= delta[(None, slice(None)) + (None,)*(c.ndim-2)]
+        c2 *= delta[(None, slice(None)) + (None,) * (c.ndim - 2)]
 
         # Now fix continuity: on the very first interval, take the integration
         # constant to be zero; on an interval [x_j, x_{j+1}) with j>0,
@@ -1589,7 +1690,7 @@ class BPoly(_PPolyBase):
         # unity.
         c2[:, 1:] += cupy.cumsum(c2[k, :], axis=0)[:-1]
 
-        if self.extrapolate == 'periodic':
+        if self.extrapolate == "periodic":
             extrapolate = False
         else:
             extrapolate = self.extrapolate
@@ -1624,10 +1725,10 @@ class BPoly(_PPolyBase):
 
         # ib.extrapolate shouldn't be 'periodic', it is converted to
         # False for 'periodic. in antiderivative() call.
-        if extrapolate != 'periodic':
+        if extrapolate != "periodic":
             ib.extrapolate = extrapolate
 
-        if extrapolate == 'periodic':
+        if extrapolate == "periodic":
             # Split the integral into the part over period (can be several
             # of them) and the remaining part.
 
@@ -1664,6 +1765,7 @@ class BPoly(_PPolyBase):
         self.c = self._raise_degree(self.c, k - self.c.shape[0])
         c = self._raise_degree(c, k - c.shape[0])
         return _PPolyBase.extend(self, c, x)
+
     extend.__doc__ = _PPolyBase.extend.__doc__
 
     @staticmethod
@@ -1722,19 +1824,21 @@ class BPoly(_PPolyBase):
             If 'periodic', periodic extrapolation is used. Default is True.
         """
         if not isinstance(pp, PPoly):
-            raise TypeError(".from_power_basis only accepts PPoly instances. "
-                            "Got %s instead." % type(pp))
+            raise TypeError(
+                ".from_power_basis only accepts PPoly instances. "
+                "Got %s instead." % type(pp)
+            )
 
         dx = cupy.diff(pp.x)
-        k = pp.c.shape[0] - 1   # polynomial order
+        k = pp.c.shape[0] - 1  # polynomial order
 
-        rest = (None,)*(pp.c.ndim-2)
+        rest = (None,) * (pp.c.ndim - 2)
 
         c = cupy.zeros_like(pp.c)
-        for a in range(k+1):
-            factor = pp.c[a] / _comb(k, k-a) * dx[(slice(None),)+rest]**(k-a)
-            for j in range(k-a, k+1):
-                c[j] += factor * _comb(j, k-a)
+        for a in range(k + 1):
+            factor = pp.c[a] / _comb(k, k - a) * dx[(slice(None),) + rest] ** (k - a)
+            for j in range(k - a, k + 1):
+                c[j] += factor * _comb(j, k - a)
 
         if extrapolate is None:
             extrapolate = pp.extrapolate
@@ -1815,11 +1919,9 @@ class BPoly(_PPolyBase):
 
         # global poly order is k-1, local orders are <=k and can vary
         try:
-            k = max(len(yi[i]) + len(yi[i+1]) for i in range(m))
+            k = max(len(yi[i]) + len(yi[i + 1]) for i in range(m))
         except TypeError as e:
-            raise ValueError(
-                "Using a 1-D array for y? Please .reshape(-1, 1)."
-            ) from e
+            raise ValueError("Using a 1-D array for y? Please .reshape(-1, 1).") from e
 
         if orders is None:
             orders = [None] * m
@@ -1833,26 +1935,28 @@ class BPoly(_PPolyBase):
 
         c = []
         for i in range(m):
-            y1, y2 = yi[i], yi[i+1]
+            y1, y2 = yi[i], yi[i + 1]
             if orders[i] is None:
                 n1, n2 = len(y1), len(y2)
             else:
-                n = orders[i]+1
-                n1 = min(n//2, len(y1))
+                n = orders[i] + 1
+                n1 = min(n // 2, len(y1))
                 n2 = min(n - n1, len(y2))
                 n1 = min(n - n2, len(y2))
-                if n1+n2 != n:
-                    mesg = ("Point %g has %d derivatives, point %g"
-                            " has %d derivatives, but order %d requested" % (
-                                xi[i], len(y1), xi[i+1], len(y2), orders[i]))
+                if n1 + n2 != n:
+                    mesg = (
+                        "Point %g has %d derivatives, point %g"
+                        " has %d derivatives, but order %d requested"
+                        % (xi[i], len(y1), xi[i + 1], len(y2), orders[i])
+                    )
                     raise ValueError(mesg)
 
                 if not (n1 <= len(y1) and n2 <= len(y2)):
-                    raise ValueError("`order` input incompatible with"
-                                     " length y1 or y2.")
+                    raise ValueError(
+                        "`order` input incompatible with" " length y1 or y2."
+                    )
 
-            b = BPoly._construct_from_derivatives(xi[i], xi[i+1],
-                                                  y1[:n1], y2[:n2])
+            b = BPoly._construct_from_derivatives(xi[i], xi[i + 1], y1[:n1], y2[:n2])
             if len(b) < k:
                 b = BPoly._raise_degree(b, k - len(b))
             c.append(b)
@@ -1918,12 +2022,14 @@ class BPoly(_PPolyBase):
         """
         ya, yb = cupy.asarray(ya), cupy.asarray(yb)
         if ya.shape[1:] != yb.shape[1:]:
-            raise ValueError('Shapes of ya {} and yb {} are incompatible'
-                             .format(ya.shape, yb.shape))
+            raise ValueError(
+                "Shapes of ya {} and yb {} are incompatible".format(ya.shape, yb.shape)
+            )
 
         dta, dtb = ya.dtype, yb.dtype
-        if (cupy.issubdtype(dta, cupy.complexfloating) or
-                cupy.issubdtype(dtb, cupy.complexfloating)):
+        if cupy.issubdtype(dta, cupy.complexfloating) or cupy.issubdtype(
+            dtb, cupy.complexfloating
+        ):
             dt = cupy.complex128
         else:
             dt = cupy.float64
@@ -1931,20 +2037,20 @@ class BPoly(_PPolyBase):
         na, nb = len(ya), len(yb)
         n = na + nb
 
-        c = cupy.empty((na+nb,) + ya.shape[1:], dtype=dt)
+        c = cupy.empty((na + nb,) + ya.shape[1:], dtype=dt)
 
         # compute coefficients of a polynomial degree na+nb-1
         # walk left-to-right
         for q in range(0, na):
-            c[q] = ya[q] / spec.poch(n - q, q) * (xb - xa)**q
+            c[q] = ya[q] / spec.poch(n - q, q) * (xb - xa) ** q
             for j in range(0, q):
-                c[q] -= (-1)**(j+q) * _comb(q, j) * c[j]
+                c[q] -= (-1) ** (j + q) * _comb(q, j) * c[j]
 
         # now walk right-to-left
         for q in range(0, nb):
-            c[-q-1] = yb[q] / spec.poch(n - q, q) * (-1)**q * (xb - xa)**q
+            c[-q - 1] = yb[q] / spec.poch(n - q, q) * (-1) ** q * (xb - xa) ** q
             for j in range(0, q):
-                c[-q-1] -= (-1)**(j+1) * _comb(q, j+1) * c[-q+j]
+                c[-q - 1] -= (-1) ** (j + 1) * _comb(q, j + 1) * c[-q + j]
 
         return c
 
@@ -2003,8 +2109,7 @@ class NdPPoly:
     """
 
     def __init__(self, c, x, extrapolate=None):
-        self.x = tuple(cupy.ascontiguousarray(
-            v, dtype=cupy.float64) for v in x)
+        self.x = tuple(cupy.ascontiguousarray(v, dtype=cupy.float64) for v in x)
         self.c = cupy.asarray(c)
         if extrapolate is None:
             extrapolate = True
@@ -2015,11 +2120,11 @@ class NdPPoly:
             raise ValueError("x arrays must all be 1-dimensional")
         if any(v.size < 2 for v in self.x):
             raise ValueError("x arrays must all contain at least 2 points")
-        if c.ndim < 2*ndim:
+        if c.ndim < 2 * ndim:
             raise ValueError("c must have at least 2*len(x) dimensions")
         if any(cupy.any(v[1:] - v[:-1] < 0) for v in self.x):
             raise ValueError("x-coordinates are not in increasing order")
-        if any(a != b.size - 1 for a, b in zip(c.shape[ndim:2*ndim], self.x)):
+        if any(a != b.size - 1 for a, b in zip(c.shape[ndim : 2 * ndim], self.x)):
             raise ValueError("x and c do not agree on the number of intervals")
 
         dtype = self._get_dtype(self.c.dtype)
@@ -2044,8 +2149,9 @@ class NdPPoly:
         return self
 
     def _get_dtype(self, dtype):
-        if (cupy.issubdtype(dtype, cupy.complexfloating)
-                or cupy.issubdtype(self.c.dtype, cupy.complexfloating)):
+        if cupy.issubdtype(dtype, cupy.complexfloating) or cupy.issubdtype(
+            self.c.dtype, cupy.complexfloating
+        ):
             return cupy.complex128
         else:
             return cupy.float64
@@ -2093,8 +2199,7 @@ class NdPPoly:
 
         x = _ndim_coords_from_arrays(x)
         x_shape = x.shape
-        x = cupy.ascontiguousarray(x.reshape(-1, x.shape[-1]),
-                                   dtype=cupy.float64)
+        x = cupy.ascontiguousarray(x.reshape(-1, x.shape[-1]), dtype=cupy.float64)
 
         if nu is None:
             nu = cupy.zeros((ndim,), dtype=cupy.int64)
@@ -2104,18 +2209,18 @@ class NdPPoly:
                 raise ValueError("invalid number of derivative orders nu")
 
         dim1 = int(np.prod(self.c.shape[:ndim]))
-        dim2 = int(np.prod(self.c.shape[ndim:2*ndim]))
-        dim3 = int(np.prod(self.c.shape[2*ndim:]))
+        dim2 = int(np.prod(self.c.shape[ndim : 2 * ndim]))
+        dim3 = int(np.prod(self.c.shape[2 * ndim :]))
         ks = cupy.asarray(self.c.shape[:ndim], dtype=cupy.int64)
 
         out = cupy.empty((x.shape[0], dim3), dtype=self.c.dtype)
         self._ensure_c_contiguous()
 
         _ndppoly_evaluate(
-            self.c.reshape(dim1, dim2, dim3), self.x, ks, x, nu,
-            bool(extrapolate), out)
+            self.c.reshape(dim1, dim2, dim3), self.x, ks, x, nu, bool(extrapolate), out
+        )
 
-        return out.reshape(x_shape[:-1] + self.c.shape[2*ndim:])
+        return out.reshape(x_shape[:-1] + self.c.shape[2 * ndim :])
 
     def _derivative_inplace(self, nu, axis):
         """
@@ -2133,7 +2238,7 @@ class NdPPoly:
             # noop
             return
         else:
-            sl = [slice(None)]*ndim
+            sl = [slice(None)] * ndim
             sl[axis] = slice(None, -nu, None)
             c2 = self.c[tuple(sl)]
 
@@ -2168,22 +2273,20 @@ class NdPPoly:
 
         c = self.c.transpose(perm)
 
-        c2 = cupy.zeros((c.shape[0] + nu,) + c.shape[1:],
-                        dtype=c.dtype)
+        c2 = cupy.zeros((c.shape[0] + nu,) + c.shape[1:], dtype=c.dtype)
         c2[:-nu] = c
 
         # divide by the correct rising factorials
         factor = spec.poch(cupy.arange(c.shape[0], 0, -1), nu)
-        c2[:-nu] /= factor[(slice(None),) + (None,)*(c.ndim-1)]
+        c2[:-nu] /= factor[(slice(None),) + (None,) * (c.ndim - 1)]
 
         # fix continuity of added degrees of freedom
         perm2 = list(range(c2.ndim))
-        perm2[1], perm2[ndim+axis] = perm2[ndim+axis], perm2[1]
+        perm2[1], perm2[ndim + axis] = perm2[ndim + axis], perm2[1]
 
         c2 = c2.transpose(perm2)
         c2 = c2.copy()
-        _fix_continuity(
-            c2.reshape(c2.shape[0], c2.shape[1], -1), self.x[axis], nu - 1)
+        _fix_continuity(c2.reshape(c2.shape[0], c2.shape[1], -1), self.x[axis], nu - 1)
 
         c2 = c2.transpose(perm2)
         c2 = c2.transpose(perm)
@@ -2300,9 +2403,9 @@ class NdPPoly:
         del swap[ndim + axis + 1]
 
         c = c.transpose(swap)
-        p = PPoly.construct_fast(c.reshape(c.shape[0], c.shape[1], -1),
-                                 self.x[axis],
-                                 extrapolate=extrapolate)
+        p = PPoly.construct_fast(
+            c.reshape(c.shape[0], c.shape[1], -1), self.x[axis], extrapolate=extrapolate
+        )
         out = p.integrate(a, b, extrapolate=extrapolate)
 
         # Construct result
@@ -2310,7 +2413,7 @@ class NdPPoly:
             return out.reshape(c.shape[2:])
         else:
             c = out.reshape(c.shape[2:])
-            x = self.x[:axis] + self.x[axis+1:]
+            x = self.x[:axis] + self.x[axis + 1 :]
             return self.construct_fast(c, x, extrapolate=extrapolate)
 
     def integrate(self, ranges, extrapolate=None):
@@ -2340,7 +2443,7 @@ class NdPPoly:
         else:
             extrapolate = bool(extrapolate)
 
-        if not hasattr(ranges, '__len__') or len(ranges) != ndim:
+        if not hasattr(ranges, "__len__") or len(ranges) != ndim:
             raise ValueError("Range not a sequence of correct length")
 
         self._ensure_c_contiguous()

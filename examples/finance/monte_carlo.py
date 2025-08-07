@@ -24,8 +24,9 @@ from black_scholes import black_scholes_kernel
 
 
 monte_carlo_kernel = cupy.ElementwiseKernel(
-    'T s, T x, T t, T r, T v, int32 n_samples, int32 seed', 'T call',
-    '''
+    "T s, T x, T t, T r, T v, int32 n_samples, int32 seed",
+    "T call",
+    """
     // We can use special variables i and _ind to get the index of the thread.
     // In this case, we used an index as a seed of random sequence.
     uint64_t rand_state[2];
@@ -43,8 +44,8 @@ monte_carlo_kernel = cupy.ElementwiseKernel(
     // convert the future value of the call option to the present value
     const T discount_factor = exp(- r * t);
     call = discount_factor * call_sum / n_samples;
-    ''',
-    preamble='''
+    """,
+    preamble="""
     #ifndef __HIPCC__
     typedef unsigned long long uint64_t;
     #endif
@@ -91,32 +92,45 @@ monte_carlo_kernel = cupy.ElementwiseKernel(
         T p = x + T(0.5);
         return s * erfcinv(2 * p);
     }
-    ''',
+    """,
 )
 
 
 def compute_option_prices(
-        stock_price, option_strike, option_years, risk_free, volatility,
-        n_threads_per_option, n_samples_per_thread, seed=0):
+    stock_price,
+    option_strike,
+    option_years,
+    risk_free,
+    volatility,
+    n_threads_per_option,
+    n_samples_per_thread,
+    seed=0,
+):
 
     n_options = len(stock_price)
-    call_prices = cupy.empty(
-        (n_options, n_threads_per_option), dtype=numpy.float64)
+    call_prices = cupy.empty((n_options, n_threads_per_option), dtype=numpy.float64)
     # Because of the broadcasting rule, in this case this kernel
     # launches n_options * n_threads_per_options threads
     # each of which corresponds to the element of 'call_prices'.
     monte_carlo_kernel(
-        stock_price[:, None], option_strike[:, None], option_years[:, None],
-        risk_free, volatility, n_samples_per_thread, seed, call_prices)
+        stock_price[:, None],
+        option_strike[:, None],
+        option_years[:, None],
+        risk_free,
+        volatility,
+        n_samples_per_thread,
+        seed,
+        call_prices,
+    )
     return call_prices.mean(axis=1)
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--gpu-id', '-g', default=0, type=int, help='GPU ID')
-    parser.add_argument('--n-options', default=1000, type=int)
-    parser.add_argument('--n-samples-per-thread', default=1000, type=int)
-    parser.add_argument('--n-threads-per-option', default=100000, type=int)
+    parser.add_argument("--gpu-id", "-g", default=0, type=int, help="GPU ID")
+    parser.add_argument("--n-options", default=1000, type=int)
+    parser.add_argument("--n-samples-per-thread", default=1000, type=int)
+    parser.add_argument("--n-threads-per-option", default=100000, type=int)
     args = parser.parse_args()
 
     cupy.cuda.Device(args.gpu_id).use()
@@ -125,7 +139,7 @@ def main():
         samples = cupy.random.rand(args.n_options)
         return (m + (M - m) * samples).astype(numpy.float64)
 
-    print('initializing...')
+    print("initializing...")
     stock_price = rand_range(5, 30)
     option_strike = rand_range(1, 100)
     option_years = rand_range(0.25, 10)
@@ -139,25 +153,35 @@ def main():
         yield
         cupy.cuda.Stream.null.synchronize()
         end = time.time()
-        print('%s:\t%f sec' % (message, end - start))
+        print("%s:\t%f sec" % (message, end - start))
 
-    print('start computation')
-    print('    # of options: {}'.format(args.n_options))
-    print('    # of samples per option: {}'.format(
-        args.n_samples_per_thread * args.n_threads_per_option))
-    with timer('GPU (CuPy, Monte Carlo method)'):
+    print("start computation")
+    print("    # of options: {}".format(args.n_options))
+    print(
+        "    # of samples per option: {}".format(
+            args.n_samples_per_thread * args.n_threads_per_option
+        )
+    )
+    with timer("GPU (CuPy, Monte Carlo method)"):
         call_mc = compute_option_prices(
-            stock_price, option_strike, option_years, risk_free, volatility,
-            args.n_threads_per_option, args.n_samples_per_thread)
+            stock_price,
+            option_strike,
+            option_years,
+            risk_free,
+            volatility,
+            args.n_threads_per_option,
+            args.n_samples_per_thread,
+        )
 
     # Compute the error between the value of the exact solution
     # and that of the Monte-Carlo simulation
     call_bs, _ = black_scholes_kernel(
-        stock_price, option_strike, option_years, risk_free, volatility)
+        stock_price, option_strike, option_years, risk_free, volatility
+    )
     error = cupy.std(call_mc - call_bs)
-    print('Error: %f' % error)
+    print("Error: %f" % error)
     return 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())

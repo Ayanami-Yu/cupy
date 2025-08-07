@@ -6,9 +6,17 @@ from ._pba_2d import _pba_2d
 from ._pba_3d import _pba_3d
 
 
-def distance_transform_edt(image, sampling=None, return_distances=True,
-                           return_indices=False, distances=None, indices=None,
-                           *, block_params=None, float64_distances=True):
+def distance_transform_edt(
+    image,
+    sampling=None,
+    return_distances=True,
+    return_indices=False,
+    distances=None,
+    indices=None,
+    *,
+    block_params=None,
+    float64_distances=True,
+):
     r"""Exact Euclidean distance transform.
 
     This function calculates the distance transform of the `input`, by
@@ -157,8 +165,7 @@ def distance_transform_edt(image, sampling=None, return_distances=True,
     elif image.ndim == 2:
         pba_func = _pba_2d
     else:
-        raise NotImplementedError(
-            "Only 2D and 3D distance transforms are supported.")
+        raise NotImplementedError("Only 2D and 3D distance transforms are supported.")
 
     vals = pba_func(
         image,

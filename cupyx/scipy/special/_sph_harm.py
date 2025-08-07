@@ -4,6 +4,7 @@ SciPy Cython file:
 
 https://github.com/scipy/scipy/blob/master/scipy/special/sph_harm.pxd
 """
+
 from __future__ import annotations
 
 
@@ -95,9 +96,12 @@ def sph_harm(m, n, theta, phi, out=None):
 
     """
 
-    warnings.warn(DeprecationWarning(
-        "`cupyx.scipy.special.sph_harm` is deprecated in CuPy v14 "
-        "and are planned to be removed in the future."))
+    warnings.warn(
+        DeprecationWarning(
+            "`cupyx.scipy.special.sph_harm` is deprecated in CuPy v14 "
+            "and are planned to be removed in the future."
+        )
+    )
 
     return _sph_harm(m, n, theta, phi, out=out)
 

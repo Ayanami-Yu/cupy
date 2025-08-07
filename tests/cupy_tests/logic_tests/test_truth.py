@@ -25,14 +25,20 @@ def _calc_out_shape(shape, axis, keepdims):
 
 @testing.parameterize(
     *testing.product(
-        {'f': ['all', 'any'],
-         'x': [numpy.arange(24).reshape(2, 3, 4) - 10,
-               numpy.zeros((2, 3, 4)),
-               numpy.ones((2, 3, 4)),
-               numpy.zeros((0, 3, 4)),
-               numpy.ones((0, 3, 4))],
-         'axis': [None, (0, 1, 2), 0, 1, 2, (0, 1)],
-         'keepdims': [False, True]}))
+        {
+            "f": ["all", "any"],
+            "x": [
+                numpy.arange(24).reshape(2, 3, 4) - 10,
+                numpy.zeros((2, 3, 4)),
+                numpy.ones((2, 3, 4)),
+                numpy.zeros((0, 3, 4)),
+                numpy.ones((0, 3, 4)),
+            ],
+            "axis": [None, (0, 1, 2), 0, 1, 2, (0, 1)],
+            "keepdims": [False, True],
+        }
+    )
+)
 class TestAllAny:
 
     @testing.for_all_dtypes()
@@ -53,24 +59,28 @@ class TestAllAny:
 
 @testing.parameterize(
     *testing.product(
-        {'f': ['all', 'any'],
-         'x': [numpy.array([[[numpy.nan]]]),
-               numpy.array([[[numpy.nan, 0]]]),
-               numpy.array([[[numpy.nan, 1]]]),
-               numpy.array([[[numpy.nan, 0, 1]]])],
-         'axis': [None, (0, 1, 2), 0, 1, 2, (0, 1)],
-         'keepdims': [False, True]}))
+        {
+            "f": ["all", "any"],
+            "x": [
+                numpy.array([[[numpy.nan]]]),
+                numpy.array([[[numpy.nan, 0]]]),
+                numpy.array([[[numpy.nan, 1]]]),
+                numpy.array([[[numpy.nan, 0, 1]]]),
+            ],
+            "axis": [None, (0, 1, 2), 0, 1, 2, (0, 1)],
+            "keepdims": [False, True],
+        }
+    )
+)
 class TestAllAnyWithNaN:
 
-    @testing.for_dtypes(
-        (numpy.float64, numpy.float32, numpy.float16, numpy.bool_))
+    @testing.for_dtypes((numpy.float64, numpy.float32, numpy.float16, numpy.bool_))
     @testing.numpy_cupy_array_equal()
     def test_without_out(self, xp, dtype):
         x = xp.asarray(self.x).astype(dtype)
         return getattr(xp, self.f)(x, self.axis, None, self.keepdims)
 
-    @testing.for_dtypes(
-        (numpy.float64, numpy.float32, numpy.float16, numpy.bool_))
+    @testing.for_dtypes((numpy.float64, numpy.float32, numpy.float16, numpy.bool_))
     @testing.numpy_cupy_array_equal()
     def test_with_out(self, xp, dtype):
         x = xp.asarray(self.x).astype(dtype)
@@ -82,24 +92,14 @@ class TestAllAnyWithNaN:
 
 @testing.parameterize(
     *testing.product(
-        {'shape_x': [
-            (0, ),
-            (3, ),
-            (2, 3),
-            (2, 1, 3),
-            (2, 0, 1),
-            (2, 0, 1, 1)
-        ],
-            'shape_y': [
-            (0, ),
-            (3, ),
-            (2, 3),
-            (2, 1, 3),
-            (2, 0, 1),
-            (2, 0, 1, 1)
-        ],
-            'assume_unique': [False, True],
-            'invert': [False, True]}))
+        {
+            "shape_x": [(0,), (3,), (2, 3), (2, 1, 3), (2, 0, 1), (2, 0, 1, 1)],
+            "shape_y": [(0,), (3,), (2, 3), (2, 1, 3), (2, 0, 1), (2, 0, 1, 1)],
+            "assume_unique": [False, True],
+            "invert": [False, True],
+        }
+    )
+)
 class TestIn1DIsIn:
 
     @testing.for_all_dtypes()
@@ -283,5 +283,5 @@ class TestUnion1d:
     @testing.numpy_cupy_array_equal()
     def test_union1d_3(self, xp):
         x = xp.zeros((2, 2), dtype=xp.complex128)
-        y = xp.array([[1+1j, 2+3j], [4+1j, 0+7j]])
+        y = xp.array([[1 + 1j, 2 + 3j], [4 + 1j, 0 + 7j]])
         return xp.union1d(x, y)

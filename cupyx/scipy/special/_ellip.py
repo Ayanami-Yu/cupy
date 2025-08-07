@@ -83,10 +83,10 @@ static __device__ double ellpkm1(double x)
 """
 
 ellipkm1 = _core.create_ufunc(
-    'cupyx_scipy_special_ellipk',
-    ('f->f', 'd->d'),
-    'out0 = ellpk(in0)',
-    preamble=polevl_definition+ellpk_definition,
+    "cupyx_scipy_special_ellipk",
+    ("f->f", "d->d"),
+    "out0 = ellpk(in0)",
+    preamble=polevl_definition + ellpk_definition,
     doc="""ellpkm1.
 
     Args:
@@ -97,14 +97,15 @@ ellipkm1 = _core.create_ufunc(
 
     .. seealso:: :data:`scipy.special.digamma`
 
-    """)
+    """,
+)
 
 
 ellipk = _core.create_ufunc(
-    'cupyx_scipy_special_ellipkm1',
+    "cupyx_scipy_special_ellipkm1",
     ("f->f", "d->d"),
-    'out0 = ellpkm1(in0)',
-    preamble=polevl_definition+ellpk_definition,
+    "out0 = ellpkm1(in0)",
+    preamble=polevl_definition + ellpk_definition,
     doc="""ellpk.
 
     Args:
@@ -115,7 +116,8 @@ ellipk = _core.create_ufunc(
 
     .. seealso:: :data:`scipy.special.digamma`
 
-    """)
+    """,
+)
 
 
 ellipj_preamble = """
@@ -214,12 +216,12 @@ static __device__ double ellipj(double u, double m, double* sn,
 
 
 ellipj = _core.create_ufunc(
-    'cupyx_scipy_special_ellipj',
-    ('ff->ffff', 'dd->dddd'),
-    '''
+    "cupyx_scipy_special_ellipj",
+    ("ff->ffff", "dd->dddd"),
+    """
         double sn, cn, dn, ph; ellipj(in0, in1, &sn, &cn, &dn, &ph);
         out0 = sn; out1 = cn; out2 = dn; out3 = ph;
-    ''',
+    """,
     preamble=ellipj_preamble,
     doc="""ellipj
 
@@ -232,15 +234,16 @@ ellipj = _core.create_ufunc(
         sn, cn, dn, ph: Computed values.
 
      .. seealso:: :data:`scipy.special.ellipj`
-    """
+    """,
 )
 
 ellipkinc_preamble = "#include <cupy/xsf/cephes/ellik.h>"
 ellipeinc_preamble = "#include <cupy/xsf/cephes/ellie.h>"
 
 ellipkinc = _core.create_ufunc(
-    'cupyx_scipy_special_ellipkinc', ('ff->f', 'dd->d'),
-    'out0 = xsf::cephes::ellik(in0, in1)',
+    "cupyx_scipy_special_ellipkinc",
+    ("ff->f", "dd->d"),
+    "out0 = xsf::cephes::ellik(in0, in1)",
     preamble=ellipkinc_preamble,
     doc="""ellipkinc
 
@@ -248,12 +251,13 @@ ellipkinc = _core.create_ufunc(
 
     .. seealso:: :meth:`scipy.special.ellipkinc`
 
-    """
+    """,
 )
 
 ellipeinc = _core.create_ufunc(
-    'cupyx_scipy_special_ellipeinc', ('ff->f', 'dd->d'),
-    'out0 = xsf::cephes::ellie(in0, in1)',
+    "cupyx_scipy_special_ellipeinc",
+    ("ff->f", "dd->d"),
+    "out0 = xsf::cephes::ellie(in0, in1)",
     preamble=ellipeinc_preamble,
     doc="""ellipeinc
 
@@ -261,5 +265,5 @@ ellipeinc = _core.create_ufunc(
 
     .. seealso:: :meth:`scipy.special.ellipeinc`
 
-    """
+    """,
 )

@@ -9,7 +9,7 @@ from cupyx.scipy.sparse import _dia
 from cupyx.scipy.sparse import _sputils
 
 
-def eye(m, n=None, k=0, dtype='d', format=None):
+def eye(m, n=None, k=0, dtype="d", format=None):
     """Creates a sparse matrix with ones on diagonal.
 
     Args:
@@ -31,19 +31,19 @@ def eye(m, n=None, k=0, dtype='d', format=None):
     m, n = int(m), int(n)
 
     if m == n and k == 0:
-        if format in ['csr', 'csc']:
-            indptr = cupy.arange(n + 1, dtype='i')
-            indices = cupy.arange(n, dtype='i')
+        if format in ["csr", "csc"]:
+            indptr = cupy.arange(n + 1, dtype="i")
+            indices = cupy.arange(n, dtype="i")
             data = cupy.ones(n, dtype=dtype)
-            if format == 'csr':
+            if format == "csr":
                 cls = _csr.csr_matrix
             else:
                 cls = _csc.csc_matrix
             return cls((data, indices, indptr), (n, n))
 
-        elif format == 'coo':
-            row = cupy.arange(n, dtype='i')
-            col = cupy.arange(n, dtype='i')
+        elif format == "coo":
+            row = cupy.arange(n, dtype="i")
+            col = cupy.arange(n, dtype="i")
             data = cupy.ones(n, dtype=dtype)
             return _coo.coo_matrix((data, (row, col)), (n, n))
 
@@ -51,7 +51,7 @@ def eye(m, n=None, k=0, dtype='d', format=None):
     return spdiags(diags, k, m, n).asformat(format)
 
 
-def identity(n, dtype='d', format=None):
+def identity(n, dtype="d", format=None):
     """Creates an identity matrix in sparse format.
 
     .. note::
@@ -97,19 +97,18 @@ def _compressed_sparse_stack(blocks, axis):
     other_axis = 1 if axis == 0 else 0
     data = cupy.concatenate([b.data for b in blocks])
     constant_dim = blocks[0].shape[other_axis]
-    idx_dtype = _sputils.get_index_dtype(arrays=[b.indptr for b in blocks],
-                                         maxval=max(data.size, constant_dim))
+    idx_dtype = _sputils.get_index_dtype(
+        arrays=[b.indptr for b in blocks], maxval=max(data.size, constant_dim)
+    )
     indices = cupy.empty(data.size, dtype=idx_dtype)
-    indptr = cupy.empty(sum(b.shape[axis]
-                            for b in blocks) + 1, dtype=idx_dtype)
+    indptr = cupy.empty(sum(b.shape[axis] for b in blocks) + 1, dtype=idx_dtype)
     last_indptr = idx_dtype(0)
     sum_dim = 0
     sum_indices = 0
     for b in blocks:
         if b.shape[other_axis] != constant_dim:
-            raise ValueError(
-                'incompatible dimensions for axis %d' % other_axis)
-        indices[sum_indices:sum_indices+b.indices.size] = b.indices
+            raise ValueError("incompatible dimensions for axis %d" % other_axis)
+        indices[sum_indices : sum_indices + b.indices.size] = b.indices
         sum_indices += b.indices.size
         idxs = slice(sum_dim, sum_dim + b.shape[axis])
         indptr[idxs] = b.indptr[:-1]
@@ -118,11 +117,9 @@ def _compressed_sparse_stack(blocks, axis):
         last_indptr += b.indptr[-1]
     indptr[-1] = last_indptr
     if axis == 0:
-        return _csr.csr_matrix((data, indices, indptr),
-                               shape=(sum_dim, constant_dim))
+        return _csr.csr_matrix((data, indices, indptr), shape=(sum_dim, constant_dim))
     else:
-        return _csc.csc_matrix((data, indices, indptr),
-                               shape=(constant_dim, sum_dim))
+        return _csc.csc_matrix((data, indices, indptr), shape=(constant_dim, sum_dim))
 
 
 def hstack(blocks, format=None, dtype=None):
@@ -244,23 +241,28 @@ def bmat(blocks, format=None, dtype=None):
         return _coo.coo_matrix((0, 0), dtype=dtype)
 
     # check for fast path cases
-    if (N == 1 and format in (None, 'csr') and
-            all(isinstance(b, _csr.csr_matrix)
-                for b in blocks_flat)):
+    if (
+        N == 1
+        and format in (None, "csr")
+        and all(isinstance(b, _csr.csr_matrix) for b in blocks_flat)
+    ):
         A = _compressed_sparse_stack(blocks_flat, 0)
         if dtype is not None:
             A = A.astype(dtype)
         return A
-    elif (M == 1 and format in (None, 'csc')
-          and all(isinstance(b, _csc.csc_matrix) for b in blocks_flat)):
+    elif (
+        M == 1
+        and format in (None, "csc")
+        and all(isinstance(b, _csc.csc_matrix) for b in blocks_flat)
+    ):
         A = _compressed_sparse_stack(blocks_flat, 1)
         if dtype is not None:
             A = A.astype(dtype)
         return A
 
     block_mask = numpy.zeros((M, N), dtype=bool)
-    brow_lengths = numpy.zeros(M+1, dtype=numpy.int64)
-    bcol_lengths = numpy.zeros(N+1, dtype=numpy.int64)
+    brow_lengths = numpy.zeros(M + 1, dtype=numpy.int64)
+    bcol_lengths = numpy.zeros(N + 1, dtype=numpy.int64)
 
     # convert everything to COO format
     for i in range(M):
@@ -270,24 +272,28 @@ def bmat(blocks, format=None, dtype=None):
                 blocks[i][j] = A
                 block_mask[i][j] = True
 
-                if brow_lengths[i+1] == 0:
-                    brow_lengths[i+1] = A.shape[0]
-                elif brow_lengths[i+1] != A.shape[0]:
-                    msg = ('blocks[{i},:] has incompatible row dimensions. '
-                           'Got blocks[{i},{j}].shape[0] == {got}, '
-                           'expected {exp}.'.format(i=i, j=j,
-                                                    exp=brow_lengths[i+1],
-                                                    got=A.shape[0]))
+                if brow_lengths[i + 1] == 0:
+                    brow_lengths[i + 1] = A.shape[0]
+                elif brow_lengths[i + 1] != A.shape[0]:
+                    msg = (
+                        "blocks[{i},:] has incompatible row dimensions. "
+                        "Got blocks[{i},{j}].shape[0] == {got}, "
+                        "expected {exp}.".format(
+                            i=i, j=j, exp=brow_lengths[i + 1], got=A.shape[0]
+                        )
+                    )
                     raise ValueError(msg)
 
-                if bcol_lengths[j+1] == 0:
-                    bcol_lengths[j+1] = A.shape[1]
-                elif bcol_lengths[j+1] != A.shape[1]:
-                    msg = ('blocks[:,{j}] has incompatible row dimensions. '
-                           'Got blocks[{i},{j}].shape[1] == {got}, '
-                           'expected {exp}.'.format(i=i, j=j,
-                                                    exp=bcol_lengths[j+1],
-                                                    got=A.shape[1]))
+                if bcol_lengths[j + 1] == 0:
+                    bcol_lengths[j + 1] = A.shape[1]
+                elif bcol_lengths[j + 1] != A.shape[1]:
+                    msg = (
+                        "blocks[:,{j}] has incompatible row dimensions. "
+                        "Got blocks[{i},{j}].shape[1] == {got}, "
+                        "expected {exp}.".format(
+                            i=i, j=j, exp=bcol_lengths[j + 1], got=A.shape[1]
+                        )
+                    )
                     raise ValueError(msg)
 
     nnz = sum(block.nnz for block in blocks_flat)
@@ -318,8 +324,9 @@ def bmat(blocks, format=None, dtype=None):
     return _coo.coo_matrix((data, (row, col)), shape=shape).asformat(format)
 
 
-def random(m, n, density=0.01, format='coo', dtype=None,
-           random_state=None, data_rvs=None):
+def random(
+    m, n, density=0.01, format="coo", dtype=None, random_state=None, data_rvs=None
+):
     """Generates a random sparse matrix.
 
     This function generates a random sparse matrix. First it selects non-zero
@@ -349,10 +356,10 @@ def random(m, n, density=0.01, format='coo', dtype=None,
 
     """
     if density < 0 or density > 1:
-        raise ValueError('density expected to be 0 <= density <= 1')
+        raise ValueError("density expected to be 0 <= density <= 1")
     dtype = cupy.dtype(dtype)
-    if dtype.char not in 'fd':
-        raise NotImplementedError('type %s not supported' % dtype)
+    if dtype.char not in "fd":
+        raise NotImplementedError("type %s not supported" % dtype)
 
     mn = m * n
 
@@ -370,11 +377,10 @@ def random(m, n, density=0.01, format='coo', dtype=None,
     j = ind // m
     i = ind - j * m
     vals = data_rvs(k).astype(dtype)
-    return _coo.coo_matrix(
-        (vals, (i, j)), shape=(m, n)).asformat(format)
+    return _coo.coo_matrix((vals, (i, j)), shape=(m, n)).asformat(format)
 
 
-def rand(m, n, density=0.01, format='coo', dtype=None, random_state=None):
+def rand(m, n, density=0.01, format="coo", dtype=None, random_state=None):
     """Generates a random sparse matrix.
 
     See :func:`cupyx.scipy.sparse.random` for detail.
@@ -444,7 +450,7 @@ def diags(diagonals, offsets=0, shape=None, format=None, dtype=None):
         if len(diagonals) == 0 or _sputils.isscalarlike(diagonals[0]):
             diagonals = [cupy.atleast_1d(diagonals)]
         else:
-            raise ValueError('Different number of diagonals and offsets.')
+            raise ValueError("Different number of diagonals and offsets.")
     else:
         diagonals = list(map(cupy.atleast_1d, diagonals))
 
@@ -454,7 +460,7 @@ def diags(diagonals, offsets=0, shape=None, format=None, dtype=None):
 
     # Basic check
     if len(diagonals) != len(offsets):
-        raise ValueError('Different number of diagonals and offsets.')
+        raise ValueError("Different number of diagonals and offsets.")
 
     # Determine shape, if omitted
     if shape is None:
@@ -468,8 +474,7 @@ def diags(diagonals, offsets=0, shape=None, format=None, dtype=None):
     # Construct data array
     m, n = shape
 
-    M = max([min(m + offset, n - offset) + max(0, offset)
-             for offset in offsets])
+    M = max([min(m + offset, n - offset) + max(0, offset) for offset in offsets])
     M = max(0, M)
     data_arr = cupy.zeros((len(offsets), M), dtype=dtype)
 
@@ -480,16 +485,16 @@ def diags(diagonals, offsets=0, shape=None, format=None, dtype=None):
         k = max(0, offset)
         length = min(m + offset, n - offset, K)
         if length < 0:
-            raise ValueError(
-                'Offset %d (index %d) out of bounds' % (offset, j))
+            raise ValueError("Offset %d (index %d) out of bounds" % (offset, j))
         try:
-            data_arr[j, k:k+length] = diagonal[..., :length]
+            data_arr[j, k : k + length] = diagonal[..., :length]
         except ValueError:
             if len(diagonal) != length and len(diagonal) != 1:
                 raise ValueError(
-                    'Diagonal length (index %d: %d at offset %d) does not '
-                    'agree with matrix size (%d, %d).' % (
-                        j, len(diagonal), offset, m, n))
+                    "Diagonal length (index %d: %d at offset %d) does not "
+                    "agree with matrix size (%d, %d)."
+                    % (j, len(diagonal), offset, m, n)
+                )
             raise
 
     return _dia.dia_matrix((data_arr, offsets), shape=(m, n)).asformat(format)
@@ -522,7 +527,7 @@ def kron(A, B, format=None):
         # kronecker product is the zero matrix
         return _coo.coo_matrix(out_shape).asformat(format)
 
-    if max(out_shape[0], out_shape[1]) > cupy.iinfo('int32').max:
+    if max(out_shape[0], out_shape[1]) > cupy.iinfo("int32").max:
         dtype = cupy.int64
     else:
         dtype = cupy.int32
@@ -544,8 +549,7 @@ def kron(A, B, format=None):
     data = data.reshape(-1, B.nnz) * B.data
     data = data.ravel()
 
-    return _coo.coo_matrix(
-        (data, (row, col)), shape=out_shape).asformat(format)
+    return _coo.coo_matrix((data, (row, col)), shape=out_shape).asformat(format)
 
 
 def kronsum(A, B, format=None):
@@ -571,10 +575,10 @@ def kronsum(A, B, format=None):
     B = _coo.coo_matrix(B)
 
     if A.shape[0] != A.shape[1]:
-        raise ValueError('A is not square matrix')
+        raise ValueError("A is not square matrix")
 
     if B.shape[0] != B.shape[1]:
-        raise ValueError('B is not square matrix')
+        raise ValueError("B is not square matrix")
 
     dtype = _sputils.upcast(A.dtype, B.dtype)
 

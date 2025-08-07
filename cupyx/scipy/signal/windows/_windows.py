@@ -1468,8 +1468,7 @@ def kaiser_bessel_derived(M, beta, sym=True):
     """
     if not sym:
         raise ValueError(
-            "Kaiser-Bessel Derived windows are only defined for symmetric "
-            "shapes"
+            "Kaiser-Bessel Derived windows are only defined for symmetric " "shapes"
         )
     elif M < 1:
         return np.array([])
@@ -1786,11 +1785,11 @@ def chebwin(M, at, sym=True):
         w = cupy.real(cupy.fft.fft(p))
         n = (M + 1) // 2
         w = w[:n]
-        w = cupy.concatenate((w[n - 1: 0: -1], w))
+        w = cupy.concatenate((w[n - 1 : 0 : -1], w))
     else:
         w = cupy.real(cupy.fft.fft(p))
         n = M // 2 + 1
-        w = cupy.concatenate((w[n - 1: 0: -1], w[1:n]))
+        w = cupy.concatenate((w[n - 1 : 0 : -1], w[1:n]))
 
     w = w / cupy.max(w)
 
@@ -2089,8 +2088,7 @@ def taylor(M, nbar=4, sll=30, norm=True, sym=True):
     m2 = ma * ma
     for mi, _ in enumerate(ma):
         numer = signs[mi] * np.prod(1 - m2[mi] / s2 / (A**2 + (ma - 0.5) ** 2))
-        denom = 2 * np.prod(1 - m2[mi] / m2[:mi]) * \
-            np.prod(1 - m2[mi] / m2[mi + 1:])
+        denom = 2 * np.prod(1 - m2[mi] / m2[:mi]) * np.prod(1 - m2[mi] / m2[mi + 1 :])
         Fm[mi] = numer / denom
 
     w = _taylor_kernel(nbar, cupy.asarray(Fm), norm, size=M)
@@ -2144,13 +2142,13 @@ def lanczos(M, sym=True):
     # half of the window and the flipped one which is the left hand half of
     # the window.
     def _calc_right_side_lanczos(n, m):
-        return cupy.sinc(2. * cupy.arange(n, m) / (m - 1) - 1.0)
+        return cupy.sinc(2.0 * cupy.arange(n, m) / (m - 1) - 1.0)
 
     if M % 2 == 0:
-        wh = _calc_right_side_lanczos(M/2, M)
+        wh = _calc_right_side_lanczos(M / 2, M)
         w = cupy.r_[cupy.flip(wh), wh]
     else:
-        wh = _calc_right_side_lanczos((M+1)/2, M)
+        wh = _calc_right_side_lanczos((M + 1) / 2, M)
         w = cupy.r_[cupy.flip(wh), 1.0, wh]
 
     return _truncate(w, needs_trunc)
@@ -2179,7 +2177,7 @@ _win_equiv_raw = {
     ("cosine", "halfcosine"): (cosine, False),
     ("exponential", "poisson"): (exponential, True),
     ("flattop", "flat", "flt"): (flattop, False),
-    ('general cosine', 'general_cosine'): (general_cosine, True),
+    ("general cosine", "general_cosine"): (general_cosine, True),
     ("gaussian", "gauss", "gss"): (gaussian, True),
     (
         "general gaussian",
@@ -2188,12 +2186,12 @@ _win_equiv_raw = {
         "general_gauss",
         "ggs",
     ): (general_gaussian, True),
-    ('general hamming', 'general_hamming'): (general_hamming, True),
+    ("general hamming", "general_hamming"): (general_hamming, True),
     ("hamming", "hamm", "ham"): (hamming, False),
     ("hanning", "hann", "han"): (hann, False),
-    ('lanczos', 'sinc'): (lanczos, False),
+    ("lanczos", "sinc"): (lanczos, False),
     ("kaiser", "ksr"): (kaiser, True),
-    ('kaiser bessel derived', 'kbd'): (kaiser_bessel_derived, True),
+    ("kaiser bessel derived", "kbd"): (kaiser_bessel_derived, True),
     ("nuttall", "nutl", "nut"): (nuttall, False),
     ("parzen", "parz", "par"): (parzen, False),
     # ('slepian', 'slep', 'optimal', 'dpss', 'dss'): (slepian, True),
@@ -2302,8 +2300,7 @@ def get_window(window, Nx, fftbins=True):
             else:
                 winstr = window
         else:
-            raise ValueError(
-                "%s as window type is not supported." % str(type(window)))
+            raise ValueError("%s as window type is not supported." % str(type(window)))
 
         try:
             winfunc = _win_equiv[winstr]

@@ -10,12 +10,12 @@ from cupy import testing
 from cupy.exceptions import AxisError
 
 
-@testing.parameterize(*(testing.product({'axis': [0, 1, -1]})))
+@testing.parameterize(*(testing.product({"axis": [0, 1, -1]})))
 class TestApplyAlongAxis(unittest.TestCase):
 
     @testing.numpy_cupy_array_equal()
     def test_simple(self, xp):
-        a = xp.ones((20, 10), 'd')
+        a = xp.ones((20, 10), "d")
         return xp.apply_along_axis(len, self.axis, a)
 
     @testing.for_all_dtypes(no_bool=True)
@@ -28,7 +28,7 @@ class TestApplyAlongAxis(unittest.TestCase):
     def test_0d_array(self, xp):
 
         def sum_to_0d(x):
-            """ Sum x, returning a 0d array of the same class """
+            """Sum x, returning a 0d array of the same class"""
             assert x.ndim == 1
             return xp.squeeze(xp.sum(x, keepdims=True))
 
@@ -41,7 +41,7 @@ class TestApplyAlongAxis(unittest.TestCase):
         def f1to2(x):
             """produces an asymmetric non-square matrix from x"""
             assert x.ndim == 1
-            return (x[::-1] * x[1:, None])
+            return x[::-1] * x[1:, None]
 
         # 2d insertion
         a2d = xp.arange(6 * 3).reshape((6, 3))
@@ -53,7 +53,7 @@ class TestApplyAlongAxis(unittest.TestCase):
         def f1to2(x):
             """produces an asymmetric non-square matrix from x"""
             assert x.ndim == 1
-            return (x[::-1] * x[1:, None])
+            return x[::-1] * x[1:, None]
 
         # 3d insertion
         a3d = xp.arange(6 * 5 * 3).reshape((6, 5, 3))
@@ -89,8 +89,7 @@ class TestApplyAlongAxis(unittest.TestCase):
 
             # okay to call along the shape 0 axis
             testing.assert_array_equal(
-                xp.apply_along_axis(empty_to_1, self.axis, a),
-                xp.ones((10,))
+                xp.apply_along_axis(empty_to_1, self.axis, a), xp.ones((10,))
             )
 
     @testing.numpy_cupy_array_equal()
@@ -102,7 +101,7 @@ class TestApplyAlongAxis(unittest.TestCase):
         return xp.apply_along_axis(func, 1, a)
 
 
-@testing.with_requires('numpy>=1.16')
+@testing.with_requires("numpy>=1.16")
 def test_apply_along_axis_invalid_axis():
     for xp in [numpy, cupy]:
         a = xp.ones((8, 4))
@@ -178,9 +177,13 @@ class TestPutAlongAxis(unittest.TestCase):
                 xp.put_along_axis(a, i_max, -99, axis=1)
 
 
-@testing.parameterize(*testing.product({
-    'axis': [0, 1],
-}))
+@testing.parameterize(
+    *testing.product(
+        {
+            "axis": [0, 1],
+        }
+    )
+)
 class TestPutAlongAxes(unittest.TestCase):
 
     def test_replace_max(self):

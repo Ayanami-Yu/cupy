@@ -27,9 +27,9 @@ from cupyx._gufunc import GeneralizedUFunc  # NOQA
 
 
 def __getattr__(key):
-    if key == 'lapack':
+    if key == "lapack":
         import cupyx.lapack
+
         return cupyx.lapack
 
-    raise AttributeError(
-        "module '{}' has no attribute '{}'".format(__name__, key))
+    raise AttributeError("module '{}' has no attribute '{}'".format(__name__, key))

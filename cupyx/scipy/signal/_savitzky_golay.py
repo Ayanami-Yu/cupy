@@ -30,8 +30,7 @@ def _polyval(p, x):
     return y
 
 
-def savgol_coeffs(window_length, polyorder, deriv=0, delta=1.0, pos=None,
-                  use="conv"):
+def savgol_coeffs(window_length, polyorder, deriv=0, delta=1.0, pos=None, use="conv"):
     """Compute the coefficients for a 1-D Savitzky-Golay FIR filter.
 
     Parameters
@@ -132,10 +131,9 @@ def savgol_coeffs(window_length, polyorder, deriv=0, delta=1.0, pos=None,
             pos = halflen
 
     if not (0 <= pos < window_length):
-        raise ValueError("pos must be nonnegative and less than "
-                         "window_length.")
+        raise ValueError("pos must be nonnegative and less than " "window_length.")
 
-    if use not in ['conv', 'dot']:
+    if use not in ["conv", "dot"]:
         raise ValueError("`use` must be 'conv' or 'dot'")
 
     if deriv > polyorder:
@@ -153,13 +151,13 @@ def savgol_coeffs(window_length, polyorder, deriv=0, delta=1.0, pos=None,
         x = x[::-1]
 
     order = cupy.arange(polyorder + 1).reshape(-1, 1)
-    A = x ** order
+    A = x**order
 
     # y determines which order derivative is returned.
     y = cupy.zeros(polyorder + 1)
     # The coefficient assigned to y[deriv] scales the result to take into
     # account the order of the derivative and the sample spacing.
-    y[deriv] = float_factorial(deriv) / (delta ** deriv)
+    y[deriv] = float_factorial(deriv) / (delta**deriv)
 
     # Find the least-squares solution of A*c = y
     coeffs, _, _, _ = lstsq(A, y, rcond=None)
@@ -191,8 +189,18 @@ def _polyder(p, m):
     return result
 
 
-def _fit_edge(x, window_start, window_stop, interp_start, interp_stop,
-              axis, polyorder, deriv, delta, y):
+def _fit_edge(
+    x,
+    window_start,
+    window_stop,
+    interp_start,
+    interp_stop,
+    axis,
+    polyorder,
+    deriv,
+    delta,
+    y,
+):
     """
     Given an N-d array `x` and the specification of a slice of `x` from
     `window_start` to `window_stop` along `axis`, create an interpolating
@@ -213,15 +221,16 @@ def _fit_edge(x, window_start, window_stop, interp_start, interp_stop,
 
     # Fit the edges.  poly_coeffs has shape (polyorder + 1, -1),
     # where '-1' is the same as in xx_edge.
-    poly_coeffs = cupy.polyfit(cupy.arange(0, window_stop - window_start),
-                               xx_edge, polyorder)
+    poly_coeffs = cupy.polyfit(
+        cupy.arange(0, window_stop - window_start), xx_edge, polyorder
+    )
 
     if deriv > 0:
         poly_coeffs = _polyder(poly_coeffs, deriv)
 
     # Compute the interpolated values for the edge.
     i = cupy.arange(interp_start - window_start, interp_stop - window_start)
-    values = _polyval(poly_coeffs, i.reshape(-1, 1)) / (delta ** deriv)
+    values = _polyval(poly_coeffs, i.reshape(-1, 1)) / (delta**deriv)
 
     # Now put the values into the appropriate slice of y.
     # First reshape values to match y.
@@ -243,16 +252,15 @@ def _fit_edges_polyfit(x, window_length, polyorder, deriv, delta, axis, y):
     This function just calls _fit_edge twice, once for each end of the axis.
     """
     halflen = window_length // 2
-    _fit_edge(x, 0, window_length, 0, halflen, axis,
-              polyorder, deriv, delta, y)
+    _fit_edge(x, 0, window_length, 0, halflen, axis, polyorder, deriv, delta, y)
     n = x.shape[axis]
-    _fit_edge(x, n - window_length, n, n - halflen, n, axis,
-              polyorder, deriv, delta, y)
+    _fit_edge(x, n - window_length, n, n - halflen, n, axis, polyorder, deriv, delta, y)
 
 
-def savgol_filter(x, window_length, polyorder, deriv=0, delta=1.0,
-                  axis=-1, mode='interp', cval=0.0):
-    """ Apply a Savitzky-Golay filter to an array.
+def savgol_filter(
+    x, window_length, polyorder, deriv=0, delta=1.0, axis=-1, mode="interp", cval=0.0
+):
+    """Apply a Savitzky-Golay filter to an array.
 
     This is a 1-D filter. If `x`  has dimension greater than 1, `axis`
     determines the axis along which the filter is applied.
@@ -353,8 +361,9 @@ def savgol_filter(x, window_length, polyorder, deriv=0, delta=1.0,
 
     """
     if mode not in ["mirror", "constant", "nearest", "interp", "wrap"]:
-        raise ValueError("mode must be 'mirror', 'constant', 'nearest' "
-                         "'wrap' or 'interp'.")
+        raise ValueError(
+            "mode must be 'mirror', 'constant', 'nearest' " "'wrap' or 'interp'."
+        )
 
     x = cupy.asarray(x)
     # Ensure that x is either single or double precision floating point.
@@ -365,8 +374,10 @@ def savgol_filter(x, window_length, polyorder, deriv=0, delta=1.0,
 
     if mode == "interp":
         if window_length > x.shape[axis]:
-            raise ValueError("If mode is 'interp', window_length must be less "
-                             "than or equal to the size of x.")
+            raise ValueError(
+                "If mode is 'interp', window_length must be less "
+                "than or equal to the size of x."
+            )
 
         # Do not pad. Instead, for the elements within `window_length // 2`
         # of the ends of the sequence, use the polynomial that is fitted to

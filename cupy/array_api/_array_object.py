@@ -60,6 +60,7 @@ class Array:
     functions, such as asarray().
 
     """
+
     _array: np.ndarray
 
     # Use a custom constructor instead of __init__, as manually initializing
@@ -112,7 +113,9 @@ class Array:
             mid = str(self.shape)
         else:
             prefix = "Array("
-            mid = np.array2string(np.asnumpy(self._array), separator=', ', prefix=prefix, suffix=suffix)
+            mid = np.array2string(
+                np.asnumpy(self._array), separator=", ", prefix=prefix, suffix=suffix
+            )
         return prefix + mid + suffix
 
     def __cupy_get_ndarray__(self):
@@ -122,7 +125,9 @@ class Array:
     # spec in places where it either deviates from or is more strict than
     # NumPy behavior
 
-    def _check_allowed_dtypes(self, other: Union[bool, int, float, Array], dtype_category: str, op: str) -> Array:
+    def _check_allowed_dtypes(
+        self, other: Union[bool, int, float, Array], dtype_category: str, op: str
+    ) -> Array:
         """
         Helper function for operators to only allow specific input dtypes
 
@@ -348,9 +353,7 @@ class Array:
                         break
             assert ellipsis_start is not None  # sanity check
             ellipsis_end = self.ndim - (n_single_axes - ellipsis_start)
-            indexed_shape = (
-                self.shape[:ellipsis_start] + self.shape[ellipsis_end:]
-            )
+            indexed_shape = self.shape[:ellipsis_start] + self.shape[ellipsis_end:]
         for i, side in zip(single_axes, indexed_shape):
             if isinstance(i, slice):
                 if side == 0:
@@ -563,7 +566,9 @@ class Array:
         # TODO(leofang): just do this when CuPy is ready:
         # res = self._array.__index__()
         if self.ndim != 0 or self.dtype not in _integer_dtypes:
-            raise TypeError("only integer scalar arrays can be converted to a scalar index")
+            raise TypeError(
+                "only integer scalar arrays can be converted to a scalar index"
+            )
         return int(self._array)
 
     def __invert__(self: Array, /) -> Array:
@@ -1067,7 +1072,7 @@ class Array:
                 elif isinstance(stream, np.cuda.Stream):
                     pass
                 else:
-                    raise ValueError('the input stream is not recognized')
+                    raise ValueError("the input stream is not recognized")
                 stream.use()
             try:
                 runtime.setDevice(device.id)
@@ -1095,6 +1100,7 @@ class Array:
     @property
     def mT(self) -> Array:
         from .linalg import matrix_transpose
+
         return matrix_transpose(self)
 
     @property
@@ -1135,5 +1141,7 @@ class Array:
         # note in the specification:
         # https://data-apis.org/array-api/latest/API_specification/array_object.html#t
         if self.ndim != 2:
-            raise ValueError("x.T requires x to have 2 dimensions. Use x.mT to transpose stacks of matrices and permute_dims() to permute dimensions.")
+            raise ValueError(
+                "x.T requires x to have 2 dimensions. Use x.mT to transpose stacks of matrices and permute_dims() to permute dimensions."
+            )
         return self.__class__._new(self._array.T)

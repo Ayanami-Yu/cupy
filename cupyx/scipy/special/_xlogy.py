@@ -21,14 +21,19 @@ static __device__ T xlogy(T x, T y) {
 
 # Note: SciPy only defines dd->d and DD->D
 xlogy = _core.create_ufunc(
-    'cupy_xlogy',
-    (('ee->d', 'out0 = out0_type(xlogy(double(in0), double(in1)))'),
-     ('ll->d', 'out0 = out0_type(xlogy(double(in0), double(in1)))'),
-     ('LL->d', 'out0 = out0_type(xlogy(double(in0), double(in1)))'),
-     'ff->f', 'dd->d', 'FF->F', 'DD->D'),
-    'out0 = out0_type(xlogy(in0, in1))',
+    "cupy_xlogy",
+    (
+        ("ee->d", "out0 = out0_type(xlogy(double(in0), double(in1)))"),
+        ("ll->d", "out0 = out0_type(xlogy(double(in0), double(in1)))"),
+        ("LL->d", "out0 = out0_type(xlogy(double(in0), double(in1)))"),
+        "ff->f",
+        "dd->d",
+        "FF->F",
+        "DD->D",
+    ),
+    "out0 = out0_type(xlogy(in0, in1))",
     preamble=xlogy_definition,
-    doc='''Compute ``x*log(y)`` so that the result is 0 if ``x = 0``.
+    doc="""Compute ``x*log(y)`` so that the result is 0 if ``x = 0``.
 
     Args:
         x (cupy.ndarray): input data
@@ -38,7 +43,8 @@ xlogy = _core.create_ufunc(
 
     .. seealso:: :data:`scipy.special.xlogy`
 
-    ''')
+    """,
+)
 
 
 xlog1py_definition = """
@@ -56,14 +62,19 @@ static __device__ T xlog1py(T x, T y) {
 
 # Note: SciPy only defines dd->d and DD->D
 xlog1py = _core.create_ufunc(
-    'cupy_xlog1py',
-    (('ee->d', 'out0 = out0_type(xlog1py(double(in0), double(in1)))'),
-     ('ll->d', 'out0 = out0_type(xlog1py(double(in0), double(in1)))'),
-     ('LL->d', 'out0 = out0_type(xlog1py(double(in0), double(in1)))'),
-     'ff->f', 'dd->d', 'FF->F', 'DD->D'),
-    'out0 = out0_type(xlog1py(in0, in1))',
+    "cupy_xlog1py",
+    (
+        ("ee->d", "out0 = out0_type(xlog1py(double(in0), double(in1)))"),
+        ("ll->d", "out0 = out0_type(xlog1py(double(in0), double(in1)))"),
+        ("LL->d", "out0 = out0_type(xlog1py(double(in0), double(in1)))"),
+        "ff->f",
+        "dd->d",
+        "FF->F",
+        "DD->D",
+    ),
+    "out0 = out0_type(xlog1py(in0, in1))",
     preamble=xlog1py_definition,
-    doc='''Compute ``x*log1p(y)`` so that the result is 0 if ``x = 0``.
+    doc="""Compute ``x*log1p(y)`` so that the result is 0 if ``x = 0``.
 
     Args:
         x (cupy.ndarray): input data
@@ -73,4 +84,5 @@ xlog1py = _core.create_ufunc(
 
     .. seealso:: :data:`scipy.special.xlog1py`
 
-    ''')
+    """,
+)

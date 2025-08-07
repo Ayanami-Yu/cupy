@@ -12,7 +12,7 @@ from cupyx.scipy.sparse import csr_matrix
 from cupyx.scipy.sparse.linalg import spsolve
 
 
-TYPES = ['double', 'thrust::complex<double>']
+TYPES = ["double", "thrust::complex<double>"]
 
 NDBSPL_DEF = r"""
 #include <cupy/complex.cuh>
@@ -241,14 +241,16 @@ __global__ void store_nd_bsplines(
 """
 
 NDBSPL_MOD = cupy.RawModule(
-    code=NDBSPL_DEF, options=('-std=c++11',),
-    name_expressions=['compute_nd_bsplines', 'store_nd_bsplines'] +
-                     [f'eval_nd_bspline<{t}>' for t in TYPES])
+    code=NDBSPL_DEF,
+    options=("-std=c++11",),
+    name_expressions=["compute_nd_bsplines", "store_nd_bsplines"]
+    + [f"eval_nd_bspline<{t}>" for t in TYPES],
+)
 
 
 def evaluate_ndbspline(
-        xi, t, len_t, k, nu, extrapolate, c1r, num_c_tr,
-        strides_c1, indices_k1d, out):
+    xi, t, len_t, k, nu, extrapolate, c1r, num_c_tr, strides_c1, indices_k1d, out
+):
     """Evaluate an N-dim tensor product spline or its derivative.
 
     Parameters
@@ -325,20 +327,53 @@ def evaluate_ndbspline(
     max_k = k.max()
     volume = cupy.prod(k + 1)
     intervals = cupy.empty((xi.shape[0], t.shape[0]), dtype=cupy.int64)
-    splines = cupy.empty((xi.shape[0], t.shape[0], 2 * max_k.item() + 2),
-                         dtype=cupy.float64)
+    splines = cupy.empty(
+        (xi.shape[0], t.shape[0], 2 * max_k.item() + 2), dtype=cupy.float64
+    )
     invalid = cupy.zeros(xi.shape[0], dtype=cupy.bool_)
 
-    compute_nd_bsplines = NDBSPL_MOD.get_function('compute_nd_bsplines')
-    compute_nd_bsplines((512,), (128,), (
-        xi, xi.shape[0], t, len_t, xi.shape[1], t.shape[1], k, max_k,
-        nu, extrapolate, True, intervals, splines, invalid
-    ))
+    compute_nd_bsplines = NDBSPL_MOD.get_function("compute_nd_bsplines")
+    compute_nd_bsplines(
+        (512,),
+        (128,),
+        (
+            xi,
+            xi.shape[0],
+            t,
+            len_t,
+            xi.shape[1],
+            t.shape[1],
+            k,
+            max_k,
+            nu,
+            extrapolate,
+            True,
+            intervals,
+            splines,
+            invalid,
+        ),
+    )
 
-    eval_nd_bspline = _get_module_func(NDBSPL_MOD, 'eval_nd_bspline', c1r)
-    eval_nd_bspline((512,), (128,), (
-        indices_k1d, strides_c1, splines, intervals, k, invalid, c1r, volume,
-        xi.shape[1], num_c_tr, xi.shape[0], max_k, out))
+    eval_nd_bspline = _get_module_func(NDBSPL_MOD, "eval_nd_bspline", c1r)
+    eval_nd_bspline(
+        (512,),
+        (128,),
+        (
+            indices_k1d,
+            strides_c1,
+            splines,
+            intervals,
+            k,
+            invalid,
+            c1r,
+            volume,
+            xi.shape[1],
+            num_c_tr,
+            xi.shape[0],
+            max_k,
+            out,
+        ),
+    )
 
 
 def colloc_nd(xvals, t, len_t, k):
@@ -394,8 +429,9 @@ def colloc_nd(xvals, t, len_t, k):
     cpu_volume = volume.get()
 
     intervals = cupy.empty((xvals.shape[0], t.shape[0]), dtype=cupy.int64)
-    splines = cupy.empty((xvals.shape[0], t.shape[0], 2 * max_k.item() + 2),
-                         dtype=cupy.float64)
+    splines = cupy.empty(
+        (xvals.shape[0], t.shape[0], 2 * max_k.item() + 2), dtype=cupy.float64
+    )
     invalid = cupy.zeros(512, dtype=cupy.bool_)
     nu = cupy.zeros(ndim, dtype=cupy.int64)
 
@@ -422,23 +458,51 @@ def colloc_nd(xvals, t, len_t, k):
     # >>> matr = cupy.zeros((size, max_row_index), dtype=float)
     csr_indices = cupy.empty(shape=(size * cpu_volume,), dtype=cupy.int64)
     csr_data = cupy.empty(shape=(size * cpu_volume,), dtype=cupy.float64)
-    csr_indptr = cupy.arange(
-        0, cpu_volume * size + 1, cpu_volume, dtype=cupy.int64)
+    csr_indptr = cupy.arange(0, cpu_volume * size + 1, cpu_volume, dtype=cupy.int64)
 
-    compute_nd_bsplines = NDBSPL_MOD.get_function('compute_nd_bsplines')
-    compute_nd_bsplines((512,), (128,), (
-        xvals, xvals.shape[0], t, len_t, xvals.shape[1], t.shape[1], k, max_k,
-        nu, True, False, intervals, splines, invalid
-    ))
+    compute_nd_bsplines = NDBSPL_MOD.get_function("compute_nd_bsplines")
+    compute_nd_bsplines(
+        (512,),
+        (128,),
+        (
+            xvals,
+            xvals.shape[0],
+            t,
+            len_t,
+            xvals.shape[1],
+            t.shape[1],
+            k,
+            max_k,
+            nu,
+            True,
+            False,
+            intervals,
+            splines,
+            invalid,
+        ),
+    )
 
     if cupy.any(invalid).item():
-        raise ValueError('Out of bounds')
+        raise ValueError("Out of bounds")
 
-    store_nd_splines = NDBSPL_MOD.get_function('store_nd_bsplines')
-    store_nd_splines((512,), (128,), (
-        _indices_k1d, cstrides, splines, intervals, k, volume, int(ndim),
-        int(size), max_k, csr_indices, csr_data
-    ))
+    store_nd_splines = NDBSPL_MOD.get_function("store_nd_bsplines")
+    store_nd_splines(
+        (512,),
+        (128,),
+        (
+            _indices_k1d,
+            cstrides,
+            splines,
+            intervals,
+            k,
+            volume,
+            int(ndim),
+            int(size),
+            max_k,
+            csr_indices,
+            csr_data,
+        ),
+    )
     return csr_data, csr_indices, csr_indptr
 
 
@@ -516,32 +580,40 @@ class NdBSpline:
             kd = self.k[d]
             n = td.shape[0] - kd - 1
             if kd < 0:
-                raise ValueError(f"Spline degree in dimension {d} cannot be"
-                                 f" negative.")
+                raise ValueError(
+                    f"Spline degree in dimension {d} cannot be" f" negative."
+                )
             if td.ndim != 1:
-                raise ValueError(f"Knot vector in dimension {d} must be"
-                                 f" one-dimensional.")
+                raise ValueError(
+                    f"Knot vector in dimension {d} must be" f" one-dimensional."
+                )
             if n < kd + 1:
-                raise ValueError(f"Need at least {2*kd + 2} knots for degree"
-                                 f" {kd} in dimension {d}.")
+                raise ValueError(
+                    f"Need at least {2*kd + 2} knots for degree"
+                    f" {kd} in dimension {d}."
+                )
             if (cupy.diff(td) < 0).any():
-                raise ValueError(f"Knots in dimension {d} must be in a"
-                                 f" non-decreasing order.")
-            if len(cupy.unique(td[kd:n + 1])) < 2:
-                raise ValueError(f"Need at least two internal knots in"
-                                 f" dimension {d}.")
+                raise ValueError(
+                    f"Knots in dimension {d} must be in a" f" non-decreasing order."
+                )
+            if len(cupy.unique(td[kd : n + 1])) < 2:
+                raise ValueError(
+                    f"Need at least two internal knots in" f" dimension {d}."
+                )
             if not cupy.isfinite(td).all():
-                raise ValueError(f"Knots in dimension {d} should not have"
-                                 f" nans or infs.")
+                raise ValueError(
+                    f"Knots in dimension {d} should not have" f" nans or infs."
+                )
             if self.c.ndim < ndim:
-                raise ValueError(f"Coefficients must be at least"
-                                 f" {d}-dimensional.")
+                raise ValueError(f"Coefficients must be at least" f" {d}-dimensional.")
             if self.c.shape[d] != n:
-                raise ValueError(f"Knots, coefficients and degree in dimension"
-                                 f" {d} are inconsistent:"
-                                 f" got {self.c.shape[d]} coefficients for"
-                                 f" {len(td)} knots, need at least {n} for"
-                                 f" k={k}.")
+                raise ValueError(
+                    f"Knots, coefficients and degree in dimension"
+                    f" {d} are inconsistent:"
+                    f" got {self.c.shape[d]} coefficients for"
+                    f" {len(td)} knots, need at least {n} for"
+                    f" k={k}."
+                )
 
         dt = _get_dtype(self.c.dtype)
         self.c = cupy.ascontiguousarray(self.c, dtype=dt)
@@ -580,7 +652,8 @@ class NdBSpline:
             if nu.ndim != 1 or nu.shape[0] != ndim:
                 raise ValueError(
                     f"invalid number of derivative orders {nu=} for "
-                    f"ndim = {len(self.t)}.")
+                    f"ndim = {len(self.t)}."
+                )
             if cupy.any(nu < 0).item():
                 raise ValueError(f"derivatives must be positive, got {nu=}")
 
@@ -601,7 +674,7 @@ class NdBSpline:
         _t = cupy.empty((ndim, max(len_t)), dtype=float)
         _t.fill(cupy.nan)
         for d in range(ndim):
-            _t[d, :len(self.t[d])] = self.t[d]
+            _t[d, : len(self.t[d])] = self.t[d]
         len_t = cupy.asarray(len_t, dtype=cupy.int64)
 
         # tabulate the flat indices for iterating over the (k+1)**ndim subarray
@@ -614,23 +687,26 @@ class NdBSpline:
         c1r = c1.ravel()
 
         # replacement for cupy.ravel_multi_index for indexing of `c1`:
-        _strides_c1 = cupy.asarray([s // c1.dtype.itemsize
-                                    for s in c1.strides], dtype=cupy.int64)
+        _strides_c1 = cupy.asarray(
+            [s // c1.dtype.itemsize for s in c1.strides], dtype=cupy.int64
+        )
 
         num_c_tr = c1.shape[-1]  # # of trailing coefficients
         out = cupy.empty(xi.shape[:-1] + (num_c_tr,), dtype=c1.dtype)
 
-        evaluate_ndbspline(xi,
-                           _t,
-                           len_t,
-                           _k,
-                           nu,
-                           extrapolate,
-                           c1r,
-                           num_c_tr,
-                           _strides_c1,
-                           _indices_k1d,
-                           out,)
+        evaluate_ndbspline(
+            xi,
+            _t,
+            len_t,
+            _k,
+            nu,
+            extrapolate,
+            c1r,
+            num_c_tr,
+            _strides_c1,
+            _indices_k1d,
+            out,
+        )
 
         return out.reshape(xi_shape[:-1] + self.c.shape[ndim:])
 
@@ -662,20 +738,19 @@ class NdBSpline:
         ndim = xvals.shape[-1]
         if len(t) != ndim:
             raise ValueError(
-                f"Data and knots are inconsistent: len(t) = {len(t)} for "
-                f" {ndim=}."
+                f"Data and knots are inconsistent: len(t) = {len(t)} for " f" {ndim=}."
             )
         try:
             len(k)
         except TypeError:
             # make k a tuple
-            k = (k,)*ndim
+            k = (k,) * ndim
 
         len_t = [len(ti) for ti in t]
         _t = cupy.empty((ndim, max(len_t)), dtype=float)
         _t.fill(cupy.nan)
         for d in range(ndim):
-            _t[d, :len(t[d])] = t[d]
+            _t[d, : len(t[d])] = t[d]
         len_t = cupy.asarray(len_t, dtype=cupy.int64)
 
         kk = cupy.asarray(k, dtype=cupy.int64)
@@ -721,19 +796,21 @@ def make_ndbspl(points, values, k=3):
         len(k)
     except TypeError:
         # make k a tuple
-        k = (k,)*ndim
+        k = (k,) * ndim
 
     for d, point in enumerate(points):
         numpts = len(cupy.atleast_1d(point))
         if numpts <= k[d]:
-            raise ValueError(f"There are {numpts} points in dimension {d},"
-                             f" but order {k[d]} requires at least "
-                             f" {k[d]+1} points per dimension.")
+            raise ValueError(
+                f"There are {numpts} points in dimension {d},"
+                f" but order {k[d]} requires at least "
+                f" {k[d]+1} points per dimension."
+            )
 
-    t = tuple(_not_a_knot(cupy.asarray(
-        points[d], dtype=float), k[d]) for d in range(ndim))
-    xvals = cupy.asarray(
-        [xv for xv in itertools.product(*points)], dtype=float)
+    t = tuple(
+        _not_a_knot(cupy.asarray(points[d], dtype=float), k[d]) for d in range(ndim)
+    )
+    xvals = cupy.asarray([xv for xv in itertools.product(*points)], dtype=float)
 
     # construct the colocation matrix
     matr = NdBSpline.design_matrix(xvals, t, k)
@@ -748,8 +825,7 @@ def make_ndbspl(points, values, k=3):
 
     if cupy.issubdtype(vals.dtype, cupy.complexfloating):
         # avoid upcasting the l.h.s. to complex (that doubles the memory)
-        coef = (spsolve(matr, vals.real) +
-                spsolve(matr, vals.imag) * 1.j)
+        coef = spsolve(matr, vals.real) + spsolve(matr, vals.imag) * 1.0j
     else:
         coef = spsolve(matr, vals)
     coef = coef.reshape(xi_shape + v_shape[ndim:])

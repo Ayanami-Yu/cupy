@@ -11,9 +11,17 @@ from cupyx.profiler._time import _repeat, _PerfCaseResult  # for tests  # NOQA
 
 # TODO(leofang): remove this function in CuPy v11
 def repeat(
-        func, args=(), kwargs={}, n_repeat=10000, *,
-        name=None, n_warmup=10, max_duration=_math.inf, devices=None):
-    """ Timing utility for measuring time spent by both CPU and GPU.
+    func,
+    args=(),
+    kwargs={},
+    n_repeat=10000,
+    *,
+    name=None,
+    n_warmup=10,
+    max_duration=_math.inf,
+    devices=None,
+):
+    """Timing utility for measuring time spent by both CPU and GPU.
 
     This function is a very convenient helper for setting up a timing test. The
     GPU time is properly recorded by synchronizing internal streams. As a
@@ -62,9 +70,10 @@ def repeat(
     """
 
     _warnings.warn(
-        'cupyx.time.repeat has been moved to cupyx.profiler.benchmark since '
-        'CuPy v10. Access through cupyx.time is deprecated and will be '
-        'removed in the future.')
+        "cupyx.time.repeat has been moved to cupyx.profiler.benchmark since "
+        "CuPy v10. Access through cupyx.time is deprecated and will be "
+        "removed in the future."
+    )
     if name is None:
         name = func.__name__
 
@@ -72,21 +81,20 @@ def repeat(
         devices = (_cupy.cuda.get_device_id(),)
 
     if not callable(func):
-        raise ValueError('`func` should be a callable object.')
+        raise ValueError("`func` should be a callable object.")
     if not isinstance(args, tuple):
-        raise ValueError('`args` should be of tuple type.')
+        raise ValueError("`args` should be of tuple type.")
     if not isinstance(kwargs, dict):
-        raise ValueError('`kwargs` should be of dict type.')
+        raise ValueError("`kwargs` should be of dict type.")
     if not isinstance(n_repeat, int):
-        raise ValueError('`n_repeat` should be an integer.')
+        raise ValueError("`n_repeat` should be an integer.")
     if not isinstance(name, str):
-        raise ValueError('`name` should be a string.')
+        raise ValueError("`name` should be a string.")
     if not isinstance(n_warmup, int):
-        raise ValueError('`n_warmup` should be an integer.')
+        raise ValueError("`n_warmup` should be an integer.")
     if not _numpy.isreal(max_duration):
-        raise ValueError('`max_duration` should be given in seconds')
+        raise ValueError("`max_duration` should be given in seconds")
     if not isinstance(devices, tuple):
-        raise ValueError('`devices` should be of tuple type')
+        raise ValueError("`devices` should be of tuple type")
 
-    return _repeat(
-        func, args, kwargs, n_repeat, name, n_warmup, max_duration, devices)
+    return _repeat(func, args, kwargs, n_repeat, name, n_warmup, max_duration, devices)

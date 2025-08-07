@@ -13,25 +13,25 @@ from cupy import cuda, testing
 
 class TestFromData(unittest.TestCase):
 
-    @testing.for_orders('CFAK')
+    @testing.for_orders("CFAK")
     @testing.for_all_dtypes()
     @testing.numpy_cupy_array_equal()
     def test_array(self, xp, dtype, order):
         return xp.array([[1, 2, 3], [2, 3, 4]], dtype=dtype, order=order)
 
-    @testing.for_orders('CFAK')
+    @testing.for_orders("CFAK")
     @testing.for_all_dtypes()
     @testing.numpy_cupy_array_equal()
     def test_array_from_empty_list(self, xp, dtype, order):
         return xp.array([], dtype=dtype, order=order)
 
-    @testing.for_orders('CFAK')
+    @testing.for_orders("CFAK")
     @testing.for_all_dtypes()
     @testing.numpy_cupy_array_equal()
     def test_array_from_nested_empty_list(self, xp, dtype, order):
         return xp.array([[], []], dtype=dtype, order=order)
 
-    @testing.for_orders('CFAK')
+    @testing.for_orders("CFAK")
     @testing.for_all_dtypes()
     @testing.numpy_cupy_array_equal()
     def test_array_from_numpy(self, xp, dtype, order):
@@ -42,23 +42,24 @@ class TestFromData(unittest.TestCase):
         a = testing.shaped_arange((2, 3, 4), numpy, numpy.float32)
         testing.assert_array_equal(cupy.array(a, blocking=True), a)
 
-    @testing.for_orders('CFAK')
+    @testing.for_orders("CFAK")
     @testing.for_all_dtypes()
     @testing.numpy_cupy_array_equal()
     def test_array_from_numpy_scalar(self, xp, dtype, order):
         a = numpy.array(2, dtype=dtype)
         return xp.array(a, order=order)
 
-    @testing.for_orders('CFAK')
+    @testing.for_orders("CFAK")
     @testing.for_all_dtypes()
     @testing.numpy_cupy_array_equal(
         # when zero-copy, we may not be able to guarantee strides
-        strides_check=not bool(int(os.environ.get('CUPY_ENABLE_UMP', 0))))
+        strides_check=not bool(int(os.environ.get("CUPY_ENABLE_UMP", 0)))
+    )
     def test_array_from_numpy_c_and_f(self, xp, dtype, order):
         a = numpy.ones((1, 3, 1), dtype=dtype)
         return xp.array(a, order=order)
 
-    @testing.for_orders('CFAK')
+    @testing.for_orders("CFAK")
     @testing.for_all_dtypes()
     @testing.numpy_cupy_array_equal()
     def test_array_from_numpy_broad_cast(self, xp, dtype, order):
@@ -66,8 +67,8 @@ class TestFromData(unittest.TestCase):
         a = numpy.broadcast_to(a, (2, 3, 4))
         return xp.array(a, order=order)
 
-    @testing.for_orders('CFAK', name='src_order')
-    @testing.for_orders('CFAK', name='dst_order')
+    @testing.for_orders("CFAK", name="src_order")
+    @testing.for_orders("CFAK", name="dst_order")
     @testing.for_all_dtypes()
     @testing.numpy_cupy_array_equal(strides_check=True)
     def test_array_from_list_of_numpy(self, xp, dtype, src_order, dst_order):
@@ -75,26 +76,26 @@ class TestFromData(unittest.TestCase):
         # cupy.array(<list of numpy.ndarray>)
         a = [
             testing.shaped_arange((3, 4), numpy, dtype, src_order) + (12 * i)
-            for i in range(2)]
+            for i in range(2)
+        ]
         return xp.array(a, order=dst_order)
 
-    @testing.for_orders('CFAK', name='src_order')
-    @testing.for_orders('CFAK', name='dst_order')
+    @testing.for_orders("CFAK", name="src_order")
+    @testing.for_orders("CFAK", name="dst_order")
     @testing.for_all_dtypes()
     @testing.numpy_cupy_array_equal(strides_check=True)
-    def test_array_from_list_of_numpy_view(self, xp, dtype, src_order,
-                                           dst_order):
+    def test_array_from_list_of_numpy_view(self, xp, dtype, src_order, dst_order):
         # compares numpy.array(<list of numpy.ndarray>) with
         # cupy.array(<list of numpy.ndarray>)
 
         # create a list of view of ndarrays
         a = [
-            (testing.shaped_arange((3, 8), numpy,
-                                   dtype, src_order) + (24 * i))[:, ::2]
-            for i in range(2)]
+            (testing.shaped_arange((3, 8), numpy, dtype, src_order) + (24 * i))[:, ::2]
+            for i in range(2)
+        ]
         return xp.array(a, order=dst_order)
 
-    @testing.for_orders('CFAK')
+    @testing.for_orders("CFAK")
     @testing.for_all_dtypes()
     @testing.numpy_cupy_array_equal(strides_check=True)
     def test_array_from_list_of_numpy_scalar(self, xp, dtype, order):
@@ -103,26 +104,24 @@ class TestFromData(unittest.TestCase):
         a = [numpy.array(i, dtype=dtype) for i in range(2)]
         return xp.array(a, order=order)
 
-    @testing.for_orders('CFAK', name='src_order')
-    @testing.for_orders('CFAK', name='dst_order')
+    @testing.for_orders("CFAK", name="src_order")
+    @testing.for_orders("CFAK", name="dst_order")
     @testing.for_all_dtypes()
     @testing.numpy_cupy_array_equal(strides_check=True)
-    def test_array_from_nested_list_of_numpy(self, xp, dtype, src_order,
-                                             dst_order):
+    def test_array_from_nested_list_of_numpy(self, xp, dtype, src_order, dst_order):
         # compares numpy.array(<list of numpy.ndarray>) with
         # cupy.array(<list of numpy.ndarray>)
         a = [
-            [testing.shaped_arange(
-                (3, 4), numpy, dtype, src_order) + (12 * i)]
-            for i in range(2)]
+            [testing.shaped_arange((3, 4), numpy, dtype, src_order) + (12 * i)]
+            for i in range(2)
+        ]
         return xp.array(a, order=dst_order)
 
-    @testing.for_orders('CFAK', name='src_order')
-    @testing.for_orders('CFAK', name='dst_order')
-    @testing.for_all_dtypes_combination(names=('dtype1', 'dtype2'))
+    @testing.for_orders("CFAK", name="src_order")
+    @testing.for_orders("CFAK", name="dst_order")
+    @testing.for_all_dtypes_combination(names=("dtype1", "dtype2"))
     @testing.numpy_cupy_array_equal(strides_check=True)
-    def test_array_from_list_of_cupy(
-            self, xp, dtype1, dtype2, src_order, dst_order):
+    def test_array_from_list_of_cupy(self, xp, dtype1, dtype2, src_order, dst_order):
         # compares numpy.array(<list of numpy.ndarray>) with
         # cupy.array(<list of cupy.ndarray>)
         a = [
@@ -131,36 +130,35 @@ class TestFromData(unittest.TestCase):
         ]
         return xp.array(a, order=dst_order)
 
-    @testing.for_orders('CFAK', name='src_order')
-    @testing.for_orders('CFAK', name='dst_order')
+    @testing.for_orders("CFAK", name="src_order")
+    @testing.for_orders("CFAK", name="dst_order")
     @testing.for_all_dtypes()
     @testing.numpy_cupy_array_equal(strides_check=True)
-    def test_array_from_list_of_cupy_view(self, xp, dtype, src_order,
-                                          dst_order):
+    def test_array_from_list_of_cupy_view(self, xp, dtype, src_order, dst_order):
         # compares numpy.array(<list of numpy.ndarray>) with
         # cupy.array(<list of cupy.ndarray>)
 
         # create a list of view of ndarrays
         a = [
-            (testing.shaped_arange((3, 8), xp,
-                                   dtype, src_order) + (24 * i))[:, ::2]
-            for i in range(2)]
+            (testing.shaped_arange((3, 8), xp, dtype, src_order) + (24 * i))[:, ::2]
+            for i in range(2)
+        ]
         return xp.array(a, order=dst_order)
 
-    @testing.for_orders('CFAK', name='src_order')
-    @testing.for_orders('CFAK', name='dst_order')
+    @testing.for_orders("CFAK", name="src_order")
+    @testing.for_orders("CFAK", name="dst_order")
     @testing.for_all_dtypes()
     @testing.numpy_cupy_array_equal(strides_check=True)
-    def test_array_from_nested_list_of_cupy(self, xp, dtype, src_order,
-                                            dst_order):
+    def test_array_from_nested_list_of_cupy(self, xp, dtype, src_order, dst_order):
         # compares numpy.array(<list of numpy.ndarray>) with
         # cupy.array(<list of cupy.ndarray>)
         a = [
             [testing.shaped_arange((3, 4), xp, dtype, src_order) + (12 * i)]
-            for i in range(2)]
+            for i in range(2)
+        ]
         return xp.array(a, order=dst_order)
 
-    @testing.for_orders('CFAK')
+    @testing.for_orders("CFAK")
     @testing.for_all_dtypes()
     @testing.numpy_cupy_array_equal(strides_check=True)
     def test_array_from_list_of_cupy_scalar(self, xp, dtype, order):
@@ -169,7 +167,7 @@ class TestFromData(unittest.TestCase):
         a = [xp.array(i, dtype=dtype) for i in range(2)]
         return xp.array(a, order=order)
 
-    @testing.for_orders('CFAK')
+    @testing.for_orders("CFAK")
     @testing.for_all_dtypes()
     @testing.numpy_cupy_array_equal()
     def test_array_from_nested_list_of_cupy_scalar(self, xp, dtype, order):
@@ -178,28 +176,28 @@ class TestFromData(unittest.TestCase):
         a = [[xp.array(i, dtype=dtype)] for i in range(2)]
         return xp.array(a, order=order)
 
-    @testing.for_orders('CFAK')
+    @testing.for_orders("CFAK")
     @testing.for_all_dtypes()
     @testing.numpy_cupy_array_equal()
     def test_array_copy(self, xp, dtype, order):
         a = testing.shaped_arange((2, 3, 4), xp, dtype)
         return xp.array(a, order=order)
 
-    @testing.for_orders('CFAK')
+    @testing.for_orders("CFAK")
     @testing.for_all_dtypes()
     @testing.numpy_cupy_array_equal(strides_check=True)
     def test_array_both_c_and_f_contig_copy(self, xp, dtype, order):
         a = testing.shaped_arange((1, 4, 1), xp, dtype, order="C")
         return xp.array(a, order=order)
 
-    @testing.for_orders('CFAK')
+    @testing.for_orders("CFAK")
     @testing.for_all_dtypes()
     @testing.numpy_cupy_array_equal(strides_check=True)
     def test_array_both_c_and_f_contig_f_strides_copy(self, xp, dtype, order):
         a = testing.shaped_arange((1, 4, 1), xp, dtype, order="F")
         return xp.array(a, order=order)
 
-    @testing.for_orders('CFAK')
+    @testing.for_orders("CFAK")
     @testing.for_all_dtypes()
     @testing.numpy_cupy_array_equal()
     def test_array_copy_is_copied(self, xp, dtype, order):
@@ -208,89 +206,96 @@ class TestFromData(unittest.TestCase):
         a.fill(0)
         return b
 
-    @testing.for_orders('CFAK')
-    @testing.for_all_dtypes(name='dtype1', no_complex=True)
-    @testing.for_all_dtypes(name='dtype2')
+    @testing.for_orders("CFAK")
+    @testing.for_all_dtypes(name="dtype1", no_complex=True)
+    @testing.for_all_dtypes(name="dtype2")
     @testing.numpy_cupy_array_equal()
     def test_array_copy_with_dtype(self, xp, dtype1, dtype2, order):
         # complex to real makes no sense
         a = testing.shaped_arange((2, 3, 4), xp, dtype1)
         return xp.array(a, dtype=dtype2, order=order)
 
-    @testing.for_orders('CFAK')
-    @testing.for_all_dtypes(name='dtype1', no_complex=True)
-    @testing.for_all_dtypes(name='dtype2')
+    @testing.for_orders("CFAK")
+    @testing.for_all_dtypes(name="dtype1", no_complex=True)
+    @testing.for_all_dtypes(name="dtype2")
     @testing.numpy_cupy_array_equal()
     def test_array_copy_with_dtype_char(self, xp, dtype1, dtype2, order):
         # complex to real makes no sense
         a = testing.shaped_arange((2, 3, 4), xp, dtype1)
         return xp.array(a, dtype=numpy.dtype(dtype2).char, order=order)
 
-    @testing.for_orders('CFAK')
+    @testing.for_orders("CFAK")
     @testing.numpy_cupy_array_equal()
     def test_array_copy_with_dtype_being_none(self, xp, order):
         a = testing.shaped_arange((2, 3, 4), xp)
         return xp.array(a, dtype=None, order=order)
 
-    @testing.for_orders('CFAK', name='src_order')
-    @testing.for_orders('CFAK', name='dst_order')
-    @testing.for_all_dtypes(name='dtype1', no_complex=True)
-    @testing.for_all_dtypes(name='dtype2')
+    @testing.for_orders("CFAK", name="src_order")
+    @testing.for_orders("CFAK", name="dst_order")
+    @testing.for_all_dtypes(name="dtype1", no_complex=True)
+    @testing.for_all_dtypes(name="dtype2")
     @testing.numpy_cupy_array_equal(strides_check=True)
-    def test_array_copy_list_of_numpy_with_dtype(self, xp, dtype1, dtype2,
-                                                 src_order, dst_order):
+    def test_array_copy_list_of_numpy_with_dtype(
+        self, xp, dtype1, dtype2, src_order, dst_order
+    ):
         # compares numpy.array(<list of numpy.ndarray>) with
         # cupy.array(<list of numpy.ndarray>)
         a = [
             testing.shaped_arange((3, 4), numpy, dtype1, src_order) + (12 * i)
-            for i in range(2)]
+            for i in range(2)
+        ]
         return xp.array(a, dtype=dtype2, order=dst_order)
 
-    @testing.for_orders('CFAK', name='src_order')
-    @testing.for_orders('CFAK', name='dst_order')
-    @testing.for_all_dtypes(name='dtype1', no_complex=True)
-    @testing.for_all_dtypes(name='dtype2')
+    @testing.for_orders("CFAK", name="src_order")
+    @testing.for_orders("CFAK", name="dst_order")
+    @testing.for_all_dtypes(name="dtype1", no_complex=True)
+    @testing.for_all_dtypes(name="dtype2")
     @testing.numpy_cupy_array_equal(strides_check=True)
-    def test_array_copy_list_of_numpy_with_dtype_char(self, xp, dtype1,
-                                                      dtype2, src_order,
-                                                      dst_order):
+    def test_array_copy_list_of_numpy_with_dtype_char(
+        self, xp, dtype1, dtype2, src_order, dst_order
+    ):
         # compares numpy.array(<list of numpy.ndarray>) with
         # cupy.array(<list of numpy.ndarray>)
         a = [
             testing.shaped_arange((3, 4), numpy, dtype1, src_order) + (12 * i)
-            for i in range(2)]
+            for i in range(2)
+        ]
         return xp.array(a, dtype=numpy.dtype(dtype2).char, order=dst_order)
 
-    @testing.for_orders('CFAK', name='src_order')
-    @testing.for_orders('CFAK', name='dst_order')
-    @testing.for_all_dtypes(name='dtype1', no_complex=True)
-    @testing.for_all_dtypes(name='dtype2')
+    @testing.for_orders("CFAK", name="src_order")
+    @testing.for_orders("CFAK", name="dst_order")
+    @testing.for_all_dtypes(name="dtype1", no_complex=True)
+    @testing.for_all_dtypes(name="dtype2")
     @testing.numpy_cupy_array_equal(strides_check=True)
-    def test_array_copy_list_of_cupy_with_dtype(self, xp, dtype1, dtype2,
-                                                src_order, dst_order):
+    def test_array_copy_list_of_cupy_with_dtype(
+        self, xp, dtype1, dtype2, src_order, dst_order
+    ):
         # compares numpy.array(<list of numpy.ndarray>) with
         # cupy.array(<list of cupy.ndarray>)
         a = [
             testing.shaped_arange((3, 4), xp, dtype1, src_order) + (12 * i)
-            for i in range(2)]
+            for i in range(2)
+        ]
         return xp.array(a, dtype=dtype2, order=dst_order)
 
-    @testing.for_orders('CFAK', name='src_order')
-    @testing.for_orders('CFAK', name='dst_order')
-    @testing.for_all_dtypes(name='dtype1', no_complex=True)
-    @testing.for_all_dtypes(name='dtype2')
+    @testing.for_orders("CFAK", name="src_order")
+    @testing.for_orders("CFAK", name="dst_order")
+    @testing.for_all_dtypes(name="dtype1", no_complex=True)
+    @testing.for_all_dtypes(name="dtype2")
     @testing.numpy_cupy_array_equal(strides_check=True)
-    def test_array_copy_list_of_cupy_with_dtype_char(self, xp, dtype1, dtype2,
-                                                     src_order, dst_order):
+    def test_array_copy_list_of_cupy_with_dtype_char(
+        self, xp, dtype1, dtype2, src_order, dst_order
+    ):
         # compares numpy.array(<list of numpy.ndarray>) with
         # cupy.array(<list of cupy.ndarray>)
         a = [
             testing.shaped_arange((3, 4), xp, dtype1, src_order) + (12 * i)
-            for i in range(2)]
+            for i in range(2)
+        ]
         return xp.array(a, dtype=numpy.dtype(dtype2).char, order=dst_order)
 
     @testing.with_requires("numpy>=2.0")
-    @testing.for_orders('CFAK')
+    @testing.for_orders("CFAK")
     @testing.for_all_dtypes()
     @testing.numpy_cupy_array_equal()
     def test_array_copy_none(self, xp, dtype, order):
@@ -300,7 +305,7 @@ class TestFromData(unittest.TestCase):
         return b
 
     @testing.with_requires("numpy>=2.0")
-    @testing.for_orders('CFAK')
+    @testing.for_orders("CFAK")
     @testing.for_all_dtypes()
     @testing.numpy_cupy_array_equal(accept_error=ValueError)
     def test_array_copy_false(self, xp, dtype, order):
@@ -310,11 +315,11 @@ class TestFromData(unittest.TestCase):
         return b
 
     @testing.with_requires("numpy>=2.0")
-    @testing.for_orders('CFAK')
+    @testing.for_orders("CFAK")
     @testing.for_all_dtypes()
     @testing.numpy_cupy_array_equal(accept_error=ValueError)
     def test_array_f_contiguous_input(self, xp, dtype, order):
-        a = testing.shaped_arange((2, 3, 4), xp, dtype, order='F')
+        a = testing.shaped_arange((2, 3, 4), xp, dtype, order="F")
         b = xp.array(a, copy=False, order=order)
         return b
 
@@ -323,14 +328,14 @@ class TestFromData(unittest.TestCase):
     @testing.numpy_cupy_array_equal(accept_error=ValueError)
     def test_array_f_contiguous_output(self, xp, dtype):
         a = testing.shaped_arange((2, 3, 4), xp, dtype)
-        b = xp.array(a, copy=False, order='F')
+        b = xp.array(a, copy=False, order="F")
         assert b.flags.f_contiguous
         return b
 
     @testing.multi_gpu(2)
     def test_array_multi_device(self):
         with cuda.Device(0):
-            x = testing.shaped_arange((2, 3, 4), cupy, dtype='f')
+            x = testing.shaped_arange((2, 3, 4), cupy, dtype="f")
         with cuda.Device(1):
             y = cupy.array(x)
         assert isinstance(y, cupy.ndarray)
@@ -342,7 +347,7 @@ class TestFromData(unittest.TestCase):
     @testing.multi_gpu(2)
     def test_array_multi_device_zero_size(self):
         with cuda.Device(0):
-            x = testing.shaped_arange((0,), cupy, dtype='f')
+            x = testing.shaped_arange((0,), cupy, dtype="f")
         with cuda.Device(1):
             y = cupy.array(x)
         assert isinstance(y, cupy.ndarray)
@@ -364,7 +369,7 @@ class TestFromData(unittest.TestCase):
     @testing.for_all_dtypes()
     @testing.numpy_cupy_array_equal()
     def test_array_from_big_endian(self, xp, dtype):
-        dtype = numpy.dtype(dtype).newbyteorder('>')
+        dtype = numpy.dtype(dtype).newbyteorder(">")
         a = testing.shaped_arange((2, 3, 4), numpy, dtype)
         b = xp.array(a)
         # Make a computation here as just moving big-endian data back and forth
@@ -374,7 +379,7 @@ class TestFromData(unittest.TestCase):
     @testing.for_all_dtypes()
     @testing.numpy_cupy_array_equal()
     def test_array_from_list_of_numpy_big_endian(self, xp, dtype):
-        dtype = numpy.dtype(dtype).newbyteorder('>')
+        dtype = numpy.dtype(dtype).newbyteorder(">")
         a = [testing.shaped_arange((3, 4), numpy, dtype) for i in range(2)]
         b = xp.array(a)
         # Make a computation here as just moving big-endian data back and forth
@@ -405,7 +410,7 @@ class TestFromData(unittest.TestCase):
     def test_asarray_with_order(self, xp, dtype, order):
         a = testing.shaped_arange((2, 3, 4), xp, dtype)
         b = xp.asarray(a, order=order)
-        if order in ['F', 'f']:
+        if order in ["F", "f"]:
             assert b.flags.f_contiguous
         else:
             assert b.flags.c_contiguous
@@ -427,7 +432,7 @@ class TestFromData(unittest.TestCase):
     def test_asanyarray_with_order(self, xp, dtype, order):
         a = testing.shaped_arange((2, 3, 4), xp, dtype)
         b = xp.asanyarray(a, order=order)
-        if order in ['F', 'f']:
+        if order in ["F", "f"]:
             assert b.flags.f_contiguous
         else:
             assert b.flags.c_contiguous
@@ -436,7 +441,7 @@ class TestFromData(unittest.TestCase):
     @testing.for_all_dtypes()
     @testing.numpy_cupy_array_equal()
     def test_asanyarray_from_big_endian(self, xp, dtype):
-        dtype = numpy.dtype(dtype).newbyteorder('>')
+        dtype = numpy.dtype(dtype).newbyteorder(">")
         a = testing.shaped_arange((2, 3, 4), numpy, dtype)
         b = xp.asanyarray(a)
         # Make a computation here as just moving big-endian data back and forth
@@ -453,7 +458,7 @@ class TestFromData(unittest.TestCase):
     def test_asarray_from_numpy(self, xp, dtype, order):
         a = testing.shaped_arange((2, 3, 4), numpy, dtype)
         b = xp.asarray(a, order=order)
-        if order in ['F', 'f']:
+        if order in ["F", "f"]:
             assert b.flags.f_contiguous
         else:
             assert b.flags.c_contiguous
@@ -493,7 +498,7 @@ class TestFromData(unittest.TestCase):
     @testing.for_all_dtypes()
     @testing.numpy_cupy_array_equal()
     def test_asarray_from_big_endian(self, xp, dtype):
-        dtype = numpy.dtype(dtype).newbyteorder('>')
+        dtype = numpy.dtype(dtype).newbyteorder(">")
         a = testing.shaped_arange((2, 3, 4), numpy, dtype)
         b = xp.asarray(a)
         # Make a computation here as just moving big-endian data back and forth
@@ -531,11 +536,9 @@ class TestFromData(unittest.TestCase):
         a = xp.ones(())
         return xp.asfortranarray(a)
 
-    @testing.for_all_dtypes_combination(['dtype_a', 'dtype_b'],
-                                        no_complex=True)
+    @testing.for_all_dtypes_combination(["dtype_a", "dtype_b"], no_complex=True)
     @testing.numpy_cupy_array_equal()
-    def test_asfortranarray_cuda_array_zero_dim_dtype(
-            self, xp, dtype_a, dtype_b):
+    def test_asfortranarray_cuda_array_zero_dim_dtype(self, xp, dtype_a, dtype_b):
         a = xp.ones((), dtype=dtype_a)
         return xp.asfortranarray(a, dtype=dtype_b)
 
@@ -549,21 +552,23 @@ class TestFromData(unittest.TestCase):
 
     @testing.numpy_cupy_array_equal()
     def test_fromfunction(self, xp):
-        def function(i, j): return i == j
+        def function(i, j):
+            return i == j
+
         return xp.fromfunction(function, shape=(3, 3), dtype=int)
 
     @testing.numpy_cupy_array_equal()
     def test_fromiter(self, xp):
-        iterable = (x*x for x in range(5))
+        iterable = (x * x for x in range(5))
         return xp.fromiter(iterable, float)
 
     @testing.numpy_cupy_array_equal()
     def test_fromstring(self, xp):
-        return xp.fromstring('1 2', dtype=int, sep=' ')
+        return xp.fromstring("1 2", dtype=int, sep=" ")
 
     @testing.numpy_cupy_array_equal()
     def test_frombuffer(self, xp):
-        return xp.frombuffer(b'\x01\x02', dtype=numpy.uint8)
+        return xp.frombuffer(b"\x01\x02", dtype=numpy.uint8)
 
     @testing.numpy_cupy_array_equal()
     def test_loadtxt(self, xp):
@@ -587,7 +592,7 @@ class TestFromData(unittest.TestCase):
             fh.write(b"\x00\x00\x00\x01")
             fh.flush()
             fh.seek(0)
-            a = xp.fromfile(fh, dtype='>u4')
+            a = xp.fromfile(fh, dtype=">u4")
             # Make a computation here as just moving big-endian data back and
             # forth happens to work before the change in #5828
             return a + a
@@ -596,25 +601,26 @@ class TestFromData(unittest.TestCase):
 max_cuda_array_interface_version = 3
 
 
-@testing.parameterize(*testing.product({
-    'ver': tuple(range(max_cuda_array_interface_version+1)),
-    'strides': (False, None, True),
-}))
-@pytest.mark.skipif(
-    cupy.cuda.runtime.is_hip, reason='HIP does not support this')
+@testing.parameterize(
+    *testing.product(
+        {
+            "ver": tuple(range(max_cuda_array_interface_version + 1)),
+            "strides": (False, None, True),
+        }
+    )
+)
+@pytest.mark.skipif(cupy.cuda.runtime.is_hip, reason="HIP does not support this")
 class TestCudaArrayInterface(unittest.TestCase):
     @testing.for_all_dtypes()
     def test_base(self, dtype):
         a = testing.shaped_arange((2, 3, 4), cupy, dtype)
-        b = cupy.asarray(
-            DummyObjectWithCudaArrayInterface(a, self.ver, self.strides))
+        b = cupy.asarray(DummyObjectWithCudaArrayInterface(a, self.ver, self.strides))
         testing.assert_array_equal(a, b)
 
     @testing.for_all_dtypes()
     def test_not_copied(self, dtype):
         a = testing.shaped_arange((2, 3, 4), cupy, dtype)
-        b = cupy.asarray(
-            DummyObjectWithCudaArrayInterface(a, self.ver, self.strides))
+        b = cupy.asarray(DummyObjectWithCudaArrayInterface(a, self.ver, self.strides))
         a.fill(0)
         testing.assert_array_equal(a, b)
 
@@ -622,24 +628,22 @@ class TestCudaArrayInterface(unittest.TestCase):
     def test_order(self, dtype):
         a = testing.shaped_arange((2, 3, 4), cupy, dtype)
         b = cupy.asarray(
-            DummyObjectWithCudaArrayInterface(a, self.ver, self.strides),
-            order='F')
+            DummyObjectWithCudaArrayInterface(a, self.ver, self.strides), order="F"
+        )
         assert b.flags.f_contiguous
         testing.assert_array_equal(a, b)
 
     @testing.for_all_dtypes()
     def test_with_strides(self, dtype):
         a = testing.shaped_arange((2, 3, 4), cupy, dtype).T
-        b = cupy.asarray(
-            DummyObjectWithCudaArrayInterface(a, self.ver, self.strides))
+        b = cupy.asarray(DummyObjectWithCudaArrayInterface(a, self.ver, self.strides))
         assert a.strides == b.strides
         assert a.nbytes == b.data.mem.size
 
     @testing.for_all_dtypes()
     def test_with_zero_size_array(self, dtype):
         a = testing.shaped_arange((0,), cupy, dtype)
-        b = cupy.asarray(
-            DummyObjectWithCudaArrayInterface(a, self.ver, self.strides))
+        b = cupy.asarray(DummyObjectWithCudaArrayInterface(a, self.ver, self.strides))
         assert a.strides == b.strides
         assert a.nbytes == b.data.mem.size
         assert a.data.ptr == 0
@@ -655,23 +659,26 @@ class TestCudaArrayInterface(unittest.TestCase):
 
     def test_big_endian(self):
         a = cupy.array([0x1, 0x0, 0x0, 0x0], dtype=numpy.int8)
-        dtype = numpy.dtype('>i4')
-        shape = 1,
-        strides = 4,
+        dtype = numpy.dtype(">i4")
+        shape = (1,)
+        strides = (4,)
         data = a.data.ptr
         b = DummyObjectWithCudaArrayInterface(
-            (shape, strides, dtype.str, dtype.descr, data),
-            self.ver, self.strides)
+            (shape, strides, dtype.str, dtype.descr, data), self.ver, self.strides
+        )
         with pytest.raises(ValueError):
             cupy.asarray(b)
 
 
-@testing.parameterize(*testing.product({
-    'ver': tuple(range(1, max_cuda_array_interface_version+1)),
-    'strides': (False, None, True),
-}))
-@pytest.mark.skipif(
-    cupy.cuda.runtime.is_hip, reason='HIP does not support this')
+@testing.parameterize(
+    *testing.product(
+        {
+            "ver": tuple(range(1, max_cuda_array_interface_version + 1)),
+            "strides": (False, None, True),
+        }
+    )
+)
+@pytest.mark.skipif(cupy.cuda.runtime.is_hip, reason="HIP does not support this")
 class TestCudaArrayInterfaceMaskedArray(unittest.TestCase):
     # TODO(leofang): update this test when masked array is supported
     @testing.for_all_dtypes()
@@ -681,13 +688,12 @@ class TestCudaArrayInterfaceMaskedArray(unittest.TestCase):
         a = DummyObjectWithCudaArrayInterface(a, self.ver, self.strides, mask)
         with pytest.raises(ValueError) as ex:
             b = cupy.asarray(a)  # noqa
-        assert 'does not support' in str(ex.value)
+        assert "does not support" in str(ex.value)
 
 
 # marked slow as either numpy or cupy could go OOM in this test
 @testing.slow
-@pytest.mark.skipif(
-    cupy.cuda.runtime.is_hip, reason='HIP does not support this')
+@pytest.mark.skipif(cupy.cuda.runtime.is_hip, reason="HIP does not support this")
 class TestCudaArrayInterfaceBigArray(unittest.TestCase):
     def test_with_over_size_array(self):
         # real example from #3009
@@ -697,11 +703,10 @@ class TestCudaArrayInterfaceBigArray(unittest.TestCase):
         testing.assert_array_equal(a, b)
 
 
-@pytest.mark.skipif(
-    cupy.cuda.runtime.is_hip, reason='HIP does not support this')
+@pytest.mark.skipif(cupy.cuda.runtime.is_hip, reason="HIP does not support this")
 class DummyObjectWithCudaArrayInterface:
     def __init__(self, a, ver, include_strides=False, mask=None, stream=None):
-        assert ver in tuple(range(max_cuda_array_interface_version+1))
+        assert ver in tuple(range(max_cuda_array_interface_version + 1))
         self.a = None
         if isinstance(a, cupy.ndarray):
             self.a = a
@@ -716,56 +721,54 @@ class DummyObjectWithCudaArrayInterface:
     def __cuda_array_interface__(self):
         if self.a is not None:
             desc = {
-                'shape': self.a.shape,
-                'typestr': self.a.dtype.str,
-                'descr': self.a.dtype.descr,
-                'data': (self.a.data.ptr, False),
-                'version': self.ver,
+                "shape": self.a.shape,
+                "typestr": self.a.dtype.str,
+                "descr": self.a.dtype.descr,
+                "data": (self.a.data.ptr, False),
+                "version": self.ver,
             }
             if self.a.flags.c_contiguous:
                 if self.include_strides is True:
-                    desc['strides'] = self.a.strides
+                    desc["strides"] = self.a.strides
                 elif self.include_strides is None:
-                    desc['strides'] = None
+                    desc["strides"] = None
                 else:  # self.include_strides is False
                     pass
             else:  # F contiguous or neither
-                desc['strides'] = self.a.strides
+                desc["strides"] = self.a.strides
         else:
             desc = {
-                'shape': self.shape,
-                'typestr': self.typestr,
-                'descr': self.descr,
-                'data': (self.data, False),
-                'version': self.ver,
+                "shape": self.shape,
+                "typestr": self.typestr,
+                "descr": self.descr,
+                "data": (self.data, False),
+                "version": self.ver,
             }
             if self.include_strides is True:
-                desc['strides'] = self.strides
+                desc["strides"] = self.strides
             elif self.include_strides is None:
-                desc['strides'] = None
+                desc["strides"] = None
             else:  # self.include_strides is False
                 pass
         if self.mask is not None:
-            desc['mask'] = self.mask
+            desc["mask"] = self.mask
         # The stream field is kept here for compliance. However, since the
         # synchronization is done via calling a cpdef function, which cannot
         # be mock-tested.
         if self.stream is not None:
             if self.stream is cuda.Stream.null:
-                desc['stream'] = cuda.runtime.streamLegacy
+                desc["stream"] = cuda.runtime.streamLegacy
             elif (not cuda.runtime.is_hip) and self.stream is cuda.Stream.ptds:
-                desc['stream'] = cuda.runtime.streamPerThread
+                desc["stream"] = cuda.runtime.streamPerThread
             else:
-                desc['stream'] = self.stream.ptr
+                desc["stream"] = self.stream.ptr
         return desc
 
 
 @testing.parameterize(
-    *testing.product({
-        'ndmin': [0, 1, 2, 3],
-        'copy': [True, False, None],
-        'xp': [numpy, cupy]
-    })
+    *testing.product(
+        {"ndmin": [0, 1, 2, 3], "copy": [True, False, None], "xp": [numpy, cupy]}
+    )
 )
 class TestArrayPreservationOfShape(unittest.TestCase):
 
@@ -784,11 +787,9 @@ class TestArrayPreservationOfShape(unittest.TestCase):
 
 
 @testing.parameterize(
-    *testing.product({
-        'ndmin': [0, 1, 2, 3],
-        'copy': [True, False, None],
-        'xp': [numpy, cupy]
-    })
+    *testing.product(
+        {"ndmin": [0, 1, 2, 3], "copy": [True, False, None], "xp": [numpy, cupy]}
+    )
 )
 class TestArrayCopy(unittest.TestCase):
 
@@ -802,8 +803,11 @@ class TestArrayCopy(unittest.TestCase):
 
         should_copy = (self.xp is numpy) or (self.copy is True)
         # TODO(Kenta Oono): Better determination of copy.
-        is_copied = not ((actual is a) or (actual.base is a) or
-                         (actual.base is a.base and a.base is not None))
+        is_copied = not (
+            (actual is a)
+            or (actual.base is a)
+            or (actual.base is a.base and a.base is not None)
+        )
         assert should_copy == is_copied
 
 

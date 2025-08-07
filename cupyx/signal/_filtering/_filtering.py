@@ -98,8 +98,10 @@ def firfilter_zi(b):
 
     # Pad a with zeros so they are the same length.
     a = cupy.r_[a, cupy.zeros(n - len(a), dtype=a.dtype)]
-    IminusA = (cupy.eye(n - 1, dtype=cupy.result_type(a, b))
-               - cupyx.scipy.linalg.companion(a).T)
+    IminusA = (
+        cupy.eye(n - 1, dtype=cupy.result_type(a, b))
+        - cupyx.scipy.linalg.companion(a).T
+    )
     B = b[1:] - a[1:] * b[0]
     # Solve zi = A*zi + B
     zi = cupy.linalg.solve(IminusA, B)
@@ -148,9 +150,7 @@ def _validate_pad(padtype, padlen, x, axis, ntaps):
     return edge, ext
 
 
-def firfilter2(
-    b, x, axis=-1, padtype="odd", padlen=None, method="pad", irlen=None
-):
+def firfilter2(b, x, axis=-1, padtype="odd", padlen=None, method="pad", irlen=None):
     """
     Apply a digital filter forward and backward to a signal.
     This function applies a linear digital filter twice, once forward and
@@ -255,7 +255,8 @@ def firfilter2(
 
 
 _freq_shift_kernel = cupy.ElementwiseKernel(
-    "float64 x, float64 c", "complex128 out",
+    "float64 x, float64 c",
+    "complex128 out",
     "out = thrust::polar(x, c * i);",
     "_freq_shift_kernel",
 )
@@ -304,7 +305,9 @@ namespace cg = cooperative_groups;
 """
 
 
-_CHANNELIZER_8X8_KERNEL = _CHANNELIZER_KERNEL_PREAMBLE + r"""
+_CHANNELIZER_8X8_KERNEL = (
+    _CHANNELIZER_KERNEL_PREAMBLE
+    + r"""
 ///////////////////////////////////////////////////////////////////////////////
 //                          CHANNELIZER 8x8                                  //
 ///////////////////////////////////////////////////////////////////////////////
@@ -404,22 +407,27 @@ __global__ void _cupy_channelizer_8x8( const int n_chans,
         }
     }
 }
-"""  # NOQA
+"""
+)  # NOQA
 
 
 @_util.memoize(for_each_device=True)
 def _get_channelizer_8x8_module():
     return cupy.RawModule(
-        code=_CHANNELIZER_8X8_KERNEL, options=('-std=c++17',),
+        code=_CHANNELIZER_8X8_KERNEL,
+        options=("-std=c++17",),
         name_expressions=[
-            '_cupy_channelizer_8x8<float,thrust::complex<float>>',
-            '_cupy_channelizer_8x8<thrust::complex<float>,thrust::complex<float>>',
-            '_cupy_channelizer_8x8<double,thrust::complex<double>>',
-            '_cupy_channelizer_8x8<thrust::complex<double>,thrust::complex<double>>'],
+            "_cupy_channelizer_8x8<float,thrust::complex<float>>",
+            "_cupy_channelizer_8x8<thrust::complex<float>,thrust::complex<float>>",
+            "_cupy_channelizer_8x8<double,thrust::complex<double>>",
+            "_cupy_channelizer_8x8<thrust::complex<double>,thrust::complex<double>>",
+        ],
     )
 
 
-_CHANNELIZER_16X16_KERNEL = _CHANNELIZER_KERNEL_PREAMBLE + r"""
+_CHANNELIZER_16X16_KERNEL = (
+    _CHANNELIZER_KERNEL_PREAMBLE
+    + r"""
 ///////////////////////////////////////////////////////////////////////////////
 //                        CHANNELIZER 16x16                                  //
 ///////////////////////////////////////////////////////////////////////////////
@@ -519,22 +527,27 @@ __global__ void _cupy_channelizer_16x16( const int n_chans,
         }
     }
 }
-"""  # NOQA
+"""
+)  # NOQA
 
 
 @_util.memoize(for_each_device=True)
 def _get_channelizer_16x16_module():
     return cupy.RawModule(
-        code=_CHANNELIZER_16X16_KERNEL, options=('-std=c++17',),
+        code=_CHANNELIZER_16X16_KERNEL,
+        options=("-std=c++17",),
         name_expressions=[
-            '_cupy_channelizer_16x16<float,thrust::complex<float>>',
-            '_cupy_channelizer_16x16<thrust::complex<float>,thrust::complex<float>>',
-            '_cupy_channelizer_16x16<double,thrust::complex<double>>',
-            '_cupy_channelizer_16x16<thrust::complex<double>,thrust::complex<double>>'],
+            "_cupy_channelizer_16x16<float,thrust::complex<float>>",
+            "_cupy_channelizer_16x16<thrust::complex<float>,thrust::complex<float>>",
+            "_cupy_channelizer_16x16<double,thrust::complex<double>>",
+            "_cupy_channelizer_16x16<thrust::complex<double>,thrust::complex<double>>",
+        ],
     )
 
 
-_CHANNELIZER_32X32_KERNEL = _CHANNELIZER_KERNEL_PREAMBLE + r"""
+_CHANNELIZER_32X32_KERNEL = (
+    _CHANNELIZER_KERNEL_PREAMBLE
+    + r"""
 ///////////////////////////////////////////////////////////////////////////////
 //                        CHANNELIZER 32x32                                  //
 ///////////////////////////////////////////////////////////////////////////////
@@ -633,25 +646,27 @@ __global__ void _cupy_channelizer_32x32( const int n_chans,
         }
     }
 }
-"""  # NOQA
+"""
+)  # NOQA
 
 
 @_util.memoize(for_each_device=True)
 def _get_channelizer_32x32_module():
     return cupy.RawModule(
-        code=_CHANNELIZER_32X32_KERNEL, options=('-std=c++17',),
+        code=_CHANNELIZER_32X32_KERNEL,
+        options=("-std=c++17",),
         name_expressions=[
-            '_cupy_channelizer_32x32<float,thrust::complex<float>>',
-            '_cupy_channelizer_32x32<thrust::complex<float>,thrust::complex<float>>',
-            '_cupy_channelizer_32x32<double,thrust::complex<double>>',
-            '_cupy_channelizer_32x32<thrust::complex<double>,thrust::complex<double>>'],
+            "_cupy_channelizer_32x32<float,thrust::complex<float>>",
+            "_cupy_channelizer_32x32<thrust::complex<float>,thrust::complex<float>>",
+            "_cupy_channelizer_32x32<double,thrust::complex<double>>",
+            "_cupy_channelizer_32x32<thrust::complex<double>,thrust::complex<double>>",
+        ],
     )
 
 
 def _check_supported_type(np_type, k_type):
     if np_type not in _SUPPORTED_TYPES:
-        raise ValueError(
-            "Datatype {} not found for '{}'".format(np_type, k_type))
+        raise ValueError("Datatype {} not found for '{}'".format(np_type, k_type))
 
 
 def _get_numSM():
@@ -685,7 +700,7 @@ def _channelizer(x, h, y, n_chans, n_taps, n_pts):
         raise AssertionError()
     x_typename = get_typename(x.dtype)
     y_typename = get_typename(y.dtype)
-    kernel_name = f'_cupy_{k_type}<{x_typename},{y_typename}>'
+    kernel_name = f"_cupy_{k_type}<{x_typename},{y_typename}>"
     kernel = mod.get_function(kernel_name)
 
     args = (n_chans, n_taps, n_pts, x, h, y)
@@ -741,8 +756,7 @@ def channelize_poly(x, h, n_chans):
     elif x.dtype == cupy.float64 or x.dtype == cupy.complex128:
         y = cupy.empty((n_pts, n_chans), dtype=cupy.complex128)
     else:
-        raise NotImplementedError(
-            "Data type ({}) not allowed.".format(x.dtype))
+        raise NotImplementedError("Data type ({}) not allowed.".format(x.dtype))
 
     _channelizer(x, h, y, n_chans, n_taps, n_pts)
 

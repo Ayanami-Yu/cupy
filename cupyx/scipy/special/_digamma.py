@@ -8,13 +8,14 @@ Copyright 1984, 1987, 1988 by Stephen L. Moshier
 polevl_definition is kept because it is used elsewhere in CuPy,
 although it is now no longer used in digamma.
 """
+
 from __future__ import annotations
 
 
 from cupy import _core
 
 
-polevl_definition = '''
+polevl_definition = """
 template<int N> static __device__ double polevl(double x, double coef[])
 {
     double ans;
@@ -29,23 +30,26 @@ template<int N> static __device__ double polevl(double x, double coef[])
 
     return ans;
 }
-'''
+"""
 
 
 digamma_preamble = "#include <cupy/xsf/digamma.h>"
 
 
 digamma = _core.create_ufunc(
-    'cupyx_scipy_special_digamma',
+    "cupyx_scipy_special_digamma",
     (
-        ('l->d', 'out0 = xsf::digamma(double(in0))'),
-        ('e->d', 'out0 = xsf::digamma(double(in0))',),
-        'f->f',
-        'd->d',
-        'F->F',
-        'D->D',
+        ("l->d", "out0 = xsf::digamma(double(in0))"),
+        (
+            "e->d",
+            "out0 = xsf::digamma(double(in0))",
+        ),
+        "f->f",
+        "d->d",
+        "F->F",
+        "D->D",
     ),
-    'out0 = xsf::digamma(in0)',
+    "out0 = xsf::digamma(in0)",
     preamble=digamma_preamble,
     doc="""The digamma function.
 
@@ -57,4 +61,5 @@ digamma = _core.create_ufunc(
 
     .. seealso:: :data:`scipy.special.digamma`
 
-    """)
+    """,
+)

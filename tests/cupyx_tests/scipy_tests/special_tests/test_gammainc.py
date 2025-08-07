@@ -14,9 +14,9 @@ INVALID_POINTS = [(1, -1), (0, 0), (-1, 1), (cp.nan, 1), (1, cp.nan)]
 
 class TestGammainc:
     @pytest.mark.skipif(
-        cp.cuda.runtime.is_hip and
-        cp.cuda.runtime.runtimeGetVersion() < 5_00_00000,
-        reason='ROCm/HIP fails in ROCm 4.x')
+        cp.cuda.runtime.is_hip and cp.cuda.runtime.runtimeGetVersion() < 5_00_00000,
+        reason="ROCm/HIP fails in ROCm 4.x",
+    )
     @pytest.mark.parametrize("a, x", INVALID_POINTS)
     def test_domain(self, a, x):
         assert cp.isnan(sc.gammainc(a, x))
@@ -41,9 +41,9 @@ class TestGammainc:
             assert result == desired
 
     @pytest.mark.skipif(
-        cp.cuda.runtime.is_hip and
-        cp.cuda.runtime.runtimeGetVersion() < 5_00_00000,
-        reason='ROCm/HIP fails in ROCm 4.x')
+        cp.cuda.runtime.is_hip and cp.cuda.runtime.runtimeGetVersion() < 5_00_00000,
+        reason="ROCm/HIP fails in ROCm 4.x",
+    )
     def test_infinite_limits(self):
         # Test that large arguments converge to the hard-coded limits
         # at infinity.
@@ -60,9 +60,9 @@ class TestGammainc:
         assert_array_equal(sc.gammainc(a, 0), 0)
 
     @pytest.mark.skipif(
-        cp.cuda.runtime.is_hip and
-        cp.cuda.runtime.runtimeGetVersion() < 5_00_00000,
-        reason='ROCm/HIP fails in ROCm 4.x')
+        cp.cuda.runtime.is_hip and cp.cuda.runtime.runtimeGetVersion() < 5_00_00000,
+        reason="ROCm/HIP fails in ROCm 4.x",
+    )
     def test_limit_check(self):
         result = sc.gammainc(1e-10, 1)
         limit = sc.gammainc(0, 1)
@@ -99,9 +99,9 @@ class TestGammainc:
     #     FuncData(sc.gammainc, dataset, (0, 1), 2, rtol=1e-11).check()
 
     @pytest.mark.skipif(
-        cp.cuda.runtime.is_hip and
-        cp.cuda.runtime.runtimeGetVersion() < 5_00_00000,
-        reason='ROCm/HIP fails in ROCm 4.x')
+        cp.cuda.runtime.is_hip and cp.cuda.runtime.runtimeGetVersion() < 5_00_00000,
+        reason="ROCm/HIP fails in ROCm 4.x",
+    )
     def test_roundtrip(self):
         a = cp.logspace(-5, 10, 100)
         x = cp.logspace(-5, 10, 100)
@@ -135,9 +135,9 @@ class TestGammaincc:
             assert result == desired
 
     @pytest.mark.skipif(
-        cp.cuda.runtime.is_hip and
-        cp.cuda.runtime.runtimeGetVersion() < 5_00_00000,
-        reason='ROCm/HIP fails in ROCm 4.x')
+        cp.cuda.runtime.is_hip and cp.cuda.runtime.runtimeGetVersion() < 5_00_00000,
+        reason="ROCm/HIP fails in ROCm 4.x",
+    )
     def test_infinite_limits(self):
         # Test that large arguments converge to the hard-coded limits
         # at infinity.
@@ -159,9 +159,9 @@ class TestGammaincc:
         assert_array_equal(sc.gammaincc(a, 0), 1)
 
     @pytest.mark.skipif(
-        cp.cuda.runtime.is_hip and
-        cp.cuda.runtime.runtimeGetVersion() < 5_00_00000,
-        reason='ROCm/HIP fails in ROCm 4.x')
+        cp.cuda.runtime.is_hip and cp.cuda.runtime.runtimeGetVersion() < 5_00_00000,
+        reason="ROCm/HIP fails in ROCm 4.x",
+    )
     def test_roundtrip(self):
         a = cp.logspace(-5, 10, 100)
         x = cp.logspace(-5, 10, 100)

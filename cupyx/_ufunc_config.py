@@ -47,27 +47,25 @@ def get_config_linalg():
     try:
         value = _config.linalg
     except AttributeError:
-        value = _config.linalg = 'ignore'
+        value = _config.linalg = "ignore"
     return value
 
 
 @contextlib.contextmanager
-def errstate(*, divide=None, over=None, under=None,
-             invalid=None, linalg=None):
+def errstate(*, divide=None, over=None, under=None, invalid=None, linalg=None):
     """
     TODO(hvy): Write docs.
     """
     old_state = seterr(
-        divide=divide, over=over, under=under,
-        invalid=invalid, linalg=linalg)
+        divide=divide, over=over, under=under, invalid=invalid, linalg=linalg
+    )
     try:
         yield  # Return `None` similar to `numpy.errstate`.
     finally:
         seterr(**old_state)
 
 
-def seterr(*, divide=None, over=None, under=None,
-           invalid=None, linalg=None):
+def seterr(*, divide=None, over=None, under=None, invalid=None, linalg=None):
     """
     TODO(hvy): Write docs.
     """
@@ -82,7 +80,7 @@ def seterr(*, divide=None, over=None, under=None,
     if invalid is not None:
         raise NotImplementedError()
     if linalg is not None:
-        if linalg in ('ignore', 'raise'):
+        if linalg in ("ignore", "raise"):
             _config.linalg = linalg
         else:
             raise NotImplementedError()

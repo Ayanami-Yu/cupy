@@ -9,12 +9,16 @@ from cupy._core import _cub_reduction
 from cupy import testing
 
 
-@testing.parameterize(*testing.product({
-    'order': ('C', 'F'),
-}))
+@testing.parameterize(
+    *testing.product(
+        {
+            "order": ("C", "F"),
+        }
+    )
+)
 class TestArrayReduction:
 
-    @pytest.fixture(scope='class')
+    @pytest.fixture(scope="class")
     def exclude_cutensor(self):
         # cuTENSOR seems to have issues in handling inf/nan in reduction-based
         # routines, so we use this fixture to skip testing it
@@ -91,26 +95,26 @@ class TestArrayReduction:
     @testing.for_float_dtypes()
     @testing.numpy_cupy_allclose(contiguous_check=False)
     def test_max_nan(self, xp, dtype, exclude_cutensor):
-        a = xp.array([float('nan'), 1, -1], dtype, order=self.order)
+        a = xp.array([float("nan"), 1, -1], dtype, order=self.order)
         return a.max()
 
     @testing.for_complex_dtypes()
     @testing.numpy_cupy_allclose(contiguous_check=False)
     def test_max_nan_real(self, xp, dtype):
-        a = xp.array([float('nan'), 1, -1], dtype, order=self.order)
+        a = xp.array([float("nan"), 1, -1], dtype, order=self.order)
         return a.max()
 
     @testing.for_complex_dtypes()
     @testing.numpy_cupy_allclose(contiguous_check=False)
     def test_max_nan_imag(self, xp, dtype):
-        a = xp.array([float('nan')*1.j, 1.j, -1.j], dtype, order=self.order)
+        a = xp.array([float("nan") * 1.0j, 1.0j, -1.0j], dtype, order=self.order)
         return a.max()
 
     @testing.for_float_dtypes()
     @testing.numpy_cupy_allclose(contiguous_check=False)
     def test_max_inf(self, exclude_cutensor, xp, dtype):
         # cupy/cupy#8180
-        a = xp.array([-float('inf'), -float('inf')], dtype, order=self.order)
+        a = xp.array([-float("inf"), -float("inf")], dtype, order=self.order)
         return a.max()
 
     @testing.for_all_dtypes()
@@ -164,26 +168,26 @@ class TestArrayReduction:
     @testing.for_float_dtypes()
     @testing.numpy_cupy_allclose(contiguous_check=False)
     def test_min_nan(self, xp, dtype, exclude_cutensor):
-        a = xp.array([float('nan'), 1, -1], dtype, order=self.order)
+        a = xp.array([float("nan"), 1, -1], dtype, order=self.order)
         return a.min()
 
     @testing.for_complex_dtypes()
     @testing.numpy_cupy_allclose(contiguous_check=False)
     def test_min_nan_real(self, xp, dtype):
-        a = xp.array([float('nan'), 1, -1], dtype, order=self.order)
+        a = xp.array([float("nan"), 1, -1], dtype, order=self.order)
         return a.min()
 
     @testing.for_complex_dtypes()
     @testing.numpy_cupy_allclose(contiguous_check=False)
     def test_min_nan_imag(self, xp, dtype):
-        a = xp.array([float('nan')*1.j, 1.j, -1.j], dtype, order=self.order)
+        a = xp.array([float("nan") * 1.0j, 1.0j, -1.0j], dtype, order=self.order)
         return a.min()
 
     @testing.for_float_dtypes()
     @testing.numpy_cupy_allclose(contiguous_check=False)
     def test_min_inf(self, xp, dtype, exclude_cutensor):
         # cupy/cupy#8180
-        a = xp.array([float('inf'), float('inf')], dtype, order=self.order)
+        a = xp.array([float("inf"), float("inf")], dtype, order=self.order)
         return a.min()
 
     @testing.for_all_dtypes()
@@ -219,19 +223,19 @@ class TestArrayReduction:
     @testing.for_float_dtypes()
     @testing.numpy_cupy_allclose(contiguous_check=False)
     def test_argmax_nan(self, xp, dtype, exclude_cutensor):
-        a = xp.array([float('nan'), 1, -1], dtype, order=self.order)
+        a = xp.array([float("nan"), 1, -1], dtype, order=self.order)
         return a.argmax()
 
     @testing.for_complex_dtypes()
     @testing.numpy_cupy_allclose(contiguous_check=False)
     def test_argmax_nan_real(self, xp, dtype):
-        a = xp.array([float('nan'), 1, -1], dtype, order=self.order)
+        a = xp.array([float("nan"), 1, -1], dtype, order=self.order)
         return a.argmax()
 
     @testing.for_complex_dtypes()
     @testing.numpy_cupy_allclose(contiguous_check=False)
     def test_argmax_nan_imag(self, xp, dtype):
-        a = xp.array([float('nan')*1.j, 1.j, -1.j], dtype, order=self.order)
+        a = xp.array([float("nan") * 1.0j, 1.0j, -1.0j], dtype, order=self.order)
         return a.argmax()
 
     @testing.for_all_dtypes()
@@ -267,71 +271,73 @@ class TestArrayReduction:
     @testing.for_float_dtypes()
     @testing.numpy_cupy_allclose(contiguous_check=False)
     def test_argmin_nan(self, xp, dtype, exclude_cutensor):
-        a = xp.array([float('nan'), 1, -1], dtype, order=self.order)
+        a = xp.array([float("nan"), 1, -1], dtype, order=self.order)
         return a.argmin()
 
     @testing.for_complex_dtypes()
     @testing.numpy_cupy_allclose(contiguous_check=False)
     def test_argmin_nan_real(self, xp, dtype):
-        a = xp.array([float('nan'), 1, -1], dtype, order=self.order)
+        a = xp.array([float("nan"), 1, -1], dtype, order=self.order)
         return a.argmin()
 
     @testing.for_complex_dtypes()
     @testing.numpy_cupy_allclose(contiguous_check=False)
     def test_argmin_nan_imag(self, xp, dtype):
-        a = xp.array([float('nan')*1.j, 1.j, -1.j], dtype, order=self.order)
+        a = xp.array([float("nan") * 1.0j, 1.0j, -1.0j], dtype, order=self.order)
         return a.argmin()
 
 
-@testing.parameterize(*testing.product({
-    # TODO(leofang): make a @testing.for_all_axes decorator
-    'shape_and_axis': [
-        ((), None),
-        ((0,), (0,)),
-        ((0, 2), (0,)),
-        ((0, 2), (1,)),
-        ((0, 2), (0, 1)),
-        ((2, 0), (0,)),
-        ((2, 0), (1,)),
-        ((2, 0), (0, 1)),
-        ((0, 2, 3), (0,)),
-        ((0, 2, 3), (1,)),
-        ((0, 2, 3), (2,)),
-        ((0, 2, 3), (0, 1)),
-        ((0, 2, 3), (1, 2)),
-        ((0, 2, 3), (0, 2)),
-        ((0, 2, 3), (0, 1, 2)),
-        ((2, 0, 3), (0,)),
-        ((2, 0, 3), (1,)),
-        ((2, 0, 3), (2,)),
-        ((2, 0, 3), (0, 1)),
-        ((2, 0, 3), (1, 2)),
-        ((2, 0, 3), (0, 2)),
-        ((2, 0, 3), (0, 1, 2)),
-        ((2, 3, 0), (0,)),
-        ((2, 3, 0), (1,)),
-        ((2, 3, 0), (2,)),
-        ((2, 3, 0), (0, 1)),
-        ((2, 3, 0), (1, 2)),
-        ((2, 3, 0), (0, 2)),
-        ((2, 3, 0), (0, 1, 2)),
-    ],
-    'order': ('C', 'F'),
-    'func': ('min', 'max', 'argmax', 'argmin'),
-}))
+@testing.parameterize(
+    *testing.product(
+        {
+            # TODO(leofang): make a @testing.for_all_axes decorator
+            "shape_and_axis": [
+                ((), None),
+                ((0,), (0,)),
+                ((0, 2), (0,)),
+                ((0, 2), (1,)),
+                ((0, 2), (0, 1)),
+                ((2, 0), (0,)),
+                ((2, 0), (1,)),
+                ((2, 0), (0, 1)),
+                ((0, 2, 3), (0,)),
+                ((0, 2, 3), (1,)),
+                ((0, 2, 3), (2,)),
+                ((0, 2, 3), (0, 1)),
+                ((0, 2, 3), (1, 2)),
+                ((0, 2, 3), (0, 2)),
+                ((0, 2, 3), (0, 1, 2)),
+                ((2, 0, 3), (0,)),
+                ((2, 0, 3), (1,)),
+                ((2, 0, 3), (2,)),
+                ((2, 0, 3), (0, 1)),
+                ((2, 0, 3), (1, 2)),
+                ((2, 0, 3), (0, 2)),
+                ((2, 0, 3), (0, 1, 2)),
+                ((2, 3, 0), (0,)),
+                ((2, 3, 0), (1,)),
+                ((2, 3, 0), (2,)),
+                ((2, 3, 0), (0, 1)),
+                ((2, 3, 0), (1, 2)),
+                ((2, 3, 0), (0, 2)),
+                ((2, 3, 0), (0, 1, 2)),
+            ],
+            "order": ("C", "F"),
+            "func": ("min", "max", "argmax", "argmin"),
+        }
+    )
+)
 class TestArrayReductionZeroSize:
 
-    @testing.numpy_cupy_allclose(
-        contiguous_check=False, accept_error=ValueError)
+    @testing.numpy_cupy_allclose(contiguous_check=False, accept_error=ValueError)
     def test_zero_size(self, xp):
         shape, axis = self.shape_and_axis
         # NumPy only supports axis being an int
-        if self.func in ('argmax', 'argmin'):
+        if self.func in ("argmax", "argmin"):
             if axis is not None and len(axis) == 1:
                 axis = axis[0]
             else:
-                pytest.skip(
-                    f"NumPy does not support axis={axis} for {self.func}")
+                pytest.skip(f"NumPy does not support axis={axis} for {self.func}")
         # dtype is irrelevant here, just pick one
         a = testing.shaped_random(shape, xp, xp.float32, order=self.order)
         return getattr(a, self.func)(axis=axis)
@@ -339,28 +345,42 @@ class TestArrayReductionZeroSize:
 
 # This class compares CUB results against NumPy's. ("fallback" is CuPy's
 # original kernel, also tested here to reduce code duplication.)
-@testing.parameterize(*testing.product({
-    'shape': [(10,), (10, 20), (10, 20, 30), (10, 20, 30, 40),
-              # skip (2, 3, 0) because it would not hit the CUB code path
-              (0,), (2, 0), (0, 2), (0, 2, 3), (2, 3, 0)],
-    'order': ('C', 'F'),
-    'backend': ('device', 'block', 'fallback'),
-}))
+@testing.parameterize(
+    *testing.product(
+        {
+            "shape": [
+                (10,),
+                (10, 20),
+                (10, 20, 30),
+                (10, 20, 30, 40),
+                # skip (2, 3, 0) because it would not hit the CUB code path
+                (0,),
+                (2, 0),
+                (0, 2),
+                (0, 2, 3),
+                (2, 3, 0),
+            ],
+            "order": ("C", "F"),
+            "backend": ("device", "block", "fallback"),
+        }
+    )
+)
 @pytest.mark.skipif(
-    not cupy.cuda.cub.available, reason='The CUB routine is not enabled')
+    not cupy.cuda.cub.available, reason="The CUB routine is not enabled"
+)
 class TestCubReduction:
 
     @pytest.fixture(autouse=True)
     def setUp(self):
         self.old_routine_accelerators = _acc.get_routine_accelerators()
         self.old_reduction_accelerators = _acc.get_reduction_accelerators()
-        if self.backend == 'device':
-            _acc.set_routine_accelerators(['cub'])
+        if self.backend == "device":
+            _acc.set_routine_accelerators(["cub"])
             _acc.set_reduction_accelerators([])
-        elif self.backend == 'block':
+        elif self.backend == "block":
             _acc.set_routine_accelerators([])
-            _acc.set_reduction_accelerators(['cub'])
-        elif self.backend == 'fallback':
+            _acc.set_reduction_accelerators(["cub"])
+        elif self.backend == "fallback":
             _acc.set_routine_accelerators([])
             _acc.set_reduction_accelerators([])
         yield
@@ -369,8 +389,7 @@ class TestCubReduction:
 
     @testing.for_contiguous_axes()
     @testing.for_all_dtypes(no_bool=True)
-    @testing.numpy_cupy_allclose(
-        contiguous_check=False, accept_error=ValueError)
+    @testing.numpy_cupy_allclose(contiguous_check=False, accept_error=ValueError)
     def test_cub_min(self, xp, dtype, axis):
         a = testing.shaped_random(self.shape, xp, dtype, order=self.order)
 
@@ -379,18 +398,18 @@ class TestCubReduction:
 
         # xp is cupy, first ensure we really use CUB
         ret = cupy.empty(())  # Cython checks return type, need to fool it
-        if self.backend == 'device':
-            func_name = 'cupy._core._routines_statistics.cub.'
+        if self.backend == "device":
+            func_name = "cupy._core._routines_statistics.cub."
             if len(axis) == len(self.shape):
-                func_name += 'device_reduce'
+                func_name += "device_reduce"
             else:
-                func_name += 'device_segmented_reduce'
+                func_name += "device_segmented_reduce"
             with testing.AssertFunctionIsCalled(func_name, return_value=ret):
                 a.min(axis=axis)
-        elif self.backend == 'block':
+        elif self.backend == "block":
             # this is the only function we can mock; the rest is cdef'd
-            func_name = 'cupy._core._cub_reduction.'
-            func_name += '_SimpleCubReductionKernel_get_cached_function'
+            func_name = "cupy._core._cub_reduction."
+            func_name += "_SimpleCubReductionKernel_get_cached_function"
             func = _cub_reduction._SimpleCubReductionKernel_get_cached_function
             if len(axis) == len(self.shape):
                 times_called = 2  # two passes
@@ -399,9 +418,10 @@ class TestCubReduction:
             if a.size == 0:
                 times_called = 0  # _reduction.pyx has an early return path
             with testing.AssertFunctionIsCalled(
-                    func_name, wraps=func, times_called=times_called):
+                func_name, wraps=func, times_called=times_called
+            ):
                 a.min(axis=axis)
-        elif self.backend == 'fallback':
+        elif self.backend == "fallback":
             pass
         # ...then perform the actual computation
         return a.min(axis=axis)
@@ -414,8 +434,7 @@ class TestCubReduction:
 
     @testing.for_contiguous_axes()
     @testing.for_all_dtypes(no_bool=True)
-    @testing.numpy_cupy_allclose(
-        contiguous_check=False, accept_error=ValueError)
+    @testing.numpy_cupy_allclose(contiguous_check=False, accept_error=ValueError)
     def test_cub_max(self, xp, dtype, axis):
         a = testing.shaped_random(self.shape, xp, dtype, order=self.order)
 
@@ -424,18 +443,18 @@ class TestCubReduction:
 
         # xp is cupy, first ensure we really use CUB
         ret = cupy.empty(())  # Cython checks return type, need to fool it
-        if self.backend == 'device':
-            func_name = 'cupy._core._routines_statistics.cub.'
+        if self.backend == "device":
+            func_name = "cupy._core._routines_statistics.cub."
             if len(axis) == len(self.shape):
-                func_name += 'device_reduce'
+                func_name += "device_reduce"
             else:
-                func_name += 'device_segmented_reduce'
+                func_name += "device_segmented_reduce"
             with testing.AssertFunctionIsCalled(func_name, return_value=ret):
                 a.max(axis=axis)
-        elif self.backend == 'block':
+        elif self.backend == "block":
             # this is the only function we can mock; the rest is cdef'd
-            func_name = 'cupy._core._cub_reduction.'
-            func_name += '_SimpleCubReductionKernel_get_cached_function'
+            func_name = "cupy._core._cub_reduction."
+            func_name += "_SimpleCubReductionKernel_get_cached_function"
             func = _cub_reduction._SimpleCubReductionKernel_get_cached_function
             if len(axis) == len(self.shape):
                 times_called = 2  # two passes
@@ -444,9 +463,10 @@ class TestCubReduction:
             if a.size == 0:
                 times_called = 0  # _reduction.pyx has an early return path
             with testing.AssertFunctionIsCalled(
-                    func_name, wraps=func, times_called=times_called):
+                func_name, wraps=func, times_called=times_called
+            ):
                 a.max(axis=axis)
-        elif self.backend == 'fallback':
+        elif self.backend == "fallback":
             pass
         # ...then perform the actual computation
         return a.max(axis=axis)

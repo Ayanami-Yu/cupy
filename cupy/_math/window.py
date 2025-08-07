@@ -10,7 +10,9 @@ _blackman_kernel = _core.ElementwiseKernel(
     "float64 out",
     """
     out = 0.42 - 0.5 * cos(i * alpha) + 0.08 * cos(2 * alpha * i);
-    """, name="cupy_blackman")
+    """,
+    name="cupy_blackman",
+)
 
 
 _bartlett_kernel = _core.ElementwiseKernel(
@@ -21,7 +23,9 @@ _bartlett_kernel = _core.ElementwiseKernel(
         arr = i / alpha;
     else
         arr = 2.0 - i / alpha;
-    """, name="cupy_bartlett")
+    """,
+    name="cupy_bartlett",
+)
 
 
 def bartlett(M):
@@ -87,7 +91,9 @@ _hamming_kernel = _core.ElementwiseKernel(
     "float64 out",
     """
     out = 0.54 - 0.46 * cos(i * alpha);
-    """, name="cupy_hamming")
+    """,
+    name="cupy_hamming",
+)
 
 
 def hamming(M):
@@ -123,7 +129,9 @@ _hanning_kernel = _core.ElementwiseKernel(
     "float64 out",
     """
     out = 0.5 - 0.5 * cos(i * alpha);
-    """, name="cupy_hanning")
+    """,
+    name="cupy_hanning",
+)
 
 
 def hanning(M):
@@ -161,7 +169,9 @@ _kaiser_kernel = _core.ElementwiseKernel(
     float temp = (i - alpha) / alpha;
     arr = cyl_bessel_i0(beta * sqrt(1 - (temp * temp)));
     arr /= cyl_bessel_i0(beta);
-    """, name="cupy_kaiser")
+    """,
+    name="cupy_kaiser",
+)
 
 
 def kaiser(M, beta):
@@ -191,7 +201,7 @@ def kaiser(M, beta):
     .. seealso:: :func:`numpy.kaiser`
     """
     if M == 1:
-        return cupy.array([1.])
+        return cupy.array([1.0])
     if M <= 0:
         return cupy.array([])
     alpha = (M - 1) / 2.0

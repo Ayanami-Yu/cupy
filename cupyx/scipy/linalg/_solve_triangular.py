@@ -10,9 +10,16 @@ from cupy.linalg import _util
 from cupyx.scipy.linalg import _uarray
 
 
-@_uarray.implements('solve_triangular')
-def solve_triangular(a, b, trans=0, lower=False, unit_diagonal=False,
-                     overwrite_b=False, check_finite=False):
+@_uarray.implements("solve_triangular")
+def solve_triangular(
+    a,
+    b,
+    trans=0,
+    lower=False,
+    unit_diagonal=False,
+    overwrite_b=False,
+    check_finite=False,
+):
     """Solve the equation a x = b for x, assuming a is a triangular matrix.
 
     Args:
@@ -50,35 +57,32 @@ def solve_triangular(a, b, trans=0, lower=False, unit_diagonal=False,
 
     if a.ndim == 2:
         if a.shape[0] != a.shape[1]:
-            raise ValueError('expected square matrix')
+            raise ValueError("expected square matrix")
         if len(a) != len(b):
-            raise ValueError('incompatible dimensions')
+            raise ValueError("incompatible dimensions")
         batch_count = 0
     elif a.ndim > 2:
         if a.shape[-1] != a.shape[-2]:
-            raise ValueError('expected a batch of square matrices')
-        if a.shape[:-2] != b.shape[:a.ndim - 2]:
-            raise ValueError('incompatible batch count')
+            raise ValueError("expected a batch of square matrices")
+        if a.shape[:-2] != b.shape[: a.ndim - 2]:
+            raise ValueError("incompatible batch count")
         if b.ndim < a.ndim - 1 or a.shape[-2] != b.shape[a.ndim - 2]:
-            raise ValueError('incompatible dimensions')
+            raise ValueError("incompatible dimensions")
         batch_count = math.prod(a.shape[:-2])
     else:
-        raise ValueError(
-            'expected one square matrix or a batch of square matrices')
+        raise ValueError("expected one square matrix or a batch of square matrices")
 
     # Cast to float32 or float64
-    if a.dtype.char in 'fd':
+    if a.dtype.char in "fd":
         dtype = a.dtype
     else:
-        dtype = numpy.promote_types(a.dtype.char, 'f')
+        dtype = numpy.promote_types(a.dtype.char, "f")
 
     if check_finite:
-        if a.dtype.kind == 'f' and not cupy.isfinite(a).all():
-            raise ValueError(
-                'array must not contain infs or NaNs')
-        if b.dtype.kind == 'f' and not cupy.isfinite(b).all():
-            raise ValueError(
-                'array must not contain infs or NaNs')
+        if a.dtype.kind == "f" and not cupy.isfinite(a).all():
+            raise ValueError("array must not contain infs or NaNs")
+        if b.dtype.kind == "f" and not cupy.isfinite(b).all():
+            raise ValueError("array must not contain infs or NaNs")
 
     if batch_count:
         m, n = b.shape[-2:] if b.ndim == a.ndim else (b.shape[-1], 1)
@@ -87,35 +91,37 @@ def solve_triangular(a, b, trans=0, lower=False, unit_diagonal=False,
         b_shape = b.shape
         b_data_ptr = b.data.ptr
         # trsm receives Fortran array, but we want zero copy
-        if trans == 'N' or trans == cublas.CUBLAS_OP_N:
+        if trans == "N" or trans == cublas.CUBLAS_OP_N:
             # normal Fortran upper == transpose C lower
             trans = cublas.CUBLAS_OP_T
             lower = not lower
             a = cupy.ascontiguousarray(a.reshape(*a_new_shape), dtype=dtype)
-        elif trans == 'T' or trans == cublas.CUBLAS_OP_T:
+        elif trans == "T" or trans == cublas.CUBLAS_OP_T:
             # transpose Fortran upper == normal C lower
             trans = cublas.CUBLAS_OP_N
             lower = not lower
             a = cupy.ascontiguousarray(a.reshape(*a_new_shape), dtype=dtype)
-        elif trans == 'C' or trans == cublas.CUBLAS_OP_C:
-            if dtype == 'f' or dtype == 'd':
+        elif trans == "C" or trans == cublas.CUBLAS_OP_C:
+            if dtype == "f" or dtype == "d":
                 # real numbers
                 # Hermitian Fortran upper == transpose Fortran upper
                 #                         == normal C lower
                 trans = cublas.CUBLAS_OP_N
                 lower = not lower
-                a = cupy.ascontiguousarray(a.reshape(*a_new_shape),
-                                           dtype=dtype)
+                a = cupy.ascontiguousarray(a.reshape(*a_new_shape), dtype=dtype)
             else:
                 # complex numbers
                 trans = cublas.CUBLAS_OP_C
                 a = cupy.ascontiguousarray(
-                    a.reshape(*a_new_shape).transpose(0, 2, 1), dtype=dtype)
+                    a.reshape(*a_new_shape).transpose(0, 2, 1), dtype=dtype
+                )
         else:  # know nothing about `trans`, just convert C to Fortran
             a = cupy.ascontiguousarray(
-                a.reshape(*a_new_shape).transpose(0, 2, 1), dtype=dtype)
+                a.reshape(*a_new_shape).transpose(0, 2, 1), dtype=dtype
+            )
         b = cupy.ascontiguousarray(
-            b.reshape(batch_count, m, n).transpose(0, 2, 1), dtype=dtype)
+            b.reshape(batch_count, m, n).transpose(0, 2, 1), dtype=dtype
+        )
         if b.data.ptr == b_data_ptr and not overwrite_b:
             b = b.copy()
 
@@ -129,17 +135,16 @@ def solve_triangular(a, b, trans=0, lower=False, unit_diagonal=False,
         stop = start + step * batch_count
         b_array = cupy.arange(start, stop, step, dtype=cupy.uintp)
     else:
-        a = cupy.array(a, dtype=dtype, order='F', copy=None)
-        b = cupy.array(b, dtype=dtype, order='F',
-                       copy=(None if overwrite_b else True))
+        a = cupy.array(a, dtype=dtype, order="F", copy=None)
+        b = cupy.array(b, dtype=dtype, order="F", copy=(None if overwrite_b else True))
 
         m, n = (b.size, 1) if b.ndim == 1 else b.shape
 
-        if trans == 'N':
+        if trans == "N":
             trans = cublas.CUBLAS_OP_N
-        elif trans == 'T':
+        elif trans == "T":
             trans = cublas.CUBLAS_OP_T
-        elif trans == 'C':
+        elif trans == "C":
             trans = cublas.CUBLAS_OP_C
 
     cublas_handle = device.get_cublas_handle()
@@ -156,31 +161,51 @@ def solve_triangular(a, b, trans=0, lower=False, unit_diagonal=False,
         diag = cublas.CUBLAS_DIAG_NON_UNIT
 
     if batch_count:
-        if dtype == 'f':
+        if dtype == "f":
             trsm = cublas.strsmBatched
-        elif dtype == 'd':
+        elif dtype == "d":
             trsm = cublas.dtrsmBatched
-        elif dtype == 'F':
+        elif dtype == "F":
             trsm = cublas.ctrsmBatched
         else:  # dtype == 'D'
             trsm = cublas.ztrsmBatched
         trsm(
-            cublas_handle, cublas.CUBLAS_SIDE_LEFT, uplo,
-            trans, diag,
-            m, n, one.ctypes.data, a_array.data.ptr, m,
-            b_array.data.ptr, m, batch_count)
+            cublas_handle,
+            cublas.CUBLAS_SIDE_LEFT,
+            uplo,
+            trans,
+            diag,
+            m,
+            n,
+            one.ctypes.data,
+            a_array.data.ptr,
+            m,
+            b_array.data.ptr,
+            m,
+            batch_count,
+        )
         return b.transpose(0, 2, 1).reshape(b_shape)
     else:
-        if dtype == 'f':
+        if dtype == "f":
             trsm = cublas.strsm
-        elif dtype == 'd':
+        elif dtype == "d":
             trsm = cublas.dtrsm
-        elif dtype == 'F':
+        elif dtype == "F":
             trsm = cublas.ctrsm
         else:  # dtype == 'D'
             trsm = cublas.ztrsm
         trsm(
-            cublas_handle, cublas.CUBLAS_SIDE_LEFT, uplo,
-            trans, diag,
-            m, n, one.ctypes.data, a.data.ptr, m, b.data.ptr, m)
+            cublas_handle,
+            cublas.CUBLAS_SIDE_LEFT,
+            uplo,
+            trans,
+            diag,
+            m,
+            n,
+            one.ctypes.data,
+            a.data.ptr,
+            m,
+            b.data.ptr,
+            m,
+        )
         return b

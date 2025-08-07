@@ -19,6 +19,7 @@ import cupy as np
 # Note: The functions here return a namedtuple (np.unique() returns a normal
 # tuple).
 
+
 class UniqueAllResult(NamedTuple):
     values: Array
     indices: Array

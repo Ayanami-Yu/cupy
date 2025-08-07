@@ -11,7 +11,7 @@ from cupy._sorting import search
 from cupy_backends.cuda.api import runtime
 
 
-def copyto(dst, src, casting='same_kind', where=None):
+def copyto(dst, src, casting="same_kind", where=None):
     """Copies values from one array to another with broadcasting.
 
     This function can be called for arrays on different devices. In this case,
@@ -45,8 +45,7 @@ def copyto(dst, src, casting='same_kind', where=None):
         src_is_scalar = True
     elif isinstance(src, numpy.ndarray) or numpy.isscalar(src):
         if src.size != 1:
-            raise ValueError(
-                'non-scalar numpy.ndarray cannot be used for copyto')
+            raise ValueError("non-scalar numpy.ndarray cannot be used for copyto")
         src_dtype = src.dtype
         can_cast = numpy.can_cast(src, dst.dtype, casting)
         src = src.item()
@@ -56,8 +55,9 @@ def copyto(dst, src, casting='same_kind', where=None):
         can_cast = numpy.can_cast(src_dtype, dst.dtype, casting)
 
     if not can_cast:
-        raise TypeError('Cannot cast %s to %s in %s casting mode' %
-                        (src_dtype, dst.dtype, casting))
+        raise TypeError(
+            "Cannot cast %s to %s in %s casting mode" % (src_dtype, dst.dtype, casting)
+        )
 
     if fusion._is_fusing():
         # TODO(kataoka): NumPy allows stripping leading unit dimensions.
@@ -75,14 +75,18 @@ def copyto(dst, src, casting='same_kind', where=None):
         # - for fast-paths and
         # - for a better error message (than ufunc's).
         # NumPy allows stripping leading unit dimensions.
-        if not all([
-            s in (d, 1)
-            for s, d in itertools.zip_longest(
-                reversed(src.shape), reversed(dst.shape), fillvalue=1)
-        ]):
+        if not all(
+            [
+                s in (d, 1)
+                for s, d in itertools.zip_longest(
+                    reversed(src.shape), reversed(dst.shape), fillvalue=1
+                )
+            ]
+        ):
             raise ValueError(
                 "could not broadcast input array "
-                f"from shape {src.shape} into shape {dst.shape}")
+                f"from shape {src.shape} into shape {dst.shape}"
+            )
         squeeze_ndim = src.ndim - dst.ndim
         if squeeze_ndim > 0:
             # always succeeds because broadcast conition is checked.
@@ -117,5 +121,8 @@ def copyto(dst, src, casting='same_kind', where=None):
 def _can_memcpy(dst, src):
     c_contiguous = dst.flags.c_contiguous and src.flags.c_contiguous
     f_contiguous = dst.flags.f_contiguous and src.flags.f_contiguous
-    return (c_contiguous or f_contiguous) and dst.dtype == src.dtype and \
-        dst.size == src.size
+    return (
+        (c_contiguous or f_contiguous)
+        and dst.dtype == src.dtype
+        and dst.size == src.size
+    )

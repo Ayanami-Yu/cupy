@@ -19,17 +19,37 @@ def _multi_svd_norm(x, row_axis, col_axis, op):
 
 
 _norm_ord2 = _core.create_reduction_func(
-    '_norm_ord2',
-    ('?->l', 'b->l', 'B->L', 'h->l', 'H->L', 'i->l', 'I->L', 'l->l', 'L->L',
-     'q->q', 'Q->Q',
-     ('e->e', (None, None, None, 'float')),
-     'f->f', 'd->d'),
-    ('in0 * in0', 'a + b', 'out0 = sqrt(type_out0_raw(a))', None), 0)
+    "_norm_ord2",
+    (
+        "?->l",
+        "b->l",
+        "B->L",
+        "h->l",
+        "H->L",
+        "i->l",
+        "I->L",
+        "l->l",
+        "L->L",
+        "q->q",
+        "Q->Q",
+        ("e->e", (None, None, None, "float")),
+        "f->f",
+        "d->d",
+    ),
+    ("in0 * in0", "a + b", "out0 = sqrt(type_out0_raw(a))", None),
+    0,
+)
 _norm_ord2_complex = _core.create_reduction_func(
-    '_norm_ord2_complex',
-    ('F->f', 'D->d'),
-    ('in0.real() * in0.real() + in0.imag() * in0.imag()',
-     'a + b', 'out0 = sqrt(type_out0_raw(a))', None), 0)
+    "_norm_ord2_complex",
+    ("F->f", "D->d"),
+    (
+        "in0.real() * in0.real() + in0.imag() * in0.imag()",
+        "a + b",
+        "out0 = sqrt(type_out0_raw(a))",
+        None,
+    ),
+    0,
+)
 
 
 def norm(x, ord=None, axis=None, keepdims=False):
@@ -56,9 +76,12 @@ def norm(x, ord=None, axis=None, keepdims=False):
     # Immediately handle some default, simple, fast, and common cases.
     if axis is None:
         ndim = x.ndim
-        if (ord is None or (ndim == 1 and ord == 2) or
-                (ndim == 2 and ord in ('f', 'fro'))):
-            if x.dtype.kind == 'c':
+        if (
+            ord is None
+            or (ndim == 1 and ord == 2)
+            or (ndim == 2 and ord in ("f", "fro"))
+        ):
+            if x.dtype.kind == "c":
                 s = abs(x.ravel())
                 s *= s
                 ret = cupy.sqrt(s.sum())
@@ -76,8 +99,7 @@ def norm(x, ord=None, axis=None, keepdims=False):
         try:
             axis = int(axis)
         except Exception:
-            raise TypeError(
-                '\'axis\' must be None, an integer or a tuple of integers')
+            raise TypeError("'axis' must be None, an integer or a tuple of integers")
         axis = (axis,)
 
     if len(axis) == 1:
@@ -88,21 +110,20 @@ def norm(x, ord=None, axis=None, keepdims=False):
         elif ord == 0:
             # Zero norm
             # Convert to Python float in accordance with NumPy
-            return (x != 0).astype(x.real.dtype).sum(
-                axis=axis, keepdims=keepdims)
+            return (x != 0).astype(x.real.dtype).sum(axis=axis, keepdims=keepdims)
         elif ord == 1:
             # special case for speedup
             return abs(x).sum(axis=axis, keepdims=keepdims)
         elif ord is None or ord == 2:
             # special case for speedup
-            if x.dtype.kind == 'c':
+            if x.dtype.kind == "c":
                 return _norm_ord2_complex(x, axis=axis, keepdims=keepdims)
             return _norm_ord2(x, axis=axis, keepdims=keepdims)
         else:
             try:
                 float(ord)
             except TypeError:
-                raise ValueError('Invalid norm order for vectors.')
+                raise ValueError("Invalid norm order for vectors.")
 
             absx = abs(x)
             absx **= ord
@@ -116,10 +137,11 @@ def norm(x, ord=None, axis=None, keepdims=False):
         if col_axis < 0:
             col_axis += nd
         if not (0 <= row_axis < nd and 0 <= col_axis < nd):
-            raise ValueError('Invalid axis %r for an array with shape %r' %
-                             (axis, x.shape))
+            raise ValueError(
+                "Invalid axis %r for an array with shape %r" % (axis, x.shape)
+            )
         if row_axis == col_axis:
-            raise ValueError('Duplicate axes given.')
+            raise ValueError("Duplicate axes given.")
         if ord == 2:
             op_max = functools.partial(cupy.take, indices=0)
             ret = _multi_svd_norm(x, row_axis, col_axis, op_max)
@@ -142,15 +164,15 @@ def norm(x, ord=None, axis=None, keepdims=False):
             if row_axis > col_axis:
                 row_axis -= 1
             ret = abs(x).sum(axis=col_axis).min(axis=row_axis)
-        elif ord in [None, 'fro', 'f']:
-            if x.dtype.kind == 'c':
+        elif ord in [None, "fro", "f"]:
+            if x.dtype.kind == "c":
                 ret = _norm_ord2_complex(x, axis=axis)
             else:
                 ret = _norm_ord2(x, axis=axis)
-        elif ord == 'nuc':
+        elif ord == "nuc":
             ret = _multi_svd_norm(x, row_axis, col_axis, cupy.sum)
         else:
-            raise ValueError('Invalid norm order for matrices.')
+            raise ValueError("Invalid norm order for matrices.")
         if keepdims:
             ret_shape = list(x.shape)
             ret_shape[axis[0]] = 1
@@ -158,7 +180,7 @@ def norm(x, ord=None, axis=None, keepdims=False):
             ret = ret.reshape(ret_shape)
         return ret
     else:
-        raise ValueError('Improper number of dimensions to norm.')
+        raise ValueError("Improper number of dimensions to norm.")
 
 
 def cond(x, p=None):
@@ -191,7 +213,7 @@ def cond(x, p=None):
         raise cupy.linalg.LinAlgError("cond is not defined on empty arrays")
     if p is None or p == 2 or p == -2:
         s = cupy.linalg.svd(x, compute_uv=False)
-        with cupyx.errstate(linalg='ignore'):
+        with cupyx.errstate(linalg="ignore"):
             if p == -2:
                 r = s[..., -1] / s[..., 0]
             else:
@@ -204,7 +226,7 @@ def cond(x, p=None):
         _util._assert_stacked_2d(x)
         _util._assert_stacked_square(x)
         t, result_t = _util.linalg_common_type(x)
-        with cupyx.errstate(linalg='ignore'):
+        with cupyx.errstate(linalg="ignore"):
             invx = cupy.linalg.inv(x)
             r = norm(x, p, axis=(-2, -1)) * norm(invx, p, axis=(-2, -1))
         r = r.astype(result_t, copy=False)
@@ -258,8 +280,9 @@ def matrix_rank(M, tol=None):
         return (M != 0).any().astype(int)
     S = _decomposition.svd(M, compute_uv=False)
     if tol is None:
-        tol = (S.max(axis=-1, keepdims=True) * max(M.shape[-2:]) *
-               numpy.finfo(S.dtype).eps)
+        tol = (
+            S.max(axis=-1, keepdims=True) * max(M.shape[-2:]) * numpy.finfo(S.dtype).eps
+        )
     return (S > tol).sum(axis=-1, dtype=numpy.intp)
 
 
@@ -337,7 +360,7 @@ def slogdet(a):
     singular = dev_info > 0
     return (
         cupy.where(singular, sign_dtype.type(0), sign).reshape(shape),
-        cupy.where(singular, logdet_dtype.type('-inf'), logdet).reshape(shape),
+        cupy.where(singular, logdet_dtype.type("-inf"), logdet).reshape(shape),
     )
 
 

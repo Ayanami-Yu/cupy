@@ -1,4 +1,5 @@
 """Functions for FIR filter design."""
+
 from __future__ import annotations
 
 import math
@@ -120,8 +121,10 @@ def kaiserord(ripple, width):
     A = abs(ripple)  # in case somebody is confused as to what's meant
     if A < 8:
         # Formula for N is not valid in this range.
-        raise ValueError("Requested maximum ripple attenuation %f is too "
-                         "small for the Kaiser formula." % A)
+        raise ValueError(
+            "Requested maximum ripple attenuation %f is too "
+            "small for the Kaiser formula." % A
+        )
     beta = kaiser_beta(A)
 
     # Kaiser's formula (as given in Oppenheim and Schafer) is for the filter
@@ -307,8 +310,7 @@ def firwin(
 
     # Check for invalid input.
     if cutoff.ndim > 1:
-        raise ValueError(
-            "The cutoff argument must be at most " "one-dimensional.")
+        raise ValueError("The cutoff argument must be at most " "one-dimensional.")
     if cutoff.size == 0:
         raise ValueError("At least one cutoff frequency must be given.")
     if cutoff.min() <= 0 or cutoff.max() >= 1:
@@ -543,12 +545,10 @@ def firwin2(
         )
     elif ftype == 3 and (gain[0] != 0.0 or gain[-1] != 0.0):
         raise ValueError(
-            "A Type III filter must have zero gain at zero "
-            "and Nyquist frequencies."
+            "A Type III filter must have zero gain at zero " "and Nyquist frequencies."
         )
     elif ftype == 4 and gain[0] != 0.0:
-        raise ValueError(
-            "A Type IV filter must have zero gain at zero " "frequency.")
+        raise ValueError("A Type IV filter must have zero gain at zero " "frequency.")
 
     if nfreqs is None:
         nfreqs = 1 + 2 ** int(math.ceil(math.log(numtaps, 2)))
@@ -659,12 +659,12 @@ def firls(numtaps, bands, desired, weight=None, fs=2):
     numtaps = int(numtaps)
     if numtaps % 2 == 0 or numtaps < 1:
         raise ValueError("numtaps must be odd and >= 1")
-    M = (numtaps-1) // 2
+    M = (numtaps - 1) // 2
 
     # normalize bands 0->1 and make it 2 columns
     nyq = float(nyq)
     if nyq <= 0:
-        raise ValueError('nyq must be positive, got %s <= 0.' % nyq)
+        raise ValueError("nyq must be positive, got %s <= 0." % nyq)
     bands = cupy.asarray(bands).flatten() / nyq
     if len(bands) % 2 != 0:
         raise ValueError("bands must contain frequency pairs.")
@@ -675,9 +675,10 @@ def firls(numtaps, bands, desired, weight=None, fs=2):
     # check remaining params
     desired = cupy.asarray(desired).flatten()
     if bands.size != desired.size:
-        raise ValueError("desired must have one entry per frequency, got %s "
-                         "gains for %s frequencies."
-                         % (desired.size, bands.size))
+        raise ValueError(
+            "desired must have one entry per frequency, got %s "
+            "gains for %s frequencies." % (desired.size, bands.size)
+        )
     desired.shape = (-1, 2)
     # if (cupy.diff(bands) <= 0).any() or (cupy.diff(bands[:, 0]) < 0).any():
     #     raise ValueError("bands must be monotonically nondecreasing and have"
@@ -690,8 +691,10 @@ def firls(numtaps, bands, desired, weight=None, fs=2):
         weight = cupy.ones(len(desired))
     weight = cupy.asarray(weight).flatten()
     if len(weight) != len(desired):
-        raise ValueError("weight must be the same size as the number of "
-                         "band pairs ({}).".format(len(bands)))
+        raise ValueError(
+            "weight must be the same size as the number of "
+            "band pairs ({}).".format(len(bands))
+        )
     # if (weight < 0).any():
     #    raise ValueError("weight must be non-negative.")
 
@@ -713,12 +716,11 @@ def firls(numtaps, bands, desired, weight=None, fs=2):
     #     q(n) = W∫cos(πnf)df (0->1) = Wf sin(πnf)/πnf
     # integrated over each f1->f2 pair (i.e., value at f2 - value at f1).
     n = cupy.arange(numtaps)[:, cupy.newaxis, cupy.newaxis]
-    q = cupy.dot(cupy.diff(cupy.sinc(bands * n) *
-                           bands, axis=2)[:, :, 0], weight)
+    q = cupy.dot(cupy.diff(cupy.sinc(bands * n) * bands, axis=2)[:, :, 0], weight)
 
     # Now we assemble our sum of Toeplitz and Hankel
-    Q1 = toeplitz(q[:M+1])
-    Q2 = hankel(q[:M+1], q[M:])
+    Q1 = toeplitz(q[: M + 1])
+    Q2 = hankel(q[: M + 1], q[M:])
     Q = Q1 + Q2
 
     # Now for b(n) we have that:
@@ -728,13 +730,13 @@ def firls(numtaps, bands, desired, weight=None, fs=2):
     #     b(n) = W ∫ (mf+c)cos(πnf)df
     #          = f(mf+c)sin(πnf)/πnf + mf**2 cos(nπf)/(πnf)**2
     # integrated over each f1->f2 pair (i.e., value at f2 - value at f1).
-    n = n[:M + 1]  # only need this many coefficients here
+    n = n[: M + 1]  # only need this many coefficients here
     # Choose m and c such that we are at the start and end weights
-    m = (cupy.diff(desired, axis=1) / cupy.diff(bands, axis=1))
+    m = cupy.diff(desired, axis=1) / cupy.diff(bands, axis=1)
     c = desired[:, [0]] - bands[:, [0]] * m
-    b = bands * (m*bands + c) * cupy.sinc(bands * n)
+    b = bands * (m * bands + c) * cupy.sinc(bands * n)
     # Use L'Hospital's rule here for cos(nπf)/(πnf)**2 @ n=0
-    b[0] -= m * bands * bands / 2.
+    b[0] -= m * bands * bands / 2.0
     b[1:] += m * cupy.cos(n[1:] * cupy.pi * bands) / (cupy.pi * n[1:]) ** 2
     b = cupy.diff(b, axis=2)[:, :, 0] @ weight
 
@@ -778,14 +780,14 @@ def _dhtm(mag):
     # Leave Nyquist and DC at 0, knowing np.abs(fftfreq(N)[midpt]) == 0.5
     midpt = len(mag) // 2
     sig[1:midpt] = 1
-    sig[midpt + 1:] = -1
+    sig[midpt + 1 :] = -1
     # eventually if we want to support complex filters, we will need a
     # cupy.abs() on the mag inside the log, and should remove the .real
     recon = ifft(mag * cupy.exp(fft(sig * ifft(cupy.log(mag))))).real
     return recon
 
 
-def minimum_phase(h, method='homomorphic', n_fft=None, half=True):
+def minimum_phase(h, method="homomorphic", n_fft=None, half=True):
     """Convert a linear-phase FIR filter to minimum phase
 
     Parameters
@@ -875,29 +877,34 @@ def minimum_phase(h, method='homomorphic', n_fft=None, half=True):
 
     """  # noqa
     if cupy.iscomplexobj(h):
-        raise ValueError('Complex filters not supported')
+        raise ValueError("Complex filters not supported")
     if h.ndim != 1 or h.size <= 2:
-        raise ValueError('h must be 1-D and at least 2 samples long')
+        raise ValueError("h must be 1-D and at least 2 samples long")
     n_half = len(h) // 2
     if not cupy.allclose(h[-n_half:][::-1], h[:n_half]):
         import warnings
-        warnings.warn('h does not appear to by symmetric, conversion may '
-                      'fail', RuntimeWarning)
-    if not isinstance(method, str) or method not in \
-            ('homomorphic', 'hilbert',):
-        raise ValueError('method must be "homomorphic" or "hilbert", got %r'
-                         % (method,))
+
+        warnings.warn(
+            "h does not appear to by symmetric, conversion may " "fail", RuntimeWarning
+        )
+    if not isinstance(method, str) or method not in (
+        "homomorphic",
+        "hilbert",
+    ):
+        raise ValueError(
+            'method must be "homomorphic" or "hilbert", got %r' % (method,)
+        )
     if n_fft is None:
         n_fft = 2 ** int(cupy.ceil(cupy.log2(2 * (len(h) - 1) / 0.01)))
     n_fft = int(n_fft)
     if n_fft < len(h):
-        raise ValueError('n_fft must be at least len(h)==%s' % len(h))
-    if method == 'hilbert':
+        raise ValueError("n_fft must be at least len(h)==%s" % len(h))
+    if method == "hilbert":
         w = cupy.arange(n_fft) * (2 * cupy.pi / n_fft * n_half)
         H = cupy.real(fft(h, n_fft) * cupy.exp(1j * w))
         dp = max(H) - 1
         ds = 0 - min(H)
-        S = 4. / (cupy.sqrt(1 + dp + ds) + cupy.sqrt(1 - dp + ds)) ** 2
+        S = 4.0 / (cupy.sqrt(1 + dp + ds) + cupy.sqrt(1 - dp + ds)) ** 2
         H += ds
         H *= S
         H = cupy.sqrt(H, out=H)

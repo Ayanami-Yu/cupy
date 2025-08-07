@@ -11,13 +11,22 @@ from cupyx.scipy.ndimage import _util
 from cupyx.scipy.ndimage import _filters
 from cupyx.scipy.signal import _signaltools_core as _st_core
 from cupyx.scipy.signal._arraytools import (
-    const_ext, even_ext, odd_ext, axis_reverse, axis_slice, axis_assign)
+    const_ext,
+    even_ext,
+    odd_ext,
+    axis_reverse,
+    axis_slice,
+    axis_assign,
+)
 from cupyx.scipy.signal._iir_utils import (
-    apply_iir, apply_iir_sos, compute_correction_factors,
-    compute_correction_factors_sos)
+    apply_iir,
+    apply_iir_sos,
+    compute_correction_factors,
+    compute_correction_factors_sos,
+)
 
 
-def convolve(in1, in2, mode='full', method='auto'):
+def convolve(in1, in2, mode="full", method="auto"):
     """Convolve two N-dimensional arrays.
 
     Convolve ``in1`` and ``in2``, with the output size determined by the
@@ -64,7 +73,7 @@ def convolve(in1, in2, mode='full', method='auto'):
     return _correlate(in1, in2, mode, method, True)
 
 
-def correlate(in1, in2, mode='full', method='auto'):
+def correlate(in1, in2, mode="full", method="auto"):
     """Cross-correlate two N-dimensional arrays.
 
     Cross-correlate ``in1`` and ``in2``, with the output size determined by the
@@ -111,19 +120,18 @@ def correlate(in1, in2, mode='full', method='auto'):
     return _correlate(in1, in2, mode, method, False)
 
 
-def _correlate(in1, in2, mode='full', method='auto', convolution=False):
+def _correlate(in1, in2, mode="full", method="auto", convolution=False):
     quick_out = _st_core._check_conv_inputs(in1, in2, mode, convolution)
     if quick_out is not None:
         return quick_out
-    if method not in ('auto', 'direct', 'fft'):
+    if method not in ("auto", "direct", "fft"):
         raise ValueError('acceptable methods are "auto", "direct", or "fft"')
 
-    if method == 'auto':
+    if method == "auto":
         method = choose_conv_method(in1, in2, mode=mode)
 
-    if method == 'direct':
-        return _st_core._direct_correlate(in1, in2, mode, in1.dtype,
-                                          convolution)
+    if method == "direct":
+        return _st_core._direct_correlate(in1, in2, mode, in1.dtype, convolution)
 
     # if method == 'fft':
     if not convolution:
@@ -133,13 +141,13 @@ def _correlate(in1, in2, mode='full', method='auto', convolution=False):
         in1, in2 = in2, in1
     out = fftconvolve(in1, in2, mode)
     result_type = cupy.result_type(in1, in2)
-    if result_type.kind in 'ui':
+    if result_type.kind in "ui":
         out = out.round()
     out = out.astype(result_type, copy=False)
     return out
 
 
-def fftconvolve(in1, in2, mode='full', axes=None):
+def fftconvolve(in1, in2, mode="full", axes=None):
     """Convolve two N-dimensional arrays using FFT.
 
     Convolve ``in1`` and ``in2`` using the fast Fourier transform method, with
@@ -182,13 +190,15 @@ def fftconvolve(in1, in2, mode='full', axes=None):
     if out is not None:
         return out
     in1, in2, axes = _st_core._init_freq_conv_axes(in1, in2, mode, axes, False)
-    shape = [max(x1, x2) if a not in axes else x1 + x2 - 1
-             for a, (x1, x2) in enumerate(zip(in1.shape, in2.shape))]
+    shape = [
+        max(x1, x2) if a not in axes else x1 + x2 - 1
+        for a, (x1, x2) in enumerate(zip(in1.shape, in2.shape))
+    ]
     out = _st_core._freq_domain_conv(in1, in2, axes, shape, calc_fast_len=True)
     return _st_core._apply_conv_mode(out, in1.shape, in2.shape, mode, axes)
 
 
-def choose_conv_method(in1, in2, mode='full'):
+def choose_conv_method(in1, in2, mode="full"):
     """Find the fastest convolution/correlation method.
 
     Args:
@@ -254,17 +264,20 @@ def oaconvolve(in1, in2, mode="full", axes=None):
     if in1.shape == in2.shape:  # Equivalent to fftconvolve
         return fftconvolve(in1, in2, mode=mode, axes=axes)
 
-    in1, in2, axes = _st_core._init_freq_conv_axes(in1, in2, mode, axes,
-                                                   sorted_axes=True)
+    in1, in2, axes = _st_core._init_freq_conv_axes(
+        in1, in2, mode, axes, sorted_axes=True
+    )
     s1, s2 = in1.shape, in2.shape
     if not axes:
-        return _st_core._apply_conv_mode(in1*in2, s1, s2, mode, axes)
+        return _st_core._apply_conv_mode(in1 * in2, s1, s2, mode, axes)
 
     # Calculate the block sizes for the output, steps, first and second inputs.
     # It is simpler to calculate them all together than doing them in separate
     # loops due to all the special cases that need to be handled.
-    optimal_sizes = (_st_core._calc_oa_lens(s1[i], s2[i]) if i in axes else
-                     (-1, -1, s1[i], s2[i]) for i in range(in1.ndim))
+    optimal_sizes = (
+        _st_core._calc_oa_lens(s1[i], s2[i]) if i in axes else (-1, -1, s1[i], s2[i])
+        for i in range(in1.ndim)
+    )
     block_size, overlaps, in1_step, in2_step = zip(*optimal_sizes)
 
     # Fall back to fftconvolve if there is only one block in every dimension
@@ -272,20 +285,18 @@ def oaconvolve(in1, in2, mode="full", axes=None):
         return fftconvolve(in1, in2, mode=mode, axes=axes)
 
     # Pad and reshape the inputs for overlapping and adding
-    shape_final = [s1[i]+s2[i]-1 if i in axes else None
-                   for i in range(in1.ndim)]
-    in1, in2 = _st_core._oa_reshape_inputs(in1, in2, axes, shape_final,
-                                           block_size, overlaps,
-                                           in1_step, in2_step)
+    shape_final = [s1[i] + s2[i] - 1 if i in axes else None for i in range(in1.ndim)]
+    in1, in2 = _st_core._oa_reshape_inputs(
+        in1, in2, axes, shape_final, block_size, overlaps, in1_step, in2_step
+    )
 
     # Reshape the overlap-add parts to input block sizes
-    split_axes = [iax+i for i, iax in enumerate(axes)]
-    fft_axes = [iax+1 for iax in split_axes]
+    split_axes = [iax + i for i, iax in enumerate(axes)]
+    fft_axes = [iax + 1 for iax in split_axes]
 
     # Do the convolution
     fft_shape = [block_size[i] for i in axes]
-    ret = _st_core._freq_domain_conv(in1, in2, fft_axes, fft_shape,
-                                     calc_fast_len=False)
+    ret = _st_core._freq_domain_conv(in1, in2, fft_axes, fft_shape, calc_fast_len=False)
 
     # Do the overlap-add
     for ax, ax_fft, ax_split in zip(axes, fft_axes, split_axes):
@@ -301,9 +312,11 @@ def oaconvolve(in1, in2, mode="full", axes=None):
         ret_overpart += overpart
 
     # Reshape back to the correct dimensionality
-    shape_ret = [ret.shape[i] if i not in fft_axes else
-                 ret.shape[i]*ret.shape[i-1]
-                 for i in range(ret.ndim) if i not in split_axes]
+    shape_ret = [
+        ret.shape[i] if i not in fft_axes else ret.shape[i] * ret.shape[i - 1]
+        for i in range(ret.ndim)
+        if i not in split_axes
+    ]
     ret = ret.reshape(*shape_ret)
 
     # Slice to the correct size
@@ -312,7 +325,7 @@ def oaconvolve(in1, in2, mode="full", axes=None):
     return _st_core._apply_conv_mode(ret, s1, s2, mode, axes)
 
 
-def convolve2d(in1, in2, mode='full', boundary='fill', fillvalue=0):
+def convolve2d(in1, in2, mode="full", boundary="fill", fillvalue=0):
     """Convolve two 2-dimensional arrays.
 
     Convolve ``in1`` and ``in2`` with output size determined by ``mode``, and
@@ -354,7 +367,7 @@ def convolve2d(in1, in2, mode='full', boundary='fill', fillvalue=0):
     return _correlate2d(in1, in2, mode, boundary, fillvalue, True)
 
 
-def correlate2d(in1, in2, mode='full', boundary='fill', fillvalue=0):
+def correlate2d(in1, in2, mode="full", boundary="fill", fillvalue=0):
     """Cross-correlate two 2-dimensional arrays.
 
     Cross correlate ``in1`` and ``in2`` with output size determined by
@@ -402,26 +415,35 @@ def correlate2d(in1, in2, mode='full', boundary='fill', fillvalue=0):
 
 def _correlate2d(in1, in2, mode, boundary, fillvalue, convolution=False):
     if not (in1.ndim == in2.ndim == 2):
-        raise ValueError('{} inputs must both be 2-D arrays'.format(
-            'convolve2d' if convolution else 'correlate2d'))
+        raise ValueError(
+            "{} inputs must both be 2-D arrays".format(
+                "convolve2d" if convolution else "correlate2d"
+            )
+        )
     _boundaries = {
-        'fill': 'constant', 'pad': 'constant',
-        'wrap': 'wrap', 'circular': 'wrap',
-        'symm': 'reflect', 'symmetric': 'reflect',
+        "fill": "constant",
+        "pad": "constant",
+        "wrap": "wrap",
+        "circular": "wrap",
+        "symm": "reflect",
+        "symmetric": "reflect",
     }
     boundary = _boundaries.get(boundary)
     if boundary is None:
-        raise ValueError('Acceptable boundary flags are "fill" (or "pad"), '
-                         '"circular" (or "wrap"), and '
-                         '"symmetric" (or "symm").')
+        raise ValueError(
+            'Acceptable boundary flags are "fill" (or "pad"), '
+            '"circular" (or "wrap"), and '
+            '"symmetric" (or "symm").'
+        )
     quick_out = _st_core._check_conv_inputs(in1, in2, mode, convolution)
     if quick_out is not None:
         return quick_out
-    return _st_core._direct_correlate(in1, in2, mode, in1.dtype, convolution,
-                                      boundary, fillvalue, not convolution)
+    return _st_core._direct_correlate(
+        in1, in2, mode, in1.dtype, convolution, boundary, fillvalue, not convolution
+    )
 
 
-def correlation_lags(in1_len, in2_len, mode='full'):
+def correlation_lags(in1_len, in2_len, mode="full"):
     r"""
     Calculates the lag / displacement indices array for 1D cross-correlation.
 
@@ -464,9 +486,9 @@ def correlation_lags(in1_len, in2_len, mode='full'):
         lag_bound = in1_len // 2
         # calculate lag ranges for even and odd scenarios
         if in1_len % 2 == 0:
-            lags = lags[(mid - lag_bound):(mid + lag_bound)]
+            lags = lags[(mid - lag_bound) : (mid + lag_bound)]
         else:
-            lags = lags[(mid - lag_bound):(mid + lag_bound) + 1]
+            lags = lags[(mid - lag_bound) : (mid + lag_bound) + 1]
     elif mode == "valid":
         # the output consists only of those elements that do not
         # rely on the zero-padding. In 'valid' mode, either `in1` or `in2`
@@ -503,16 +525,17 @@ def wiener(im, mysize=None, noise=None):
     """
     if mysize is None:
         mysize = 3
-    mysize = _util._fix_sequence_arg(mysize, im.ndim, 'mysize', int)
-    im = im.astype(cupy.complex128 if im.dtype.kind == 'c' else cupy.float64,
-                   copy=False)
+    mysize = _util._fix_sequence_arg(mysize, im.ndim, "mysize", int)
+    im = im.astype(
+        cupy.complex128 if im.dtype.kind == "c" else cupy.float64, copy=False
+    )
 
     # Estimate the local mean
-    local_mean = _filters.uniform_filter(im, mysize, mode='constant')
+    local_mean = _filters.uniform_filter(im, mysize, mode="constant")
 
     # Estimate the local variance
-    local_var = _filters.uniform_filter(im*im, mysize, mode='constant')
-    local_var -= local_mean*local_mean
+    local_var = _filters.uniform_filter(im * im, mysize, mode="constant")
+    local_var -= local_mean * local_mean
 
     # Estimate the noise power if needed.
     if noise is None:
@@ -548,13 +571,15 @@ def order_filter(a, domain, rank):
     .. seealso:: :func:`cupyx.scipy.ndimage.rank_filter`
     .. seealso:: :func:`scipy.signal.order_filter`
     """
-    if a.dtype.kind in 'bc' or a.dtype == cupy.float16:
+    if a.dtype.kind in "bc" or a.dtype == cupy.float16:
         # scipy doesn't support these types
         raise ValueError("data type not supported")
     if any(x % 2 != 1 for x in domain.shape):
-        raise ValueError("Each dimension of domain argument "
-                         " should have an odd number of elements.")
-    return _filters.rank_filter(a, rank, footprint=domain, mode='constant')
+        raise ValueError(
+            "Each dimension of domain argument "
+            " should have an odd number of elements."
+        )
+    return _filters.rank_filter(a, rank, footprint=domain, mode="constant")
 
 
 def medfilt(volume, kernel_size=None):
@@ -577,23 +602,23 @@ def medfilt(volume, kernel_size=None):
     .. seealso:: :func:`cupyx.scipy.ndimage.median_filter`
     .. seealso:: :func:`scipy.signal.medfilt`
     """
-    if volume.dtype.char == 'e':
+    if volume.dtype.char == "e":
         # scipy doesn't support float16
         raise ValueError("float16 type not supported")
-    if volume.dtype.kind == 'b':
+    if volume.dtype.kind == "b":
         # scipy doesn't support bool
         raise ValueError("bool type not supported")
     kernel_size = _get_kernel_size(kernel_size, volume.ndim)
-    if volume.dtype.kind == 'c':
+    if volume.dtype.kind == "c":
         # scipy doesn't support complex
         raise ValueError("complex types not supported")
     if any(k > s for k, s in zip(kernel_size, volume.shape)):
-        warnings.warn('kernel_size exceeds volume extent: '
-                      'volume will be zero-padded')
+        warnings.warn(
+            "kernel_size exceeds volume extent: " "volume will be zero-padded"
+        )
 
     size = internal.prod(kernel_size)
-    return _filters.rank_filter(volume, size // 2, size=kernel_size,
-                                mode='constant')
+    return _filters.rank_filter(volume, size // 2, size=kernel_size, mode="constant")
 
 
 def medfilt2d(input, kernel_size=3):
@@ -620,21 +645,20 @@ def medfilt2d(input, kernel_size=3):
     .. seealso:: :func:`cupyx.scipy.signal.medfilt`
     .. seealso:: :func:`scipy.signal.medfilt2d`
     """
-    if input.dtype.char == 'e':
+    if input.dtype.char == "e":
         # scipy doesn't support float16
         raise ValueError("float16 type not supported")
-    if input.dtype.kind == 'b':
+    if input.dtype.kind == "b":
         # scipy doesn't support bool
         raise ValueError("bool type not supported")
     if input.ndim != 2:
-        raise ValueError('input must be 2d')
+        raise ValueError("input must be 2d")
     kernel_size = _get_kernel_size(kernel_size, input.ndim)
-    if input.dtype.kind == 'c':
+    if input.dtype.kind == "c":
         # scipy doesn't support complex
         raise ValueError("complex types not supported")
     order = kernel_size[0] * kernel_size[1] // 2
-    return _filters.rank_filter(
-        input, order, size=kernel_size, mode='constant')
+    return _filters.rank_filter(input, order, size=kernel_size, mode="constant")
 
 
 def lfilter(b, a, x, axis=-1, zi=None):
@@ -749,7 +773,7 @@ def lfilter(b, a, x, axis=-1, zi=None):
            `10.1145/3173162.3173168 <https://doi.org/10.1145/3173162.3173168>`_
     """
     a0 = a[0]
-    a_r = - a[1:] / a0
+    a_r = -a[1:] / a0
     b = b / a0
 
     num_b = b.size - 1
@@ -770,8 +794,7 @@ def lfilter(b, a, x, axis=-1, zi=None):
         if num_b > 0:
             prev_in = axis_slice(zi, 0, num_b, axis=axis)
         if num_a > 0:
-            prev_out = axis_slice(
-                zi, zi.shape[axis] - num_a, zi.shape[axis], axis=axis)
+            prev_out = axis_slice(zi, zi.shape[axis] - num_a, zi.shape[axis], axis=axis)
 
     if prev_in is not None:
         x_full = axis_assign(x_full, prev_in, 0, num_b, axis=axis)
@@ -780,7 +803,8 @@ def lfilter(b, a, x, axis=-1, zi=None):
     origin = -num_b // 2
     out = cupy.empty_like(x_full, dtype=fir_dtype)
     out = _filters.convolve1d(
-        x_full, b, axis=axis, mode='constant', origin=origin, output=out)
+        x_full, b, axis=axis, mode="constant", origin=origin, output=out
+    )
 
     if num_b > 0:
         out = axis_slice(out, out.shape[axis] - n, out.shape[axis], axis=axis)
@@ -788,7 +812,7 @@ def lfilter(b, a, x, axis=-1, zi=None):
     if a_r.size > 0:
         iir_dtype = cupy.result_type(fir_dtype, a)
         const_dtype = cupy.dtype(a.dtype)
-        if const_dtype.kind == 'u':
+        if const_dtype.kind == "u":
             const_dtype = cupy.dtype(const_dtype.char.lower())
             a = a.astype(const_dtype)
 
@@ -797,15 +821,15 @@ def lfilter(b, a, x, axis=-1, zi=None):
     if zi is not None:
         zi = cupy.empty(zi.shape, dtype=out.dtype)
         if num_b > 0:
-            prev_in = axis_slice(
-                x, x.shape[axis] - num_b, x.shape[axis], axis=axis)
+            prev_in = axis_slice(x, x.shape[axis] - num_b, x.shape[axis], axis=axis)
             zi = axis_assign(zi, prev_in, 0, num_b, axis=axis)
         if num_a > 0:
             prev_out = axis_slice(
-                out, out.shape[axis] - num_a, out.shape[axis], axis=axis)
+                out, out.shape[axis] - num_a, out.shape[axis], axis=axis
+            )
             zi = axis_assign(
-                zi, prev_out, zi.shape[axis] - num_a, zi.shape[axis],
-                axis=axis)
+                zi, prev_out, zi.shape[axis] - num_a, zi.shape[axis], axis=axis
+            )
         return out, zi
     else:
         return out
@@ -864,13 +888,15 @@ def lfiltic(b, a, y, x=None):
     zi = cupy.empty(0)
     if y is not None and iir_len > 0:
         pad_y = cupy.concatenate(
-            (y, cupy.zeros(max(iir_len - y.shape[axis], 0))), axis=axis)
+            (y, cupy.zeros(max(iir_len - y.shape[axis], 0))), axis=axis
+        )
         zi = cupy.take(pad_y, list(range(iir_len)), axis=axis)
         zi = cupy.flip(zi, axis)
 
     if x is not None and fir_len > 0:
         pad_x = cupy.concatenate(
-            (x, cupy.zeros(max(fir_len - x.shape[axis], 0))), axis=axis)
+            (x, cupy.zeros(max(fir_len - x.shape[axis], 0))), axis=axis
+        )
         fir_zi = cupy.take(pad_x, list(range(fir_len)), axis=axis)
         fir_zi = cupy.flip(fir_zi, axis)
         zi = cupy.concatenate((fir_zi, zi), axis=axis)
@@ -904,7 +930,7 @@ def lfilter_zi(b, a):
     lfilter, lfiltic, filtfilt
     """
     a0 = a[0]
-    a_r = - a[1:] / a0
+    a_r = -a[1:] / a0
     # b = b / a0
     num_b = b.size - 1
     num_a = a_r.size
@@ -919,9 +945,9 @@ def lfilter_zi(b, a):
         zero_coef = cupy.where(a_r == 0)[0]
 
         C = compute_correction_factors(a_r, a_r.size + 1, a_r.dtype)
-        C = C[:, a_r.size:]
-        C1 = C[:, :a_r.size].T
-        C2 = C[:, -a_r.size:].T
+        C = C[:, a_r.size :]
+        C1 = C[:, : a_r.size].T
+        C2 = C[:, -a_r.size :].T
 
         # Take the difference between the non-adjusted output values and
         # compute which initial output state would cause them to be constant.
@@ -937,7 +963,7 @@ def lfilter_zi(b, a):
     return zi
 
 
-def detrend(data, axis=-1, type='linear', bp=0, overwrite_data=False):
+def detrend(data, axis=-1, type="linear", bp=0, overwrite_data=False):
     """
     Remove linear trend along axis from data.
 
@@ -972,13 +998,13 @@ def detrend(data, axis=-1, type='linear', bp=0, overwrite_data=False):
 
 
     """
-    if type not in ['linear', 'l', 'constant', 'c']:
+    if type not in ["linear", "l", "constant", "c"]:
         raise ValueError("Trend type must be 'linear' or 'constant'.")
     data = cupy.asarray(data)
     dtype = data.dtype.char
-    if dtype not in 'dfDF':
-        dtype = 'd'
-    if type in ['constant', 'c']:
+    if dtype not in "dfDF":
+        dtype = "d"
+    if type in ["constant", "c"]:
         ret = data - cupy.mean(data, axis, keepdims=True)
         return ret
     else:
@@ -986,8 +1012,9 @@ def detrend(data, axis=-1, type='linear', bp=0, overwrite_data=False):
         N = dshape[axis]
         bp = cupy.sort(cupy.unique(cupy.r_[0, bp, N]))
         if cupy.any(bp > N):
-            raise ValueError("Breakpoints must be less than length "
-                             "of data along given axis.")
+            raise ValueError(
+                "Breakpoints must be less than length " "of data along given axis."
+            )
         bp = bp.tolist()
         # Restructure data so that axis is along first dimension and
         #  all other dimensions are collapsed into second dimension
@@ -1000,7 +1027,7 @@ def detrend(data, axis=-1, type='linear', bp=0, overwrite_data=False):
 
         if not overwrite_data:
             newdata = newdata.copy()  # make sure we have a copy
-        if newdata.dtype.char not in 'dfDF':
+        if newdata.dtype.char not in "dfDF":
             newdata = newdata.astype(dtype)
 
         # Find leastsq fit and remove it for each piece
@@ -1124,7 +1151,7 @@ def _filtfilt_gust(b, a, x, axis=-1, irlen=None):
         M = cupy.hstack((Sr - Obs, Obsr - S))
     else:
         # Matrix described in section IV of [1].
-        M = cupy.zeros((2*m, 2*order))
+        M = cupy.zeros((2 * m, 2 * order))
         M[:m, :order] = Sr - Obs
         M[m:, order:] = Obsr - S
 
@@ -1162,7 +1189,7 @@ def _filtfilt_gust(b, a, x, axis=-1, irlen=None):
     if m == n:
         W = cupy.hstack((Sr, Obsr))
     else:
-        W = cupy.zeros((2*m, 2*order))
+        W = cupy.zeros((2 * m, 2 * order))
         W[:m, :order] = Sr
         W[m:, order:] = Obsr
 
@@ -1198,10 +1225,14 @@ def _filtfilt_gust(b, a, x, axis=-1, irlen=None):
 
 def _validate_pad(padtype, padlen, x, axis, ntaps):
     """Helper to validate padding for filtfilt"""
-    if padtype not in ['even', 'odd', 'constant', None]:
-        raise ValueError(("Unknown value '%s' given to padtype.  padtype "
-                          "must be 'even', 'odd', 'constant', or None.") %
-                         padtype)
+    if padtype not in ["even", "odd", "constant", None]:
+        raise ValueError(
+            (
+                "Unknown value '%s' given to padtype.  padtype "
+                "must be 'even', 'odd', 'constant', or None."
+            )
+            % padtype
+        )
 
     if padtype is None:
         padlen = 0
@@ -1214,15 +1245,17 @@ def _validate_pad(padtype, padlen, x, axis, ntaps):
 
     # x's 'axis' dimension must be bigger than edge.
     if x.shape[axis] <= edge:
-        raise ValueError("The length of the input vector x must be greater "
-                         "than padlen, which is %d." % edge)
+        raise ValueError(
+            "The length of the input vector x must be greater "
+            "than padlen, which is %d." % edge
+        )
 
     if padtype is not None and edge > 0:
         # Make an extension of length `edge` at each
         # end of the input array.
-        if padtype == 'even':
+        if padtype == "even":
             ext = even_ext(x, edge, axis=axis)
-        elif padtype == 'odd':
+        elif padtype == "odd":
             ext = odd_ext(x, edge, axis=axis)
         else:
             ext = const_ext(x, edge, axis=axis)
@@ -1231,8 +1264,7 @@ def _validate_pad(padtype, padlen, x, axis, ntaps):
     return edge, ext
 
 
-def filtfilt(b, a, x, axis=-1, padtype='odd', padlen=None, method='pad',
-             irlen=None):
+def filtfilt(b, a, x, axis=-1, padtype="odd", padlen=None, method="pad", irlen=None):
     """
     Apply a digital filter forward and backward to a signal.
 
@@ -1318,7 +1350,7 @@ def filtfilt(b, a, x, axis=-1, padtype='odd', padlen=None, method='pad',
         raise ValueError("method must be 'pad' or 'gust'.")
 
     const_dtype = cupy.dtype(a.dtype)
-    if const_dtype.kind == 'u':
+    if const_dtype.kind == "u":
         const_dtype = cupy.dtype(const_dtype.char.lower())
         a = a.astype(const_dtype)
 
@@ -1327,8 +1359,7 @@ def filtfilt(b, a, x, axis=-1, padtype='odd', padlen=None, method='pad',
         return y
 
     # method == "pad"
-    edge, ext = _validate_pad(padtype, padlen, x, axis,
-                              ntaps=max(len(a), len(b)))
+    edge, ext = _validate_pad(padtype, padlen, x, axis, ntaps=max(len(a), len(b)))
 
     # Get the steady state of the filter's step response.
     zi = lfilter_zi(b, a)
@@ -1415,15 +1446,14 @@ def deconvolve(signal, divisor):
         input = cupy.zeros(N - D + 1, float)
         input[0] = 1
         quot = lfilter(num, den, input)
-        rem = num - convolve(den, quot, mode='full')
+        rem = num - convolve(den, quot, mode="full")
     return quot, rem
 
 
 def _get_kernel_size(kernel_size, ndim):
     if kernel_size is None:
         kernel_size = (3,) * ndim
-    kernel_size = _util._fix_sequence_arg(kernel_size, ndim,
-                                          'kernel_size', int)
+    kernel_size = _util._fix_sequence_arg(kernel_size, ndim, "kernel_size", int)
     if any((k % 2) != 1 for k in kernel_size):
         raise ValueError("Each element of kernel_size should be odd")
     return kernel_size
@@ -1433,19 +1463,19 @@ def _validate_sos(sos):
     """Helper to validate a SOS input"""
     sos = cupy.atleast_2d(sos)
     if sos.ndim != 2:
-        raise ValueError('sos array must be 2D')
+        raise ValueError("sos array must be 2D")
     n_sections, m = sos.shape
     if m != 6:
-        raise ValueError('sos array must be shape (n_sections, 6)')
+        raise ValueError("sos array must be shape (n_sections, 6)")
     if not (cupy.abs(sos[:, 3] - 1.0) <= 1e-15).all():
-        raise ValueError('sos[:, 3] should be all ones')
+        raise ValueError("sos[:, 3] should be all ones")
     return sos, n_sections
 
 
 def _validate_x(x):
     x = cupy.asarray(x)
     if x.ndim == 0:
-        raise ValueError('x must be at least 1-D')
+        raise ValueError("x must be at least 1-D")
     return x
 
 
@@ -1569,7 +1599,7 @@ def sosfilt_zi(sos):
     return zi
 
 
-def sosfiltfilt(sos, x, axis=-1, padtype='odd', padlen=None):
+def sosfiltfilt(sos, x, axis=-1, padtype="odd", padlen=None):
     """
     A forward-backward digital filter using cascaded second-order sections.
 
@@ -1622,8 +1652,7 @@ def sosfiltfilt(sos, x, axis=-1, padtype='odd', padlen=None):
     # `method` is "pad"...
     ntaps = 2 * n_sections + 1
     ntaps -= min((sos[:, 2] == 0).sum().item(), (sos[:, 5] == 0).sum().item())
-    edge, ext = _validate_pad(padtype, padlen, x, axis,
-                              ntaps=ntaps)
+    edge, ext = _validate_pad(padtype, padlen, x, axis, ntaps=ntaps)
 
     # These steps follow the same form as filtfilt with modifications
     zi = sosfilt_zi(sos)  # shape (n_sections, 4) --> (n_sections, ..., 4, ...)
@@ -1695,10 +1724,10 @@ def hilbert(x, N=None, axis=-1):
     h = cupy.zeros(N, dtype=Xf.dtype)
     if N % 2 == 0:
         h[0] = h[N // 2] = 1
-        h[1:N // 2] = 2
+        h[1 : N // 2] = 2
     else:
         h[0] = 1
-        h[1:(N + 1) // 2] = 2
+        h[1 : (N + 1) // 2] = 2
 
     if x.ndim > 1:
         ind = [cupy.newaxis] * x.ndim
@@ -1742,8 +1771,9 @@ def hilbert2(x, N=None):
             raise ValueError("N must be positive.")
         N = (N, N)
     elif len(N) != 2 or (N[0] <= 0 or N[1] <= 0):
-        raise ValueError("When given as a tuple, N must hold exactly "
-                         "two positive integers")
+        raise ValueError(
+            "When given as a tuple, N must hold exactly " "two positive integers"
+        )
 
     Xf = sp_fft.fft2(x, N, axes=(0, 1))
     h1 = cupy.zeros(N[0], dtype=Xf.dtype)
@@ -1752,10 +1782,10 @@ def hilbert2(x, N=None):
         N1 = h.shape[0]
         if N1 % 2 == 0:
             h[0] = h[N1 // 2] = 1
-            h[1:N1 // 2] = 2
+            h[1 : N1 // 2] = 2
         else:
             h[0] = 1
-            h[1:(N1 + 1) // 2] = 2
+            h[1 : (N1 + 1) // 2] = 2
 
     h = h1[:, cupy.newaxis] * h2[cupy.newaxis, :]
     k = x.ndim

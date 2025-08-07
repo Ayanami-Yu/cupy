@@ -12,7 +12,7 @@ def elementwise_copy(x, y, size):
         y[i] = x[i]
 
 
-size = cupy.uint32(2 ** 22)
+size = cupy.uint32(2**22)
 x = cupy.random.normal(size=(size,), dtype=cupy.float32)
 y = cupy.empty((size,), dtype=cupy.float32)
 

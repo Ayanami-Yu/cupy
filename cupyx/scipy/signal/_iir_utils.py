@@ -12,14 +12,14 @@ from cupyx.scipy.signal._arraytools import axis_slice
 
 def _get_typename(dtype):
     typename = get_typename(dtype)
-    if typename == 'float16':
+    if typename == "float16":
         if runtime.is_hip:
             # 'half' in name_expressions weirdly raises
             # HIPRTC_ERROR_NAME_EXPRESSION_NOT_VALID in getLoweredName() on
             # ROCm
-            typename = '__half'
+            typename = "__half"
         else:
-            typename = 'half'
+            typename = "half"
     return typename
 
 
@@ -28,8 +28,11 @@ INT_TYPES = [cupy.int8, cupy.int16, cupy.int32, cupy.int64]
 COMPLEX_TYPES = [cupy.complex64, cupy.complex128]
 UNSIGNED_TYPES = [cupy.uint8, cupy.uint16, cupy.uint32, cupy.uint64]
 TYPES = FLOAT_TYPES + INT_TYPES + UNSIGNED_TYPES + COMPLEX_TYPES  # type: ignore  # NOQA
-TYPE_PAIRS = [(x, y) for x, y in product(TYPES, TYPES)
-              if cupy.promote_types(x, y) is cupy.dtype(x)]
+TYPE_PAIRS = [
+    (x, y)
+    for x, y in product(TYPES, TYPES)
+    if cupy.promote_types(x, y) is cupy.dtype(x)
+]
 
 TYPE_NAMES = [_get_typename(t) for t in TYPES]
 TYPE_PAIR_NAMES = [(_get_typename(x), _get_typename(y)) for x, y in TYPE_PAIRS]
@@ -474,28 +477,34 @@ __global__ void fir_sos(
 """  # NOQA
 
 IIR_MODULE = cupy.RawModule(
-    code=IIR_KERNEL, options=('-std=c++11',),
-    name_expressions=[f'compute_correction_factors<{x}, {y}>'
-                      for x, y in TYPE_PAIR_NAMES] +
-                     [f'correct_carries<{x}>' for x in TYPE_NAMES] +
-                     [f'first_pass_iir<{x}>' for x in TYPE_NAMES] +
-                     [f'second_pass_iir<{x}>' for x in TYPE_NAMES])
+    code=IIR_KERNEL,
+    options=("-std=c++11",),
+    name_expressions=[
+        f"compute_correction_factors<{x}, {y}>" for x, y in TYPE_PAIR_NAMES
+    ]
+    + [f"correct_carries<{x}>" for x in TYPE_NAMES]
+    + [f"first_pass_iir<{x}>" for x in TYPE_NAMES]
+    + [f"second_pass_iir<{x}>" for x in TYPE_NAMES],
+)
 
 IIR_SOS_MODULE = cupy.RawModule(
-    code=IIR_SOS_KERNEL, options=('-std=c++11',),
-    name_expressions=[f'compute_correction_factors_sos<{x}, {y}>'
-                      for x, y in TYPE_PAIR_NAMES] +
-    [f'pick_carries<{x}>' for x in TYPE_NAMES] +
-    [f'correct_carries_sos<{x}>' for x in TYPE_NAMES] +
-    [f'first_pass_iir_sos<{x}>' for x in TYPE_NAMES] +
-    [f'second_pass_iir_sos<{x}>' for x in TYPE_NAMES] +
-    [f'fir_sos<{x}>' for x in TYPE_NAMES])
+    code=IIR_SOS_KERNEL,
+    options=("-std=c++11",),
+    name_expressions=[
+        f"compute_correction_factors_sos<{x}, {y}>" for x, y in TYPE_PAIR_NAMES
+    ]
+    + [f"pick_carries<{x}>" for x in TYPE_NAMES]
+    + [f"correct_carries_sos<{x}>" for x in TYPE_NAMES]
+    + [f"first_pass_iir_sos<{x}>" for x in TYPE_NAMES]
+    + [f"second_pass_iir_sos<{x}>" for x in TYPE_NAMES]
+    + [f"fir_sos<{x}>" for x in TYPE_NAMES],
+)
 
 
 def _get_module_func(module, func_name, *template_args):
     args_dtypes = [_get_typename(arg.dtype) for arg in template_args]
-    template = ', '.join(args_dtypes)
-    kernel_name = f'{func_name}<{template}>' if template_args else func_name
+    template = ", ".join(args_dtypes)
+    kernel_name = f"{func_name}<{template}>" if template_args else func_name
     kernel = module.get_function(kernel_name)
     return kernel
 
@@ -521,10 +530,10 @@ def collapse_2d_rest(x, axis):
 def compute_correction_factors(a, block_sz, dtype):
     k = a.size
     correction = cupy.eye(k, dtype=dtype)
-    correction = cupy.c_[
-        correction[::-1], cupy.empty((k, block_sz), dtype=dtype)]
+    correction = cupy.c_[correction[::-1], cupy.empty((k, block_sz), dtype=dtype)]
     corr_kernel = _get_module_func(
-        IIR_MODULE, 'compute_correction_factors', correction, a)
+        IIR_MODULE, "compute_correction_factors", correction, a
+    )
     corr_kernel((k,), (1,), (block_sz, k, a, correction))
     return correction
 
@@ -559,22 +568,22 @@ def apply_iir(x, a, axis=-1, zi=None, dtype=None, block_sz=1024):
     total_blocks = num_rows * n_blocks
 
     correction = cupy.eye(k, dtype=dtype)
-    correction = cupy.c_[
-        correction[::-1], cupy.empty((k, block_sz), dtype=dtype)]
-    carries = cupy.empty(
-        (num_rows, n_blocks, k), dtype=dtype)
+    correction = cupy.c_[correction[::-1], cupy.empty((k, block_sz), dtype=dtype)]
+    carries = cupy.empty((num_rows, n_blocks, k), dtype=dtype)
 
     corr_kernel = _get_module_func(
-        IIR_MODULE, 'compute_correction_factors', correction, a)
-    first_pass_kernel = _get_module_func(IIR_MODULE, 'first_pass_iir', out)
-    second_pass_kernel = _get_module_func(IIR_MODULE, 'second_pass_iir', out)
-    carry_correction_kernel = _get_module_func(
-        IIR_MODULE, 'correct_carries', out)
+        IIR_MODULE, "compute_correction_factors", correction, a
+    )
+    first_pass_kernel = _get_module_func(IIR_MODULE, "first_pass_iir", out)
+    second_pass_kernel = _get_module_func(IIR_MODULE, "second_pass_iir", out)
+    carry_correction_kernel = _get_module_func(IIR_MODULE, "correct_carries", out)
 
     corr_kernel((k,), (1,), (block_sz, k, a, correction))
-    first_pass_kernel((total_blocks,), (block_sz // 2,),
-                      (block_sz, k, n, n_blocks, (n_blocks) * k,
-                       correction, out, carries))
+    first_pass_kernel(
+        (total_blocks,),
+        (block_sz // 2,),
+        (block_sz, k, n, n_blocks, (n_blocks) * k, correction, out, carries),
+    )
 
     if zi is not None:
         if zi.ndim == 1:
@@ -595,13 +604,33 @@ def apply_iir(x, a, axis=-1, zi=None, dtype=None, block_sz=1024):
         blocks_to_merge = n_blocks - starting_group
         carries_stride = (n_blocks + (1 - starting_group)) * k
         carry_correction_kernel(
-            (num_rows,), (k,),
-            (block_sz, k, n_blocks, carries_stride, starting_group,
-             correction, carries))
+            (num_rows,),
+            (k,),
+            (
+                block_sz,
+                k,
+                n_blocks,
+                carries_stride,
+                starting_group,
+                correction,
+                carries,
+            ),
+        )
         second_pass_kernel(
-            (num_rows * blocks_to_merge,), (block_sz,),
-            (block_sz, k, n, carries_stride, blocks_to_merge,
-             starting_group, correction, carries, out))
+            (num_rows * blocks_to_merge,),
+            (block_sz,),
+            (
+                block_sz,
+                k,
+                n,
+                carries_stride,
+                blocks_to_merge,
+                starting_group,
+                correction,
+                carries,
+                out,
+            ),
+        )
 
     if x_ndim > 1:
         out = out.reshape(x_shape)
@@ -616,13 +645,15 @@ def compute_correction_factors_sos(sos, block_sz, dtype):
     n_sections = sos.shape[0]
     correction = cupy.empty((n_sections, 2, block_sz), dtype=dtype)
     corr_kernel = _get_module_func(
-        IIR_SOS_MODULE, 'compute_correction_factors_sos', correction, sos)
+        IIR_SOS_MODULE, "compute_correction_factors_sos", correction, sos
+    )
     corr_kernel((n_sections,), (2,), (block_sz, sos, correction))
     return correction
 
 
-def apply_iir_sos(x, sos, axis=-1, zi=None, dtype=None, block_sz=1024,
-                  apply_fir=True, out=None):
+def apply_iir_sos(
+    x, sos, axis=-1, zi=None, dtype=None, block_sz=1024, apply_fir=True, out=None
+):
     if dtype is None:
         dtype = cupy.result_type(x.dtype, sos.dtype)
 
@@ -653,31 +684,30 @@ def apply_iir_sos(x, sos, axis=-1, zi=None, dtype=None, block_sz=1024,
     total_blocks = num_rows * n_blocks
 
     correction = compute_correction_factors_sos(sos, block_sz, dtype)
-    carries = cupy.empty(
-        (num_rows, n_blocks, k), dtype=dtype)
+    carries = cupy.empty((num_rows, n_blocks, k), dtype=dtype)
     all_carries = carries
     zi_out = None
     if zi is not None:
         zi_out = cupy.empty_like(zi)
-        all_carries = cupy.empty(
-            (num_rows, n_blocks + 1, k), dtype=dtype)
+        all_carries = cupy.empty((num_rows, n_blocks + 1, k), dtype=dtype)
 
-    first_pass_kernel = _get_module_func(
-        IIR_SOS_MODULE, 'first_pass_iir_sos', out)
-    second_pass_kernel = _get_module_func(
-        IIR_SOS_MODULE, 'second_pass_iir_sos', out)
+    first_pass_kernel = _get_module_func(IIR_SOS_MODULE, "first_pass_iir_sos", out)
+    second_pass_kernel = _get_module_func(IIR_SOS_MODULE, "second_pass_iir_sos", out)
     carry_correction_kernel = _get_module_func(
-        IIR_SOS_MODULE, 'correct_carries_sos', out)
-    fir_kernel = _get_module_func(IIR_SOS_MODULE, 'fir_sos', out)
-    carries_kernel = _get_module_func(IIR_SOS_MODULE, 'pick_carries', out)
+        IIR_SOS_MODULE, "correct_carries_sos", out
+    )
+    fir_kernel = _get_module_func(IIR_SOS_MODULE, "fir_sos", out)
+    carries_kernel = _get_module_func(IIR_SOS_MODULE, "pick_carries", out)
 
     starting_group = int(zi is None)
     blocks_to_merge = n_blocks - starting_group
     carries_stride = (n_blocks + (1 - starting_group)) * k
 
-    carries_kernel((num_rows * n_blocks,), (k,),
-                   (block_sz, n, carries_stride, n_blocks, starting_group,
-                    out, all_carries))
+    carries_kernel(
+        (num_rows * n_blocks,),
+        (k,),
+        (block_sz, n, carries_stride, n_blocks, starting_group, out, all_carries),
+    )
 
     for s in range(n_sections):
         b = sos[s]
@@ -687,13 +717,26 @@ def apply_iir_sos(x, sos, axis=-1, zi=None, dtype=None, block_sz=1024,
             zi_out[s, :, :2] = axis_slice(out, n - 2, n)
 
         if apply_fir:
-            fir_kernel((num_rows * n_blocks,), (block_sz,),
-                       (block_sz, n, carries_stride, n_blocks, starting_group,
-                        b, all_carries, out))
+            fir_kernel(
+                (num_rows * n_blocks,),
+                (block_sz,),
+                (
+                    block_sz,
+                    n,
+                    carries_stride,
+                    n_blocks,
+                    starting_group,
+                    b,
+                    all_carries,
+                    out,
+                ),
+            )
 
         first_pass_kernel(
-            (total_blocks,), (block_sz // 2,),
-            (block_sz, n, n_blocks, correction[s], out, carries))
+            (total_blocks,),
+            (block_sz // 2,),
+            (block_sz, n, n_blocks, correction[s], out, carries),
+        )
 
         if n_blocks > 1 or zi is not None:
             if zi is not None:
@@ -702,19 +745,46 @@ def apply_iir_sos(x, sos, axis=-1, zi=None, dtype=None, block_sz=1024,
                 all_carries[:, 1:, :] = carries
 
             carry_correction_kernel(
-                (num_rows,), (k,),
-                (block_sz, n_blocks, carries_stride, starting_group,
-                    correction[s], all_carries))
+                (num_rows,),
+                (k,),
+                (
+                    block_sz,
+                    n_blocks,
+                    carries_stride,
+                    starting_group,
+                    correction[s],
+                    all_carries,
+                ),
+            )
             second_pass_kernel(
-                (num_rows * blocks_to_merge,), (block_sz,),
-                (block_sz, n, carries_stride, blocks_to_merge,
-                    starting_group, correction[s], all_carries, out))
+                (num_rows * blocks_to_merge,),
+                (block_sz,),
+                (
+                    block_sz,
+                    n,
+                    carries_stride,
+                    blocks_to_merge,
+                    starting_group,
+                    correction[s],
+                    all_carries,
+                    out,
+                ),
+            )
 
         if apply_fir:
             carries_kernel(
-                (num_rows * n_blocks,), (k,),
-                (block_sz, n, carries_stride, n_blocks, starting_group,
-                 out, all_carries))
+                (num_rows * n_blocks,),
+                (k,),
+                (
+                    block_sz,
+                    n,
+                    carries_stride,
+                    n_blocks,
+                    starting_group,
+                    out,
+                    all_carries,
+                ),
+            )
 
         if zi is not None:
             zi_out[s, :, 2:] = axis_slice(out, n - 2, n)

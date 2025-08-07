@@ -25,27 +25,39 @@ class TestTrace(unittest.TestCase):
         return xp.trace(a, 1, 3, 2)
 
 
-@testing.parameterize(*testing.product({
-    'shape': [(1,), (2,)],
-    'ord': [-numpy.inf, -2, -1, 0, 1, 2, 3, numpy.inf],
-    'axis': [0, None],
-    'keepdims': [True, False],
-}) + testing.product({
-    'shape': [(1, 2), (2, 2)],
-    'ord': [-numpy.inf, -2, -1, 1, 2, numpy.inf, 'fro', 'nuc'],
-    'axis': [(0, 1), None],
-    'keepdims': [True, False],
-}) + testing.product({
-    'shape': [(2, 2, 2)],
-    'ord': [-numpy.inf, -2, -1, 0, 1, 2, 3, numpy.inf],
-    'axis': [0, 1, 2],
-    'keepdims': [True, False],
-}) + testing.product({
-    'shape': [(2, 2, 2)],
-    'ord': [-numpy.inf, -1, 1, numpy.inf, 'fro'],
-    'axis': [(0, 1), (0, 2), (1, 2)],
-    'keepdims': [True, False],
-})
+@testing.parameterize(
+    *testing.product(
+        {
+            "shape": [(1,), (2,)],
+            "ord": [-numpy.inf, -2, -1, 0, 1, 2, 3, numpy.inf],
+            "axis": [0, None],
+            "keepdims": [True, False],
+        }
+    )
+    + testing.product(
+        {
+            "shape": [(1, 2), (2, 2)],
+            "ord": [-numpy.inf, -2, -1, 1, 2, numpy.inf, "fro", "nuc"],
+            "axis": [(0, 1), None],
+            "keepdims": [True, False],
+        }
+    )
+    + testing.product(
+        {
+            "shape": [(2, 2, 2)],
+            "ord": [-numpy.inf, -2, -1, 0, 1, 2, 3, numpy.inf],
+            "axis": [0, 1, 2],
+            "keepdims": [True, False],
+        }
+    )
+    + testing.product(
+        {
+            "shape": [(2, 2, 2)],
+            "ord": [-numpy.inf, -1, 1, numpy.inf, "fro"],
+            "axis": [(0, 1), (0, 2), (1, 2)],
+            "keepdims": [True, False],
+        }
+    )
 )
 class TestNorm(unittest.TestCase):
 
@@ -62,17 +74,21 @@ class TestNorm(unittest.TestCase):
         return res
 
 
-@testing.parameterize(*testing.product({
-    'array': [
-        [[1, 2], [3, 4]],
-        [[1, 2], [1, 2]],
-        [[0, 0], [0, 0]],
-        [1, 2],
-        [0, 1],
-        [0, 0],
-    ],
-    'tol': [None, 1]
-}))
+@testing.parameterize(
+    *testing.product(
+        {
+            "array": [
+                [[1, 2], [3, 4]],
+                [[1, 2], [1, 2]],
+                [[0, 0], [0, 0]],
+                [1, 2],
+                [0, 1],
+                [0, 0],
+            ],
+            "tol": [None, 1],
+        }
+    )
+)
 class TestMatrixRank(unittest.TestCase):
 
     @testing.for_all_dtypes(no_float16=True, no_complex=True)
@@ -164,45 +180,45 @@ class TestDet(unittest.TestCase):
 
 class TestSlogdet(unittest.TestCase):
 
-    @testing.for_dtypes('fdFD')
+    @testing.for_dtypes("fdFD")
     @testing.numpy_cupy_allclose(rtol=1e-3, atol=1e-4)
     def test_slogdet(self, xp, dtype):
         a = testing.shaped_arange((2, 2), xp, dtype) + 1
         sign, logdet = xp.linalg.slogdet(a)
         return sign, logdet
 
-    @testing.for_dtypes('fdFD')
+    @testing.for_dtypes("fdFD")
     @testing.numpy_cupy_allclose(rtol=1e-3, atol=1e-4)
     def test_slogdet_3(self, xp, dtype):
         a = testing.shaped_arange((2, 2, 2), xp, dtype) + 1
         sign, logdet = xp.linalg.slogdet(a)
         return sign, logdet
 
-    @testing.for_dtypes('fdFD')
+    @testing.for_dtypes("fdFD")
     @testing.numpy_cupy_allclose(rtol=1e-3, atol=1e-4)
     def test_slogdet_4(self, xp, dtype):
         a = testing.shaped_arange((2, 2, 2, 2), xp, dtype) + 1
         sign, logdet = xp.linalg.slogdet(a)
         return sign, logdet
 
-    @testing.for_dtypes('fdFD')
+    @testing.for_dtypes("fdFD")
     @testing.numpy_cupy_allclose(rtol=1e-3, atol=1e-4)
     def test_slogdet_singular(self, xp, dtype):
         a = xp.zeros((3, 3), dtype)
         sign, logdet = xp.linalg.slogdet(a)
         return sign, logdet
 
-    @testing.for_dtypes('fdFD')
+    @testing.for_dtypes("fdFD")
     @testing.numpy_cupy_allclose(rtol=1e-3, atol=1e-4)
     def test_slogdet_singular_errstate(self, xp, dtype):
         a = xp.zeros((3, 3), dtype)
-        with cupyx.errstate(linalg='raise'):
+        with cupyx.errstate(linalg="raise"):
             # `cupy.linalg.slogdet` internally catches `dev_info < 0` from
             # cuSOLVER, which should not affect `dev_info > 0` cases.
             sign, logdet = xp.linalg.slogdet(a)
         return sign, logdet
 
-    @testing.for_dtypes('fdFD')
+    @testing.for_dtypes("fdFD")
     def test_slogdet_one_dim(self, dtype):
         for xp in (numpy, cupy):
             a = testing.shaped_arange((2,), xp, dtype)
@@ -277,7 +293,7 @@ class TestCond(unittest.TestCase):
     def test_generalized_2(self, xp, dtype):
         A = testing.shaped_arange((2, 2), xp, dtype=dtype)
         A = xp.array([A, 2 * A, 3 * A])
-        A = xp.array([A]*2*3).reshape((3, 2)+A.shape)
+        A = xp.array([A] * 2 * 3).reshape((3, 2) + A.shape)
 
         return xp.linalg.cond(A, self.ord)
 
@@ -285,8 +301,9 @@ class TestCond(unittest.TestCase):
     def test_0x0(self, dtype):
         for xp in (numpy, cupy):
             A = xp.empty((0, 0), dtype=dtype)
-            with pytest.raises(numpy.linalg.LinAlgError,
-                               match="cond is not defined on empty arrays"):
+            with pytest.raises(
+                numpy.linalg.LinAlgError, match="cond is not defined on empty arrays"
+            ):
                 xp.linalg.cond(A, self.ord)
 
     @testing.for_float_dtypes(no_float16=True)
@@ -298,19 +315,20 @@ class TestCond(unittest.TestCase):
     @testing.for_float_dtypes(no_float16=True)
     @testing.numpy_cupy_allclose(rtol=1e-3, atol=1e-4)
     def test_8x8(self, xp, dtype):
-        A = testing.shaped_arange(
-            (8, 8), xp, dtype=dtype)+xp.diag(xp.ones(8, dtype=dtype))
+        A = testing.shaped_arange((8, 8), xp, dtype=dtype) + xp.diag(
+            xp.ones(8, dtype=dtype)
+        )
         return xp.linalg.cond(A, self.ord)
 
     @testing.numpy_cupy_allclose(rtol=1e-3, atol=1e-4)
     def test_nonarray(self, xp):
-        A = [[1., 2.], [3., 4.]]
+        A = [[1.0, 2.0], [3.0, 4.0]]
         return xp.linalg.cond(A, self.ord)
 
     @testing.for_float_dtypes(no_float16=True)
     @testing.numpy_cupy_allclose(rtol=1e-3, atol=1e-4)
     def test_hermitian(self, xp, dtype):
-        A = xp.array([[1., 2.], [2., 1.]], dtype=dtype)
+        A = xp.array([[1.0, 2.0], [2.0, 1.0]], dtype=dtype)
         return xp.linalg.cond(A, self.ord)
 
 
@@ -319,9 +337,7 @@ class TestCondBasicNonSVD(unittest.TestCase):
         # Smoketest the non-svd norms
         A = cupy.array([[1.0, 0, 1], [0, -2.0, 0], [0, 0, 3.0]])
         testing.assert_array_almost_equal(cupy.linalg.cond(A, cupy.inf), 4)
-        testing.assert_array_almost_equal(
-            cupy.linalg.cond(A, -cupy.inf), 2 / 3
-        )
+        testing.assert_array_almost_equal(cupy.linalg.cond(A, -cupy.inf), 2 / 3)
         testing.assert_array_almost_equal(cupy.linalg.cond(A, 1), 4)
         testing.assert_array_almost_equal(cupy.linalg.cond(A, -1), 0.5)
         testing.assert_array_almost_equal(

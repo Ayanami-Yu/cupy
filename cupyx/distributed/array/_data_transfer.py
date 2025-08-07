@@ -19,6 +19,7 @@ from cupyx.distributed._nccl_comm import _get_nccl_dtype_and_count
 if nccl.available:
     from cupy.cuda.nccl import NcclCommunicator as _Communicator
 else:
+
     class _MockCommunicator:
         pass
 
@@ -29,7 +30,7 @@ else:
 class _AsyncData:
     array: ndarray
     ready: Event
-    prevent_gc: Any = None      # TODO: Release it to avoid OOM
+    prevent_gc: Any = None  # TODO: Release it to avoid OOM
 
     def copy(self) -> _AsyncData:
         with self.on_ready() as stream:
@@ -51,6 +52,7 @@ _PartialUpdate = tuple[_AsyncData, tuple[slice, ...]]
 
 
 if nccl.available:
+
     def _create_communicators(
         devices: Iterable[int],
     ) -> dict[int, _Communicator]:
@@ -58,8 +60,12 @@ if nccl.available:
         return {comm.device_id(): comm for comm in comms_list}
 
     def _transfer(
-        src_comm: _Communicator, src_stream: Stream, src_data: _AsyncData,
-        dst_comm: _Communicator, dst_stream: Stream, dst_dev: int,
+        src_comm: _Communicator,
+        src_stream: Stream,
+        src_data: _AsyncData,
+        dst_comm: _Communicator,
+        dst_stream: Stream,
+        dst_dev: int,
     ) -> _AsyncData:
         src_dev = src_data.array.device.id
         if src_dev == dst_dev:
@@ -71,42 +77,47 @@ if nccl.available:
             with Device(src_dev):
                 src_stream.use()
                 src_stream.wait_event(src_data.ready)
-                src_array = _creation_from_data.ascontiguousarray(
-                    src_data.array)
+                src_array = _creation_from_data.ascontiguousarray(src_data.array)
 
             with Device(dst_dev):
                 dst_stream.use()
-                dst_buf = _creation_basic.empty(
-                    src_array.shape, src_array.dtype)
+                dst_buf = _creation_basic.empty(src_array.shape, src_array.dtype)
 
             dtype, count = _get_nccl_dtype_and_count(src_array)
             nccl.groupStart()
 
             with Device(src_dev):
-                src_comm.send(src_array.data.ptr, count, dtype,
-                              dst_comm.rank_id(), src_stream.ptr)
+                src_comm.send(
+                    src_array.data.ptr, count, dtype, dst_comm.rank_id(), src_stream.ptr
+                )
 
             with Device(dst_dev):
-                dst_comm.recv(dst_buf.data.ptr, count, dtype,
-                              src_comm.rank_id(), dst_stream.ptr)
+                dst_comm.recv(
+                    dst_buf.data.ptr, count, dtype, src_comm.rank_id(), dst_stream.ptr
+                )
 
                 nccl.groupEnd()
-                return _AsyncData(dst_buf, dst_stream.record(),
-                                  prevent_gc=src_data)
+                return _AsyncData(dst_buf, dst_stream.record(), prevent_gc=src_data)
         finally:
             with Device(src_dev):
                 prev_src_stream.use()
             with Device(dst_dev):
                 prev_dst_stream.use()
+
 else:
+
     def _create_communicators(
         devices: Iterable[int],
     ) -> dict[int, _Communicator]:
         return {dev: _Communicator() for dev in devices}
 
     def _transfer(
-        src_comm: _Communicator, src_stream: Stream, src_data: _AsyncData,
-        dst_comm: _Communicator, dst_stream: Stream, dst_dev: int,
+        src_comm: _Communicator,
+        src_stream: Stream,
+        src_data: _AsyncData,
+        dst_comm: _Communicator,
+        dst_stream: Stream,
+        dst_dev: int,
     ) -> _AsyncData:
         src_dev = src_data.array.device.id
         if src_dev == dst_dev:
@@ -120,6 +131,7 @@ else:
 
                 dst_array = src_data.array.copy()
                 return _AsyncData(
-                    dst_array, dst_stream.record(), prevent_gc=src_data.array)
+                    dst_array, dst_stream.record(), prevent_gc=src_data.array
+                )
             finally:
                 prev_stream.use()

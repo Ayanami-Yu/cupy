@@ -11,7 +11,7 @@ from cupyx.distributed import _klv_utils
 from cupyx.distributed import _store_actions
 
 
-_DEFAULT_HOST = '127.0.0.1'
+_DEFAULT_HOST = "127.0.0.1"
 _DEFAULT_PORT = 13333
 
 _exit_mode = False
@@ -51,7 +51,7 @@ class TCPStore:
         self.storage = {}
         self._process = None
         self._world_size = world_size
-        self._run = multiprocessing.Value('b', 1)
+        self._run = multiprocessing.Value("b", 1)
         # For implementing a barrier
         self._lock = threading.Lock()
         self._current_barrier = None
@@ -70,8 +70,8 @@ class TCPStore:
             if len(action_bytes) > 0:
                 action_m = _klv_utils.action_t.from_buffer_copy(action_bytes)
                 if action_m.length > 256:
-                    raise ValueError('Invalid length for message')
-                value = bytearray(action_m.value)[:action_m.length]
+                    raise ValueError("Invalid length for message")
+                value = bytearray(action_m.value)[: action_m.length]
                 r = _store_actions.execute_action(action_m.action, value, self)
                 if r is not None:
                     c_socket.sendall(r.klv())
@@ -91,14 +91,13 @@ class TCPStore:
                     continue
 
                 t = threading.Thread(
-                    target=self._process_request,
-                    args=(c_socket,), daemon=True)
+                    target=self._process_request, args=(c_socket,), daemon=True
+                )
                 t.start()
 
     def run(self, host=_DEFAULT_HOST, port=_DEFAULT_PORT):
         # Run the TCP store in a different process
-        p = ExceptionAwareProcess(
-            target=self._server_loop, args=(host, port))
+        p = ExceptionAwareProcess(target=self._server_loop, args=(host, port))
         p.start()
         self._process = p
 
@@ -130,19 +129,19 @@ class TCPStoreProxy:
                     # TODO retry connects
                     s.connect((self.host, self.port))
                     s.sendall(action.klv())
-                    result_bytes = s.recv(sizeof(
-                        _klv_utils.result_action_t))
+                    result_bytes = s.recv(sizeof(_klv_utils.result_action_t))
                     if len(result_bytes) > 0:
                         result = _klv_utils.result_action_t.from_buffer_copy(
-                            result_bytes)
-                        value = bytearray(result.value)[:result.length]
+                            result_bytes
+                        )
+                        value = bytearray(result.value)[: result.length]
                         if result.status == 0:
                             return action.decode_result(value)
                         else:
-                            raise RuntimeError(value.decode('utf-8'))
+                            raise RuntimeError(value.decode("utf-8"))
             except ConnectionRefusedError:
                 time.sleep(TCPStoreProxy.DELAY_FOR_RETRY)
-        raise RuntimeError('TCPStore is not available')
+        raise RuntimeError("TCPStore is not available")
 
     def __getitem__(self, key):
         return self._send_recv(_store_actions.Get(key))

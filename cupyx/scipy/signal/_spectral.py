@@ -23,6 +23,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 """
+
 from __future__ import annotations
 
 
@@ -31,7 +32,11 @@ import warnings
 import cupy
 from cupyx.scipy.signal.windows._windows import get_window
 from cupyx.scipy.signal._spectral_impl import (
-    _lombscargle, _spectral_helper, _median_bias, _triage_segments)
+    _lombscargle,
+    _spectral_helper,
+    _median_bias,
+    _triage_segments,
+)
 
 
 def lombscargle(x, y, freqs, precenter=False, normalize=False):
@@ -541,10 +546,10 @@ def check_COLA(window, nperseg, noverlap, tol=1e-10):
     nperseg = int(nperseg)
 
     if nperseg < 1:
-        raise ValueError('nperseg must be a positive integer')
+        raise ValueError("nperseg must be a positive integer")
 
     if noverlap >= nperseg:
-        raise ValueError('noverlap must be less than nperseg.')
+        raise ValueError("noverlap must be less than nperseg.")
     noverlap = int(noverlap)
 
     if isinstance(window, str) or type(window) is tuple:
@@ -552,16 +557,15 @@ def check_COLA(window, nperseg, noverlap, tol=1e-10):
     else:
         win = cupy.asarray(window)
         if len(win.shape) != 1:
-            raise ValueError('window must be 1-D')
+            raise ValueError("window must be 1-D")
         if win.shape[0] != nperseg:
-            raise ValueError('window must have length of nperseg')
+            raise ValueError("window must have length of nperseg")
 
     step = nperseg - noverlap
-    binsums = sum(win[ii * step:(ii + 1) * step]
-                  for ii in range(nperseg//step))
+    binsums = sum(win[ii * step : (ii + 1) * step] for ii in range(nperseg // step))
 
     if nperseg % step != 0:
-        binsums[:nperseg % step] += win[-(nperseg % step):]
+        binsums[: nperseg % step] += win[-(nperseg % step) :]
 
     deviation = binsums - cupy.median(binsums)
     return cupy.max(cupy.abs(deviation)) < tol
@@ -630,12 +634,12 @@ def check_NOLA(window, nperseg, noverlap, tol=1e-10):
     nperseg = int(nperseg)
 
     if nperseg < 1:
-        raise ValueError('nperseg must be a positive integer')
+        raise ValueError("nperseg must be a positive integer")
 
     if noverlap >= nperseg:
-        raise ValueError('noverlap must be less than nperseg')
+        raise ValueError("noverlap must be less than nperseg")
     if noverlap < 0:
-        raise ValueError('noverlap must be a nonnegative integer')
+        raise ValueError("noverlap must be a nonnegative integer")
     noverlap = int(noverlap)
 
     if isinstance(window, str) or type(window) is tuple:
@@ -643,16 +647,17 @@ def check_NOLA(window, nperseg, noverlap, tol=1e-10):
     else:
         win = cupy.asarray(window)
         if len(win.shape) != 1:
-            raise ValueError('window must be 1-D')
+            raise ValueError("window must be 1-D")
         if win.shape[0] != nperseg:
-            raise ValueError('window must have length of nperseg')
+            raise ValueError("window must have length of nperseg")
 
     step = nperseg - noverlap
-    binsums = sum(win[ii * step:(ii + 1) * step] ** 2
-                  for ii in range(nperseg//step))
+    binsums = sum(
+        win[ii * step : (ii + 1) * step] ** 2 for ii in range(nperseg // step)
+    )
 
     if nperseg % step != 0:
-        binsums[:nperseg % step] += win[-(nperseg % step):]**2
+        binsums[: nperseg % step] += win[-(nperseg % step) :] ** 2
 
     return cupy.min(binsums) > tol
 
@@ -669,7 +674,7 @@ def stft(
     boundary="zeros",
     padded=True,
     axis=-1,
-    scaling='spectrum'
+    scaling="spectrum",
 ):
     r"""
     Compute the Short Time Fourier Transform (STFT).
@@ -817,9 +822,9 @@ def stft(
     >>> plt.xlabel('Time [sec]')
     >>> plt.show()
     """
-    if scaling == 'psd':
-        scaling = 'density'
-    elif scaling != 'spectrum':
+    if scaling == "psd":
+        scaling = "density"
+    elif scaling != "spectrum":
         raise ValueError(f"Parameter {scaling=} not in ['spectrum', 'psd']!")
 
     freqs, time, Zxx = _spectral_helper(
@@ -853,7 +858,7 @@ def istft(
     boundary=True,
     time_axis=-1,
     freq_axis=-2,
-    scaling='spectrum'
+    scaling="spectrum",
 ):
     r"""
     Perform the inverse Short Time Fourier transform (iSTFT).
@@ -1110,22 +1115,22 @@ def istft(
     if cupy.result_type(win, xsubs) != xsubs.dtype:
         win = win.astype(xsubs.dtype)
 
-    if scaling == 'spectrum':
+    if scaling == "spectrum":
         xsubs *= win.sum()
-    elif scaling == 'psd':
+    elif scaling == "psd":
         xsubs *= cupy.sqrt(fs * cupy.sum(win**2))
     else:
         raise ValueError(f"Parameter {scaling=} not in ['spectrum', 'psd']!")
 
     for ii in range(nseg):
         # Window the ifft
-        x[..., ii * nstep:ii * nstep + nperseg] += xsubs[..., ii] * win
-        norm[..., ii * nstep:ii * nstep + nperseg] += win**2
+        x[..., ii * nstep : ii * nstep + nperseg] += xsubs[..., ii] * win
+        norm[..., ii * nstep : ii * nstep + nperseg] += win**2
 
     # Remove extension points
     if boundary:
-        x = x[..., nperseg // 2: -(nperseg // 2)]
-        norm = norm[..., nperseg // 2: -(nperseg // 2)]
+        x = x[..., nperseg // 2 : -(nperseg // 2)]
+        norm = norm[..., nperseg // 2 : -(nperseg // 2)]
 
     # Divide out normalization where non-tiny
     if cupy.sum(norm > 1e-10) != len(norm):
@@ -1290,13 +1295,11 @@ def spectrogram(
     modelist = ["psd", "complex", "magnitude", "angle", "phase"]
     if mode not in modelist:
         raise ValueError(
-            "unknown value for mode {}, must be one of {}".format(
-                mode, modelist)
+            "unknown value for mode {}, must be one of {}".format(mode, modelist)
         )
 
     # need to set default for nperseg before setting default for noverlap below
-    window, nperseg = _triage_segments(
-        window, nperseg, input_length=x.shape[axis])
+    window, nperseg = _triage_segments(window, nperseg, input_length=x.shape[axis])
 
     # Less overlap than welch, so samples are more statisically independent
     if noverlap is None:

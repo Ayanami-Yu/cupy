@@ -42,24 +42,27 @@ class TestUnownedMemoryClass(unittest.TestCase):
         assert issubclass(memory.UnownedMemory, memory.BaseMemory)
 
 
-@testing.parameterize(*testing.product({
-    'allocator': [memory._malloc, memory.malloc_managed, memory.malloc_async],
-    'specify_device_id': [True, False],
-}))
+@testing.parameterize(
+    *testing.product(
+        {
+            "allocator": [memory._malloc, memory.malloc_managed, memory.malloc_async],
+            "specify_device_id": [True, False],
+        }
+    )
+)
 class TestUnownedMemory(unittest.TestCase):
 
     def check(self, device_id):
         if cupy.cuda.runtime.is_hip:
             if self.allocator is memory.malloc_managed:
                 if cupy.cuda.driver.get_build_version() < 40300000:
-                    raise unittest.SkipTest(
-                        'Managed memory requires ROCm 4.3+')
+                    raise unittest.SkipTest("Managed memory requires ROCm 4.3+")
                 else:
                     raise unittest.SkipTest(
-                        'hipPointerGetAttributes does not support managed '
-                        'memory')
+                        "hipPointerGetAttributes does not support managed " "memory"
+                    )
             if self.allocator is memory.malloc_async:
-                raise unittest.SkipTest('HIP does not support async mempool')
+                raise unittest.SkipTest("HIP does not support async mempool")
         else:
             if self.allocator is memory.malloc_async:
                 if cupy.cuda.driver._is_cuda_python():
@@ -67,12 +70,16 @@ class TestUnownedMemory(unittest.TestCase):
                 else:
                     version = cupy.cuda.driver.get_build_version()
                 if version < 11020:
-                    raise unittest.SkipTest('malloc_async is supported since '
-                                            'CUDA 11.2')
-                elif runtime.deviceGetAttribute(
-                        runtime.cudaDevAttrMemoryPoolsSupported, 0) == 0:
                     raise unittest.SkipTest(
-                        'malloc_async is not supported on device 0')
+                        "malloc_async is supported since " "CUDA 11.2"
+                    )
+                elif (
+                    runtime.deviceGetAttribute(
+                        runtime.cudaDevAttrMemoryPoolsSupported, 0
+                    )
+                    == 0
+                ):
+                    raise unittest.SkipTest("malloc_async is not supported on device 0")
 
         size = 24
         shape = (2, 3)
@@ -84,7 +91,7 @@ class TestUnownedMemory(unittest.TestCase):
         args = (src_ptr, size, src_mem_ptr)
         kwargs = {}
         if self.specify_device_id:
-            kwargs = {'device_id': device_id}
+            kwargs = {"device_id": device_id}
 
         if cupy.cuda.runtime.is_hip and self.allocator is memory._malloc:
             # In ROCm, it seems that `hipPointerGetAttributes()`, which is
@@ -157,8 +164,7 @@ class TestMemoryPointer(unittest.TestCase):
         a_gpu.copy_from(ctypes.cast(ctypes.byref(a_cpu), ctypes.c_void_p), 4)
 
         b_cpu = ctypes.c_int()
-        a_gpu.copy_to_host(
-            ctypes.cast(ctypes.byref(b_cpu), ctypes.c_void_p), 4)
+        a_gpu.copy_to_host(ctypes.cast(ctypes.byref(b_cpu), ctypes.c_void_p), 4)
         assert b_cpu.value == a_cpu.value
 
     def test_copy_from_device(self):
@@ -169,8 +175,7 @@ class TestMemoryPointer(unittest.TestCase):
         b_gpu = memory.alloc(4)
         b_gpu.copy_from(a_gpu, 4)
         b_cpu = ctypes.c_int()
-        b_gpu.copy_to_host(
-            ctypes.cast(ctypes.byref(b_cpu), ctypes.c_void_p), 4)
+        b_gpu.copy_to_host(ctypes.cast(ctypes.byref(b_cpu), ctypes.c_void_p), 4)
         assert b_cpu.value == a_cpu.value
 
     def test_copy_to_and_from_host_using_raw_ptr(self):
@@ -202,15 +207,18 @@ class TestMemoryPointer(unittest.TestCase):
         a_gpu.memset(1, 4)
         a_cpu = ctypes.c_ubyte()
         for i in range(4):
-            a_gpu.copy_to_host(
-                ctypes.cast(ctypes.byref(a_cpu), ctypes.c_void_p), 1)
+            a_gpu.copy_to_host(ctypes.cast(ctypes.byref(a_cpu), ctypes.c_void_p), 1)
             assert a_cpu.value == 1
             a_gpu += 1
 
 
-@testing.parameterize(*testing.product({
-    'use_streams': [True, False],
-}))
+@testing.parameterize(
+    *testing.product(
+        {
+            "use_streams": [True, False],
+        }
+    )
+)
 class TestMemoryPointerAsync(unittest.TestCase):
 
     def setUp(self):
@@ -219,13 +227,14 @@ class TestMemoryPointerAsync(unittest.TestCase):
     def test_copy_to_and_from_host_async(self):
         a_gpu = memory.alloc(4)
         a_cpu = ctypes.c_int(100)
-        a_gpu.copy_from_async(ctypes.cast(ctypes.byref(
-            a_cpu), ctypes.c_void_p), 4, stream=self.stream)
+        a_gpu.copy_from_async(
+            ctypes.cast(ctypes.byref(a_cpu), ctypes.c_void_p), 4, stream=self.stream
+        )
 
         b_cpu = ctypes.c_int()
         a_gpu.copy_to_host_async(
-            ctypes.cast(ctypes.byref(b_cpu), ctypes.c_void_p),
-            4, stream=self.stream)
+            ctypes.cast(ctypes.byref(b_cpu), ctypes.c_void_p), 4, stream=self.stream
+        )
         if self.stream is not None:
             self.stream.synchronize()
         else:
@@ -235,15 +244,16 @@ class TestMemoryPointerAsync(unittest.TestCase):
     def test_copy_from_device_async(self):
         a_gpu = memory.alloc(4)
         a_cpu = ctypes.c_int(100)
-        a_gpu.copy_from_async(ctypes.cast(ctypes.byref(
-            a_cpu), ctypes.c_void_p), 4, stream=self.stream)
+        a_gpu.copy_from_async(
+            ctypes.cast(ctypes.byref(a_cpu), ctypes.c_void_p), 4, stream=self.stream
+        )
 
         b_gpu = memory.alloc(4)
         b_gpu.copy_from_async(a_gpu, 4, stream=self.stream)
         b_cpu = ctypes.c_int()
         b_gpu.copy_to_host_async(
-            ctypes.cast(ctypes.byref(b_cpu), ctypes.c_void_p),
-            4, stream=self.stream)
+            ctypes.cast(ctypes.byref(b_cpu), ctypes.c_void_p), 4, stream=self.stream
+        )
         if self.stream is not None:
             self.stream.synchronize()
         else:
@@ -285,6 +295,7 @@ class TestMemoryPointerAsync(unittest.TestCase):
 
 # -----------------------------------------------------------------------------
 # Memory pool
+
 
 class TestSingleDeviceMemoryPool(unittest.TestCase):
 
@@ -596,8 +607,9 @@ class TestSingleDeviceMemoryPool(unittest.TestCase):
         p3 = self.pool.malloc(self.unit * 1)
         assert self.unit * 6 == self.pool.total_bytes()
 
-        assert (self.pool.used_bytes() + self.pool.free_bytes()
-                == self.pool.total_bytes())
+        assert (
+            self.pool.used_bytes() + self.pool.free_bytes() == self.pool.total_bytes()
+        )
 
         del p3
 
@@ -653,44 +665,48 @@ class TestParseMempoolLimitEnvVar(unittest.TestCase):
         parse_limit_string = memory._parse_limit_string
 
         # size
-        param = parse_limit_string('0')
-        assert 0 == param['size']
-        assert None is param['fraction']
+        param = parse_limit_string("0")
+        assert 0 == param["size"]
+        assert None is param["fraction"]
 
-        param = parse_limit_string('1073741824')
-        assert 1073741824 == param['size']
-        assert None is param['fraction']
+        param = parse_limit_string("1073741824")
+        assert 1073741824 == param["size"]
+        assert None is param["fraction"]
 
         # fraction
-        param = parse_limit_string('0%')
-        assert None is param['size']
-        assert 0.0 == param['fraction']
+        param = parse_limit_string("0%")
+        assert None is param["size"]
+        assert 0.0 == param["fraction"]
 
-        param = parse_limit_string('40%')
-        assert None is param['size']
-        assert 0.4 == param['fraction']
+        param = parse_limit_string("40%")
+        assert None is param["size"]
+        assert 0.4 == param["fraction"]
 
-        param = parse_limit_string('70.5%')
-        assert None is param['size']
-        assert 0.705 == param['fraction']
+        param = parse_limit_string("70.5%")
+        assert None is param["size"]
+        assert 0.705 == param["fraction"]
 
-        param = parse_limit_string('100%')
-        assert None is param['size']
-        assert 1.0 == param['fraction']
+        param = parse_limit_string("100%")
+        assert None is param["size"]
+        assert 1.0 == param["fraction"]
 
 
-@testing.parameterize(*testing.product({
-    'allocator': [memory._malloc, memory.malloc_managed],
-}))
+@testing.parameterize(
+    *testing.product(
+        {
+            "allocator": [memory._malloc, memory.malloc_managed],
+        }
+    )
+)
 class TestMemoryPool(unittest.TestCase):
 
     def setUp(self):
         if (
-            cupy.cuda.runtime.is_hip and
-            cupy.cuda.driver.get_build_version() < 40300000 and
-            self.allocator is memory.malloc_managed
+            cupy.cuda.runtime.is_hip
+            and cupy.cuda.driver.get_build_version() < 40300000
+            and self.allocator is memory.malloc_managed
         ):
-            raise unittest.SkipTest('Managed memory requires ROCm 4.3+')
+            raise unittest.SkipTest("Managed memory requires ROCm 4.3+")
         self.pool = memory.MemoryPool(self.allocator)
 
     def tearDown(self):
@@ -765,23 +781,27 @@ class TestMemoryPool(unittest.TestCase):
 # TODO(leofang): test MemoryAsyncPool. We currently remove the test because
 # this test class requires the ability of creating a new pool, which we do
 # not support yet for MemoryAsyncPool.
-@testing.parameterize(*testing.product({
-    'mempool': ('MemoryPool',),
-}))
+@testing.parameterize(
+    *testing.product(
+        {
+            "mempool": ("MemoryPool",),
+        }
+    )
+)
 class TestAllocator(unittest.TestCase):
 
     def setUp(self):
-        if self.mempool == 'MemoryAsyncPool':
+        if self.mempool == "MemoryAsyncPool":
             if cupy.cuda.runtime.is_hip:
-                pytest.skip('HIP does not support async allocator')
+                pytest.skip("HIP does not support async allocator")
             if cupy.cuda.driver._is_cuda_python():
                 version = cupy.cuda.runtime.runtimeGetVersion()
             else:
                 version = cupy.cuda.driver.get_build_version()
             if version < 11020:
-                pytest.skip('malloc_async is supported since CUDA 11.2')
+                pytest.skip("malloc_async is supported since CUDA 11.2")
             if cupy.cuda.runtime.driverGetVersion() < 11030:
-                pytest.skip('pool statistics is supported with driver 11.3+')
+                pytest.skip("pool statistics is supported with driver 11.3+")
         self.old_pool = cupy.get_default_memory_pool()
         self.pool = getattr(memory, self.mempool)()
         memory.set_allocator(self.pool.malloc)
@@ -909,7 +929,7 @@ class TestAllocator(unittest.TestCase):
         main_ptr, sub_ptr = self._reuse_between_thread(stream1, stream2)
         assert main_ptr != sub_ptr
 
-    @pytest.mark.skipif(cupy.cuda.runtime.is_hip, reason='No PTDS on HIP')
+    @pytest.mark.skipif(cupy.cuda.runtime.is_hip, reason="No PTDS on HIP")
     def test_reuse_between_thread_ptds(self):
         stream = cupy.cuda.Stream.ptds
         main_ptr, sub_ptr = self._reuse_between_thread(stream, stream)
@@ -959,7 +979,8 @@ class TestPythonFunctionAllocator(unittest.TestCase):
         self.old_pool = cupy.get_default_memory_pool()
         self.alloc = PythonAllocator()
         python_alloc = memory.PythonFunctionAllocator(
-            self.alloc.malloc, self.alloc.free)
+            self.alloc.malloc, self.alloc.free
+        )
         memory.set_allocator(python_alloc.malloc)
 
     def tearDown(self):
@@ -1007,20 +1028,29 @@ class TestExceptionPicklable(unittest.TestCase):
         assert str(e1) == str(e2)
 
 
-@pytest.mark.skipif(cupy.cuda.runtime.is_hip,
-                    reason='HIP does not support async allocator')
-@pytest.mark.skipif(cupy.cuda.driver._is_cuda_python()
-                    and cupy.cuda.runtime.runtimeGetVersion() < 11020,
-                    reason='malloc_async is supported since CUDA 11.2')
-@pytest.mark.skipif(not cupy.cuda.driver._is_cuda_python()
-                    and cupy.cuda.driver.get_build_version() < 11020,
-                    reason='malloc_async is supported since CUDA 11.2')
+@pytest.mark.skipif(
+    cupy.cuda.runtime.is_hip, reason="HIP does not support async allocator"
+)
+@pytest.mark.skipif(
+    cupy.cuda.driver._is_cuda_python()
+    and cupy.cuda.runtime.runtimeGetVersion() < 11020,
+    reason="malloc_async is supported since CUDA 11.2",
+)
+@pytest.mark.skipif(
+    not cupy.cuda.driver._is_cuda_python()
+    and cupy.cuda.driver.get_build_version() < 11020,
+    reason="malloc_async is supported since CUDA 11.2",
+)
 class TestMallocAsync(unittest.TestCase):
 
     def setUp(self):
-        if cupy.cuda.runtime.deviceGetAttribute(
-                cupy.cuda.runtime.cudaDevAttrMemoryPoolsSupported, 0) == 0:
-            pytest.skip('malloc_async is not supported on device 0')
+        if (
+            cupy.cuda.runtime.deviceGetAttribute(
+                cupy.cuda.runtime.cudaDevAttrMemoryPoolsSupported, 0
+            )
+            == 0
+        ):
+            pytest.skip("malloc_async is not supported on device 0")
         self.old_pool = cupy.get_default_memory_pool()
         memory.set_allocator(memory.malloc_async)
 
@@ -1085,20 +1115,29 @@ used_bytes_watermark = 0
 free_bytes_watermark = 0
 
 
-@pytest.mark.skipif(cupy.cuda.runtime.is_hip,
-                    reason='HIP does not support async allocator')
-@pytest.mark.skipif(cupy.cuda.driver._is_cuda_python()
-                    and cupy.cuda.runtime.runtimeGetVersion() < 11020,
-                    reason='malloc_async is supported since CUDA 11.2')
-@pytest.mark.skipif(not cupy.cuda.driver._is_cuda_python()
-                    and cupy.cuda.driver.get_build_version() < 11020,
-                    reason='malloc_async is supported since CUDA 11.2')
+@pytest.mark.skipif(
+    cupy.cuda.runtime.is_hip, reason="HIP does not support async allocator"
+)
+@pytest.mark.skipif(
+    cupy.cuda.driver._is_cuda_python()
+    and cupy.cuda.runtime.runtimeGetVersion() < 11020,
+    reason="malloc_async is supported since CUDA 11.2",
+)
+@pytest.mark.skipif(
+    not cupy.cuda.driver._is_cuda_python()
+    and cupy.cuda.driver.get_build_version() < 11020,
+    reason="malloc_async is supported since CUDA 11.2",
+)
 class TestMemoryAsyncPool(unittest.TestCase):
 
     def setUp(self):
-        if cupy.cuda.runtime.deviceGetAttribute(
-                cupy.cuda.runtime.cudaDevAttrMemoryPoolsSupported, 0) == 0:
-            pytest.skip('malloc_async is not supported on device 0')
+        if (
+            cupy.cuda.runtime.deviceGetAttribute(
+                cupy.cuda.runtime.cudaDevAttrMemoryPoolsSupported, 0
+            )
+            == 0
+        ):
+            pytest.skip("malloc_async is not supported on device 0")
         self.pool = memory.MemoryAsyncPool()
         self.unit = memory._allocation_unit_size
         self.stream = stream_module.Stream()
@@ -1167,14 +1206,18 @@ class TestMemoryAsyncPool(unittest.TestCase):
             default_pool.free_all_blocks()
             self.pool.malloc(int(0.3 * mem_total))  # this time it'd work
 
-    @pytest.mark.skipif(cupy.cuda.runtime.driverGetVersion() < 11030,
-                        reason='used_bytes is supported with driver 11.3+')
+    @pytest.mark.skipif(
+        cupy.cuda.runtime.driverGetVersion() < 11030,
+        reason="used_bytes is supported with driver 11.3+",
+    )
     def test_used_bytes(self):
         with cupy.cuda.Device():
             assert used_bytes_watermark + 0 == self.pool.used_bytes()
 
-    @pytest.mark.skipif(cupy.cuda.runtime.driverGetVersion() < 11030,
-                        reason='used_bytes is supported with driver 11.3+')
+    @pytest.mark.skipif(
+        cupy.cuda.runtime.driverGetVersion() < 11030,
+        reason="used_bytes is supported with driver 11.3+",
+    )
     def test_used_bytes2(self):
         p1 = self.pool.malloc(self.unit * 2)
         assert used_bytes_watermark + self.unit * 2 == self.pool.used_bytes()
@@ -1188,8 +1231,10 @@ class TestMemoryAsyncPool(unittest.TestCase):
         assert used_bytes_watermark + self.unit * 1 == self.pool.used_bytes()
         del p3
 
-    @pytest.mark.skipif(cupy.cuda.runtime.driverGetVersion() < 11030,
-                        reason='used_bytes is supported with driver 11.3+')
+    @pytest.mark.skipif(
+        cupy.cuda.runtime.driverGetVersion() < 11030,
+        reason="used_bytes is supported with driver 11.3+",
+    )
     def test_used_bytes_stream(self):
         p1 = self.pool.malloc(self.unit * 4)
         del p1
@@ -1198,14 +1243,18 @@ class TestMemoryAsyncPool(unittest.TestCase):
         assert used_bytes_watermark + self.unit * 2 == self.pool.used_bytes()
         del p2
 
-    @pytest.mark.skipif(cupy.cuda.runtime.driverGetVersion() < 11030,
-                        reason='free_bytes is supported with driver 11.3+')
+    @pytest.mark.skipif(
+        cupy.cuda.runtime.driverGetVersion() < 11030,
+        reason="free_bytes is supported with driver 11.3+",
+    )
     def test_free_bytes(self):
         with cupy.cuda.Device():
             assert free_bytes_watermark + 0 == self.pool.free_bytes()
 
-    @pytest.mark.skipif(cupy.cuda.runtime.driverGetVersion() < 11030,
-                        reason='free_bytes is supported with driver 11.3+')
+    @pytest.mark.skipif(
+        cupy.cuda.runtime.driverGetVersion() < 11030,
+        reason="free_bytes is supported with driver 11.3+",
+    )
     def test_free_bytes2(self):
         # Note: MemoryAsyncPool works differently from MemoryPool. The first
         # allocation would be much bigger than requested, and the pool size
@@ -1214,7 +1263,8 @@ class TestMemoryAsyncPool(unittest.TestCase):
         # size is a fixed value (outside of our control).
         p1 = self.pool.malloc(self.unit * 2)
         assert self.pool.free_bytes() == (
-            self.pool.total_bytes() - self.pool.used_bytes())  # always true
+            self.pool.total_bytes() - self.pool.used_bytes()
+        )  # always true
 
         # current_size is fixed throughout this test, as no synchronization
         # (such as free_all_blocks()) is done
@@ -1236,26 +1286,35 @@ class TestMemoryAsyncPool(unittest.TestCase):
         del p3
         assert self.pool.total_bytes() == current_size
 
-    @pytest.mark.skipif(cupy.cuda.runtime.driverGetVersion() < 11030,
-                        reason='free_bytes is supported with driver 11.3+')
+    @pytest.mark.skipif(
+        cupy.cuda.runtime.driverGetVersion() < 11030,
+        reason="free_bytes is supported with driver 11.3+",
+    )
     def test_free_bytes_stream(self):
         p1 = self.pool.malloc(self.unit * 4)
         del p1
         with self.stream:
             p2 = self.pool.malloc(self.unit * 2)
         assert self.pool.free_bytes() == (
-            self.pool.total_bytes() - self.pool.used_bytes())  # always true
+            self.pool.total_bytes() - self.pool.used_bytes()
+        )  # always true
         del p2
 
-    @pytest.mark.skipif(cupy.cuda.runtime.driverGetVersion() < 11030,
-                        reason='total_bytes is supported with driver 11.3+')
+    @pytest.mark.skipif(
+        cupy.cuda.runtime.driverGetVersion() < 11030,
+        reason="total_bytes is supported with driver 11.3+",
+    )
     def test_total_bytes(self):
         with cupy.cuda.Device():
-            assert (used_bytes_watermark + free_bytes_watermark + 0
-                    == self.pool.total_bytes())
+            assert (
+                used_bytes_watermark + free_bytes_watermark + 0
+                == self.pool.total_bytes()
+            )
 
-    @pytest.mark.skipif(cupy.cuda.runtime.driverGetVersion() < 11030,
-                        reason='total_bytes is supported with driver 11.3+')
+    @pytest.mark.skipif(
+        cupy.cuda.runtime.driverGetVersion() < 11030,
+        reason="total_bytes is supported with driver 11.3+",
+    )
     def test_total_bytes2(self):
         # Note: MemoryAsyncPool works differently from MemoryPool. The first
         # allocation would be much bigger than requested, and the pool size
@@ -1278,16 +1337,19 @@ class TestMemoryAsyncPool(unittest.TestCase):
         p3 = self.pool.malloc(self.unit * 1)
         assert current_size == self.pool.total_bytes()
 
-        assert (self.pool.used_bytes() + self.pool.free_bytes()
-                == self.pool.total_bytes())
+        assert (
+            self.pool.used_bytes() + self.pool.free_bytes() == self.pool.total_bytes()
+        )
 
         del p3
 
         self.pool.free_all_blocks()
         assert total_size == self.pool.total_bytes()
 
-    @pytest.mark.skipif(cupy.cuda.runtime.driverGetVersion() < 11030,
-                        reason='total_bytes is supported with driver 11.3+')
+    @pytest.mark.skipif(
+        cupy.cuda.runtime.driverGetVersion() < 11030,
+        reason="total_bytes is supported with driver 11.3+",
+    )
     def test_total_bytes_stream(self):
         # Note: MemoryAsyncPool works differently from MemoryPool. The first
         # allocation would be much bigger than requested, and the pool size
@@ -1309,7 +1371,7 @@ class TestMemoryAsyncPool(unittest.TestCase):
 
     def test_get_limit(self):
         # limit is disabled by default
-        assert 2**64-1 == self.pool.get_limit()
+        assert 2**64 - 1 == self.pool.get_limit()
 
     def test_set_limit_size(self):
         self.pool.set_limit(size=1024)
@@ -1319,7 +1381,7 @@ class TestMemoryAsyncPool(unittest.TestCase):
         assert 2**33 == self.pool.get_limit()
 
         self.pool.set_limit(size=0)
-        assert 2**64-1 == self.pool.get_limit()
+        assert 2**64 - 1 == self.pool.get_limit()
 
         with self.assertRaises(ValueError):
             self.pool.set_limit(size=-1)
@@ -1328,7 +1390,7 @@ class TestMemoryAsyncPool(unittest.TestCase):
         _, total = cupy.cuda.runtime.memGetInfo()
 
         self.pool.set_limit(fraction=0)
-        assert 2**64-1 == self.pool.get_limit()
+        assert 2**64 - 1 == self.pool.get_limit()
 
         self.pool.set_limit(fraction=0.5)
         assert total * 0.5 == self.pool.get_limit()

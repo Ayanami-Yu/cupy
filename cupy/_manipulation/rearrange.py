@@ -48,7 +48,7 @@ def fliplr(a):
 
     """
     if a.ndim < 2:
-        raise ValueError('Input must be >= 2-d')
+        raise ValueError("Input must be >= 2-d")
     return a[::, ::-1]
 
 
@@ -68,7 +68,7 @@ def flipud(a):
 
     """
     if a.ndim < 1:
-        raise ValueError('Input must be >= 1-d')
+        raise ValueError("Input must be >= 1-d")
     return a[::-1]
 
 
@@ -98,9 +98,9 @@ def roll(a, shift, axis=None):
         return roll(a.ravel(), shift, 0).reshape(a.shape)
 
     axes = (axis,) if numpy.isscalar(axis) else axis
-    axes = tuple([  # allow_duplicate
-        internal._normalize_axis_index(ax, a.ndim) for ax in axes
-    ])
+    axes = tuple(
+        [internal._normalize_axis_index(ax, a.ndim) for ax in axes]  # allow_duplicate
+    )
     if isinstance(shift, cupy.ndarray):
         shift = shift.ravel()
         n_axes = max(len(axes), shift.size)
@@ -125,8 +125,7 @@ def roll(a, shift, axis=None):
     else:
         broadcasted = numpy.broadcast(shift, axes)
         if broadcasted.nd > 1:
-            raise ValueError(
-                '\'shift\' and \'axis\' should be scalars or 1D sequences')
+            raise ValueError("'shift' and 'axis' should be scalars or 1D sequences")
         shifts = {ax: 0 for ax in range(a.ndim)}
         for sh, ax in broadcasted:
             shifts[ax] += int(sh)
@@ -136,8 +135,10 @@ def roll(a, shift, axis=None):
             offset %= a.shape[ax] or 1  # If `a` is empty, nothing matters.
             if offset:
                 # (original, result), (original, result)
-                rolls[ax] = ((slice(None, -offset), slice(offset, None)),
-                             (slice(-offset, None), slice(None, offset)))
+                rolls[ax] = (
+                    (slice(None, -offset), slice(offset, None)),
+                    (slice(-offset, None), slice(None, offset)),
+                )
 
         result = cupy.empty_like(a)
         for indices in itertools.product(*rolls):
@@ -167,15 +168,15 @@ def rot90(a, k=1, axes=(0, 1)):
     """
     a_ndim = a.ndim
     if a_ndim < 2:
-        raise ValueError('Input must be >= 2-d')
+        raise ValueError("Input must be >= 2-d")
 
     axes = tuple(axes)
     if len(axes) != 2:
-        raise ValueError('len(axes) must be 2')
+        raise ValueError("len(axes) must be 2")
     if axes[0] == axes[1] or abs(axes[0] - axes[1]) == a_ndim:
-        raise ValueError('axes must be different')
+        raise ValueError("axes must be different")
     if not (-a_ndim <= axes[0] < a_ndim and -a_ndim <= axes[1] < a_ndim):
-        raise ValueError('axes must be >= %d and < %d' % (-a_ndim, a_ndim))
+        raise ValueError("axes must be >= %d and < %d" % (-a_ndim, a_ndim))
 
     k = k % 4
 

@@ -1,6 +1,7 @@
 """
 Routines for manipulating partial fraction expansions.
 """
+
 from __future__ import annotations
 
 
@@ -8,8 +9,7 @@ import cupy
 
 
 def roots(arr):
-    """np.roots replacement. XXX: calls into NumPy, then converts back.
-    """
+    """np.roots replacement. XXX: calls into NumPy, then converts back."""
     import numpy as np
 
     arr = cupy.asarray(arr).get()
@@ -29,7 +29,7 @@ def poly(A):
     dt = seq_of_zeros.dtype
     a = np.ones((1,), dtype=dt)
     for zero in seq_of_zeros:
-        a = np.convolve(a, np.r_[1, -zero], mode='full')
+        a = np.convolve(a, np.r_[1, -zero], mode="full")
 
     if issubclass(a.dtype.type, cupy.complexfloating):
         # if complex roots are all complex conjugates, the roots are real.
@@ -41,8 +41,7 @@ def poly(A):
 
 
 def _cmplx_sort(p):
-    """Sort roots based on magnitude.
-    """
+    """Sort roots based on magnitude."""
     indx = cupy.argsort(cupy.abs(p))
     return cupy.take(p, indx, 0), indx
 
@@ -55,19 +54,19 @@ def _polydiv(u, v):
     w = u[0] + v[0]
     m = len(u) - 1
     n = len(v) - 1
-    scale = 1. / v[0]
+    scale = 1.0 / v[0]
     q = cupy.zeros((max(m - n + 1, 1),), w.dtype)
     r = u.astype(w.dtype)
-    for k in range(0, m-n+1):
+    for k in range(0, m - n + 1):
         d = scale * r[k]
         q[k] = d
-        r[k:k + n + 1] -= d * v
+        r[k : k + n + 1] -= d * v
     while cupy.allclose(r[0], 0, rtol=1e-14) and (r.shape[-1] > 1):
         r = r[1:]
     return q, r
 
 
-def unique_roots(p, tol=1e-3, rtype='min'):
+def unique_roots(p, tol=1e-3, rtype="min"):
     """Determine unique roots and their multiplicities from a list of roots.
 
     Parameters
@@ -113,15 +112,17 @@ def unique_roots(p, tol=1e-3, rtype='min'):
     determined. For a more general routine, see `numpy.unique`.
 
     """
-    if rtype in ['max', 'maximum']:
+    if rtype in ["max", "maximum"]:
         reduce = cupy.max
-    elif rtype in ['min', 'minimum']:
+    elif rtype in ["min", "minimum"]:
         reduce = cupy.min
-    elif rtype in ['avg', 'mean']:
+    elif rtype in ["avg", "mean"]:
         reduce = cupy.mean
     else:
-        raise ValueError("`rtype` must be one of "
-                         "{'max', 'maximum', 'min', 'minimum', 'avg', 'mean'}")
+        raise ValueError(
+            "`rtype` must be one of "
+            "{'max', 'maximum', 'min', 'minimum', 'avg', 'mean'}"
+        )
 
     points = cupy.empty((p.shape[0], 2))
     points[:, 0] = cupy.real(p)
@@ -179,11 +180,9 @@ def _compute_residues(poles, multiplicity, numerator):
     numerator = numerator.astype(poles.dtype)
 
     residues = []
-    for pole, mult, factor in zip(poles, multiplicity,
-                                  denominator_factors):
+    for pole, mult, factor in zip(poles, multiplicity, denominator_factors):
         if mult == 1:
-            residues.append(cupy.polyval(numerator, pole) /
-                            cupy.polyval(factor, pole))
+            residues.append(cupy.polyval(numerator, pole) / cupy.polyval(factor, pole))
         else:
             numer = numerator.copy()
             monomial = cupy.r_[1, -pole]
@@ -201,7 +200,7 @@ def _compute_residues(poles, multiplicity, numerator):
     return cupy.asarray(residues)
 
 
-def invres(r, p, k, tol=1e-3, rtype='avg'):
+def invres(r, p, k, tol=1e-3, rtype="avg"):
     """Compute b(s) and a(s) from partial fraction expansion.
 
     If `M` is the degree of numerator `b` and `N` the degree of denominator
@@ -260,11 +259,12 @@ def invres(r, p, k, tol=1e-3, rtype='avg'):
     """
     r = cupy.atleast_1d(r)
     p = cupy.atleast_1d(p)
-    k = cupy.trim_zeros(cupy.atleast_1d(k), 'f')
+    k = cupy.trim_zeros(cupy.atleast_1d(k), "f")
 
     unique_poles, multiplicity = unique_roots(p, tol, rtype)
-    factors, denominator = _compute_factors(unique_poles, multiplicity,
-                                            include_powers=True)
+    factors, denominator = _compute_factors(
+        unique_poles, multiplicity, include_powers=True
+    )
 
     if len(k) == 0:
         numerator = 0
@@ -277,7 +277,7 @@ def invres(r, p, k, tol=1e-3, rtype='avg'):
     return numerator, denominator
 
 
-def invresz(r, p, k, tol=1e-3, rtype='avg'):
+def invresz(r, p, k, tol=1e-3, rtype="avg"):
     """Compute b(z) and a(z) from partial fraction expansion.
 
     If `M` is the degree of numerator `b` and `N` the degree of denominator
@@ -335,11 +335,12 @@ def invresz(r, p, k, tol=1e-3, rtype='avg'):
     """
     r = cupy.atleast_1d(r)
     p = cupy.atleast_1d(p)
-    k = cupy.trim_zeros(cupy.atleast_1d(k), 'b')
+    k = cupy.trim_zeros(cupy.atleast_1d(k), "b")
 
     unique_poles, multiplicity = unique_roots(p, tol, rtype)
-    factors, denominator = _compute_factors(unique_poles, multiplicity,
-                                            include_powers=True)
+    factors, denominator = _compute_factors(
+        unique_poles, multiplicity, include_powers=True
+    )
 
     if len(k) == 0:
         numerator = 0
@@ -352,7 +353,7 @@ def invresz(r, p, k, tol=1e-3, rtype='avg'):
     return numerator[::-1], denominator
 
 
-def residue(b, a, tol=1e-3, rtype='avg'):
+def residue(b, a, tol=1e-3, rtype="avg"):
     """Compute partial-fraction expansion of b(s) / a(s).
 
     If `M` is the degree of numerator `b` and `N` the degree of denominator
@@ -433,16 +434,17 @@ def residue(b, a, tol=1e-3, rtype='avg'):
            review of computational methodology and efficiency", Journal of
            Computational and Applied Mathematics, Vol. 9, 1983.
     """
-    if (cupy.issubdtype(b.dtype, cupy.complexfloating)
-            or cupy.issubdtype(a.dtype, cupy.complexfloating)):
+    if cupy.issubdtype(b.dtype, cupy.complexfloating) or cupy.issubdtype(
+        a.dtype, cupy.complexfloating
+    ):
         b = b.astype(complex)
         a = a.astype(complex)
     else:
         b = b.astype(float)
         a = a.astype(float)
 
-    b = cupy.trim_zeros(cupy.atleast_1d(b), 'f')
-    a = cupy.trim_zeros(cupy.atleast_1d(a), 'f')
+    b = cupy.trim_zeros(cupy.atleast_1d(b), "f")
+    a = cupy.trim_zeros(cupy.atleast_1d(a), "f")
 
     if a.size == 0:
         raise ValueError("Denominator `a` is zero.")
@@ -464,13 +466,13 @@ def residue(b, a, tol=1e-3, rtype='avg'):
 
     index = 0
     for pole, mult in zip(unique_poles, multiplicity):
-        poles[index:index + mult] = pole
+        poles[index : index + mult] = pole
         index += mult
 
     return residues / a[0], poles, k
 
 
-def residuez(b, a, tol=1e-3, rtype='avg'):
+def residuez(b, a, tol=1e-3, rtype="avg"):
     """Compute partial-fraction expansion of b(z) / a(z).
 
     If `M` is the degree of numerator `b` and `N` the degree of denominator
@@ -532,22 +534,22 @@ def residuez(b, a, tol=1e-3, rtype='avg'):
     invresz, residue, unique_roots
     """
 
-    if (cupy.issubdtype(b.dtype, cupy.complexfloating)
-            or cupy.issubdtype(a.dtype, cupy.complexfloating)):
+    if cupy.issubdtype(b.dtype, cupy.complexfloating) or cupy.issubdtype(
+        a.dtype, cupy.complexfloating
+    ):
         b = b.astype(complex)
         a = a.astype(complex)
     else:
         b = b.astype(float)
         a = a.astype(float)
 
-    b = cupy.trim_zeros(cupy.atleast_1d(b), 'b')
-    a = cupy.trim_zeros(cupy.atleast_1d(a), 'b')
+    b = cupy.trim_zeros(cupy.atleast_1d(b), "b")
+    a = cupy.trim_zeros(cupy.atleast_1d(a), "b")
 
     if a.size == 0:
         raise ValueError("Denominator `a` is zero.")
     elif a[0] == 0:
-        raise ValueError("First coefficient of determinant `a` must be "
-                         "non-zero.")
+        raise ValueError("First coefficient of determinant `a` must be " "non-zero.")
 
     poles = roots(a)
     if b.size == 0:
@@ -570,8 +572,8 @@ def residuez(b, a, tol=1e-3, rtype='avg'):
     index = 0
     powers = cupy.empty(len(residues), dtype=int)
     for pole, mult in zip(unique_poles, multiplicity):
-        poles[index:index + mult] = pole
-        powers[index:index + mult] = 1 + cupy.arange(int(mult))
+        poles[index : index + mult] = pole
+        powers[index : index + mult] = 1 + cupy.arange(int(mult))
         index += mult
 
     residues *= (-poles) ** powers / a_rev[0]

@@ -6,7 +6,9 @@ import warnings
 
 import cupy
 from cupy.polynomial.polynomial import (
-    polyval as npp_polyval, polyvalfromroots as npp_polyvalfromroots)
+    polyval as npp_polyval,
+    polyvalfromroots as npp_polyvalfromroots,
+)
 import cupyx.scipy.fft as sp_fft
 from cupyx import jit
 from cupyx.scipy._lib._util import float_factorial
@@ -35,7 +37,7 @@ def _try_convert_to_int(x):
         return value, False
 
 
-def findfreqs(num, den, N, kind='ba'):
+def findfreqs(num, den, N, kind="ba"):
     """
     Find array of frequencies for computing the response of an analog filter.
 
@@ -78,10 +80,10 @@ def findfreqs(num, den, N, kind='ba'):
              3.16227766e-01,   1.00000000e+00,   3.16227766e+00,
              1.00000000e+01,   3.16227766e+01,   1.00000000e+02])
     """
-    if kind == 'ba':
+    if kind == "ba":
         ep = cupy.atleast_1d(roots(den)) + 0j
         tz = cupy.atleast_1d(roots(num)) + 0j
-    elif kind == 'zp':
+    elif kind == "zp":
         ep = cupy.atleast_1d(den) + 0j
         tz = cupy.atleast_1d(num) + 0j
     else:
@@ -92,13 +94,16 @@ def findfreqs(num, den, N, kind='ba'):
 
     ez = cupy.r_[
         cupy.compress(ep.imag >= 0, ep, axis=-1),
-        cupy.compress((abs(tz) < 1e5) & (tz.imag >= 0), tz, axis=-1)]
+        cupy.compress((abs(tz) < 1e5) & (tz.imag >= 0), tz, axis=-1),
+    ]
 
     integ = cupy.abs(ez) < 1e-10
-    hfreq = cupy.around(cupy.log10(cupy.max(3 * cupy.abs(ez.real + integ) +
-                                            1.5 * ez.imag)) + 0.5)
-    lfreq = cupy.around(cupy.log10(0.1 * cupy.min(cupy.abs((ez + integ).real) +
-                                                  2 * ez.imag)) - 0.5)
+    hfreq = cupy.around(
+        cupy.log10(cupy.max(3 * cupy.abs(ez.real + integ) + 1.5 * ez.imag)) + 0.5
+    )
+    lfreq = cupy.around(
+        cupy.log10(0.1 * cupy.min(cupy.abs((ez + integ).real) + 2 * ez.imag)) - 0.5
+    )
     w = cupy.logspace(lfreq, hfreq, N)
     return w
 
@@ -202,15 +207,15 @@ def freqs_zpk(z, p, k, worN=200):
     """
     k = cupy.asarray(k)
     if k.size > 1:
-        raise ValueError('k must be a single scalar gain')
+        raise ValueError("k must be a single scalar gain")
 
     if worN is None:
         # For backwards compatibility
-        w = findfreqs(z, p, 200, kind='zp')
+        w = findfreqs(z, p, 200, kind="zp")
     else:
         N, _is_int = _try_convert_to_int(worN)
         if _is_int:
-            w = findfreqs(z, p, worN, kind='zp')
+            w = findfreqs(z, p, worN, kind="zp")
         else:
             w = worN
 
@@ -218,7 +223,7 @@ def freqs_zpk(z, p, k, worN=200):
     s = 1j * w
     num = npp_polyvalfromroots(s, z)
     den = npp_polyvalfromroots(s, p)
-    h = k * num/den
+    h = k * num / den
     return w, h
 
 
@@ -325,8 +330,7 @@ def group_delay(system, w=512, whole=False, fs=2 * cupy.pi):
     return w, gd
 
 
-def freqz(b, a=1, worN=512, whole=False, plot=None, fs=2*pi,
-          include_nyquist=False):
+def freqz(b, a=1, worN=512, whole=False, plot=None, fs=2 * pi, include_nyquist=False):
     """
     Compute the frequency response of a digital filter.
 
@@ -427,19 +431,19 @@ def freqz(b, a=1, worN=512, whole=False, plot=None, fs=2*pi,
     N, _is_int = _try_convert_to_int(worN)
     if _is_int:
         if N < 0:
-            raise ValueError(f'worN must be nonnegative, got {N}')
+            raise ValueError(f"worN must be nonnegative, got {N}")
         lastpoint = 2 * pi if whole else pi
 
         # if include_nyquist is true and whole is false, w should
         # include end point
-        w = cupy.linspace(
-            0, lastpoint, N, endpoint=include_nyquist and not whole)
+        w = cupy.linspace(0, lastpoint, N, endpoint=include_nyquist and not whole)
 
-        use_fft = (a.size == 1 and
-                   N >= b.shape[0] and
-                   sp_fft.next_fast_len(N) == N and
-                   (b.ndim == 1 or (b.shape[-1] == 1))
-                   )
+        use_fft = (
+            a.size == 1
+            and N >= b.shape[0]
+            and sp_fft.next_fast_len(N) == N
+            and (b.ndim == 1 or (b.shape[-1] == 1))
+        )
 
         if use_fft:
             # if N is fast, 2 * N will be fast, too, so no need to check
@@ -468,8 +472,7 @@ def freqz(b, a=1, worN=512, whole=False, plot=None, fs=2*pi,
 
     if h is None:  # still need to compute using freqs w
         zm1 = cupy.exp(-1j * w)
-        h = (npp_polyval(zm1, b, tensor=False) /
-             npp_polyval(zm1, a, tensor=False))
+        h = npp_polyval(zm1, b, tensor=False) / npp_polyval(zm1, a, tensor=False)
 
     w = w * fs / (2 * pi)
 
@@ -479,7 +482,7 @@ def freqz(b, a=1, worN=512, whole=False, plot=None, fs=2*pi,
     return w, h
 
 
-def freqz_zpk(z, p, k, worN=512, whole=False, fs=2*pi):
+def freqz_zpk(z, p, k, worN=512, whole=False, fs=2 * pi):
     r"""
     Compute the frequency response of a digital filter in ZPK form.
 
@@ -559,16 +562,16 @@ def _validate_sos(sos):
     """Helper to validate a SOS input"""
     sos = cupy.atleast_2d(sos)
     if sos.ndim != 2:
-        raise ValueError('sos array must be 2D')
+        raise ValueError("sos array must be 2D")
     n_sections, m = sos.shape
     if m != 6:
-        raise ValueError('sos array must be shape (n_sections, 6)')
+        raise ValueError("sos array must be shape (n_sections, 6)")
     if ((sos[:, 3] - 1) > 1e-15).any():
-        raise ValueError('sos[:, 3] should be all ones')
+        raise ValueError("sos[:, 3] should be all ones")
     return sos, n_sections
 
 
-def freqz_sos(sos, worN=512, whole=False, fs=2*pi):
+def freqz_sos(sos, worN=512, whole=False, fs=2 * pi):
     r"""
     Compute the frequency response of a digital filter in SOS format.
 
@@ -622,15 +625,15 @@ def freqz_sos(sos, worN=512, whole=False, fs=2*pi):
     """
     sos, n_sections = _validate_sos(sos)
     if n_sections == 0:
-        raise ValueError('Cannot compute frequencies with no sections')
-    h = 1.
+        raise ValueError("Cannot compute frequencies with no sections")
+    h = 1.0
     for row in sos:
         w, rowh = freqz(row[:3], row[3:], worN=worN, whole=whole, fs=fs)
         h *= rowh
     return w, h
 
 
-def sosfreqz(sos, worN=512, whole=False, fs=2*pi):
+def sosfreqz(sos, worN=512, whole=False, fs=2 * pi):
     """A legacy alias for freqz_sos."""
     return freqz_sos(sos, worN, whole, fs)
 
@@ -654,7 +657,7 @@ def _gammatone_iir_kernel(fs, freq, b, a):
     minBW = 24.7
     erb = freq / EarQ + minBW
 
-    T = 1./fs
+    T = 1.0 / fs
     bw = 2 * cupy.pi * 1.019 * erb
     fr = 2 * freq * cupy.pi * T
     bwT = bw * T
@@ -667,29 +670,28 @@ def _gammatone_iir_kernel(fs, freq, b, a):
     g5 = cupy.exp(2j * fr)
 
     g = g1 + g2 * (cupy.cos(fr) - g4)
-    g *= (g1 + g2 * (cupy.cos(fr) + g4))
-    g *= (g1 + g2 * (cupy.cos(fr) - g3))
-    g *= (g1 + g2 * (cupy.cos(fr) + g3))
-    g /= ((-2 / cupy.exp(2 * bwT) - 2 * g5 + 2 * (1 + g5) /
-           cupy.exp(bwT)) ** 4)
+    g *= g1 + g2 * (cupy.cos(fr) + g4)
+    g *= g1 + g2 * (cupy.cos(fr) - g3)
+    g *= g1 + g2 * (cupy.cos(fr) + g3)
+    g /= (-2 / cupy.exp(2 * bwT) - 2 * g5 + 2 * (1 + g5) / cupy.exp(bwT)) ** 4
     g_act = cupy.abs(g)
 
     # Calculate the numerator coefficients
     if tid == 0:
-        b[tid] = (T ** 4) / g_act
+        b[tid] = (T**4) / g_act
         a[tid] = 1
     elif tid == 1:
-        b[tid] = -4 * T ** 4 * cupy.cos(fr) / cupy.exp(bw * T) / g_act
+        b[tid] = -4 * T**4 * cupy.cos(fr) / cupy.exp(bw * T) / g_act
         a[tid] = -8 * cupy.cos(fr) / cupy.exp(bw * T)
     elif tid == 2:
-        b[tid] = 6 * T ** 4 * cupy.cos(2 * fr) / cupy.exp(2 * bw * T) / g_act
+        b[tid] = 6 * T**4 * cupy.cos(2 * fr) / cupy.exp(2 * bw * T) / g_act
         a[tid] = 4 * (4 + 3 * cupy.cos(2 * fr)) / cupy.exp(2 * bw * T)
     elif tid == 3:
-        b[tid] = -4 * T ** 4 * cupy.cos(3 * fr) / cupy.exp(3 * bw * T) / g_act
+        b[tid] = -4 * T**4 * cupy.cos(3 * fr) / cupy.exp(3 * bw * T) / g_act
         a[tid] = -8 * (6 * cupy.cos(fr) + cupy.cos(3 * fr))
         a[tid] /= cupy.exp(3 * bw * T)
     elif tid == 4:
-        b[tid] = T ** 4 * cupy.cos(4 * fr) / cupy.exp(4 * bw * T) / g_act
+        b[tid] = T**4 * cupy.cos(4 * fr) / cupy.exp(4 * bw * T) / g_act
         a[tid] = 2 * (18 + 16 * cupy.cos(2 * fr) + cupy.cos(4 * fr))
         a[tid] /= cupy.exp(4 * bw * T)
     elif tid == 5:
@@ -765,15 +767,17 @@ def gammatone(freq, ftype, order=None, numtaps=None, fs=None):
 
     # Check for invalid cutoff frequency or filter type
     ftype = ftype.lower()
-    filter_types = ['fir', 'iir']
+    filter_types = ["fir", "iir"]
     if not 0 < freq < fs / 2:
-        raise ValueError("The frequency must be between 0 and {}"
-                         " (nyquist), but given {}.".format(fs / 2, freq))
+        raise ValueError(
+            "The frequency must be between 0 and {}"
+            " (nyquist), but given {}.".format(fs / 2, freq)
+        )
     if ftype not in filter_types:
-        raise ValueError('ftype must be either fir or iir.')
+        raise ValueError("ftype must be either fir or iir.")
 
     # Calculate FIR gammatone filter
-    if ftype == 'fir':
+    if ftype == "fir":
         # Set order and numtaps if not passed
         if order is None:
             order = 4
@@ -803,12 +807,12 @@ def gammatone(freq, ftype, order=None, numtaps=None, fs=None):
         a = cupy.asarray([1.0])
 
     # Calculate IIR gammatone filter
-    elif ftype == 'iir':
+    elif ftype == "iir":
         # Raise warning if order and/or numtaps is passed
         if order is not None:
-            warnings.warn('order is not used for IIR gammatone filter.')
+            warnings.warn("order is not used for IIR gammatone filter.")
         if numtaps is not None:
-            warnings.warn('numtaps is not used for IIR gammatone filter.')
+            warnings.warn("numtaps is not used for IIR gammatone filter.")
 
         # Create empty filter coefficient lists
         b = cupy.empty(5)

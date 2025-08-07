@@ -16,7 +16,7 @@ _prod = cupy._core.internal.prod
 
 @cupy._util.memoize()
 def _output_dtype(dtype, value_type):
-    if value_type != 'R2C':
+    if value_type != "R2C":
         if dtype in [np.float16, np.float32]:
             return np.complex64
         elif dtype not in [np.complex64, np.complex128]:
@@ -38,10 +38,10 @@ def _convert_dtype(a, value_type):
     return a
 
 
-def _cook_shape(a, s, axes, value_type, order='C'):
+def _cook_shape(a, s, axes, value_type, order="C"):
     if s is None or s == a.shape:
         return a
-    if (value_type == 'C2R') and (s[-1] is not None):
+    if (value_type == "C2R") and (s[-1] is not None):
         s = list(s)
         s[-1] = s[-1] // 2 + 1
     for sz, axis in zip(s, axes):
@@ -64,24 +64,33 @@ def _cook_shape(a, s, axes, value_type, order='C'):
 def _convert_fft_type(dtype, value_type):
     from cupy.cuda import cufft
 
-    if value_type == 'C2C' and dtype == np.complex64:
+    if value_type == "C2C" and dtype == np.complex64:
         return cufft.CUFFT_C2C
-    elif value_type == 'R2C' and dtype == np.float32:
+    elif value_type == "R2C" and dtype == np.float32:
         return cufft.CUFFT_R2C
-    elif value_type == 'C2R' and dtype == np.complex64:
+    elif value_type == "C2R" and dtype == np.complex64:
         return cufft.CUFFT_C2R
-    elif value_type == 'C2C' and dtype == np.complex128:
+    elif value_type == "C2C" and dtype == np.complex128:
         return cufft.CUFFT_Z2Z
-    elif value_type == 'R2C' and dtype == np.float64:
+    elif value_type == "R2C" and dtype == np.float64:
         return cufft.CUFFT_D2Z
-    elif value_type == 'C2R' and dtype == np.complex128:
+    elif value_type == "C2R" and dtype == np.complex128:
         return cufft.CUFFT_Z2D
     else:
         raise ValueError
 
 
-def _exec_fft(a, direction, value_type, norm, axis, overwrite_x,
-              out_size=None, out=None, plan=None):
+def _exec_fft(
+    a,
+    direction,
+    value_type,
+    norm,
+    axis,
+    overwrite_x,
+    out_size=None,
+    out=None,
+    plan=None,
+):
     from cupy.cuda import cufft
 
     fft_type = _convert_fft_type(a.dtype, value_type)
@@ -91,29 +100,25 @@ def _exec_fft(a, direction, value_type, norm, axis, overwrite_x,
 
     if a.base is not None or not a.flags.c_contiguous:
         a = a.copy()
-    elif (
-        not cupy.cuda.runtime.is_hip and
-        value_type == 'C2R' and not overwrite_x
-    ):
+    elif not cupy.cuda.runtime.is_hip and value_type == "C2R" and not overwrite_x:
         # The input array may be modified in CUDA 10.1 and above.
         # See #3763 for the discussion.
         a = a.copy()
-    elif cupy.cuda.runtime.is_hip and value_type != 'C2C':
+    elif cupy.cuda.runtime.is_hip and value_type != "C2C":
         # hipFFT's R2C would overwrite input
         # hipFFT's C2R needs a workaround (see below)
         a = a.copy()
 
     n = a.shape[-1]
     if n < 1:
-        raise ValueError(
-            'Invalid number of FFT data points (%d) specified.' % n)
+        raise ValueError("Invalid number of FFT data points (%d) specified." % n)
 
     # Workaround for hipFFT/rocFFT:
     # Both cuFFT and hipFFT/rocFFT have this requirement that 0-th and
     # N/2-th element must be real, but cuFFT internally simply ignores it
     # while hipFFT handles it badly in both Plan1d and PlanNd, so we must
     # do the correction ourselves to ensure the condition is met.
-    if cupy.cuda.runtime.is_hip and value_type == 'C2R':
+    if cupy.cuda.runtime.is_hip and value_type == "C2R":
         a[..., 0].imag = 0
         if out_size is None:
             a[..., -1].imag = 0
@@ -135,8 +140,9 @@ def _exec_fft(a, direction, value_type, norm, axis, overwrite_x,
         if plan is None:
             plan = curr_plan
         else:
-            raise RuntimeError('Use the cuFFT plan either as a context manager'
-                               ' or as an argument.')
+            raise RuntimeError(
+                "Use the cuFFT plan either as a context manager" " or as an argument."
+            )
 
     if plan is None:
         devices = None if not config.use_multi_gpus else config._devices
@@ -149,9 +155,12 @@ def _exec_fft(a, direction, value_type, norm, axis, overwrite_x,
             # still generated from the same external Python module
             load_aux = mgr.cb_load_aux_arr
             store_aux = mgr.cb_store_aux_arr
-            keys += (mgr.cb_load, mgr.cb_store,
-                     0 if load_aux is None else load_aux.data.ptr,
-                     0 if store_aux is None else store_aux.data.ptr)
+            keys += (
+                mgr.cb_load,
+                mgr.cb_store,
+                0 if load_aux is None else load_aux.data.ptr,
+                0 if store_aux is None else store_aux.data.ptr,
+            )
         cache = get_plan_cache()
         cached_plan = cache.get(keys)
         if cached_plan is not None:
@@ -162,26 +171,28 @@ def _exec_fft(a, direction, value_type, norm, axis, overwrite_x,
         else:  # has callback
             # TODO(leofang): support multi-GPU callback (devices is ignored)
             if devices:
-                raise NotImplementedError('multi-GPU cuFFT callbacks are not '
-                                          'yet supported')
-            plan = mgr.create_plan(('Plan1d', keys[:-5]))
+                raise NotImplementedError(
+                    "multi-GPU cuFFT callbacks are not " "yet supported"
+                )
+            plan = mgr.create_plan(("Plan1d", keys[:-5]))
             mgr.set_callbacks(plan)
             cache[keys] = plan
     else:
         # check plan validity
         if not isinstance(plan, cufft.Plan1d):
-            raise ValueError('expected plan to have type cufft.Plan1d')
+            raise ValueError("expected plan to have type cufft.Plan1d")
         if fft_type != plan.fft_type:
-            raise ValueError('cuFFT plan dtype mismatch.')
+            raise ValueError("cuFFT plan dtype mismatch.")
         if out_size != plan.nx:
-            raise ValueError('Target array size does not match the plan.',
-                             out_size, plan.nx)
+            raise ValueError(
+                "Target array size does not match the plan.", out_size, plan.nx
+            )
         if batch != plan.batch:
-            raise ValueError('Batch size does not match the plan.')
+            raise ValueError("Batch size does not match the plan.")
         if config.use_multi_gpus != (plan.gpus is not None):
-            raise ValueError('Unclear if multiple GPUs are to be used or not.')
+            raise ValueError("Unclear if multiple GPUs are to be used or not.")
 
-    if overwrite_x and value_type == 'C2C':
+    if overwrite_x and value_type == "C2C":
         out = a
     elif out is not None:
         # verify that out has the expected shape and dtype
@@ -195,11 +206,11 @@ def _exec_fft(a, direction, value_type, norm, axis, overwrite_x,
     sz = out.shape[-1]
     if fft_type == cufft.CUFFT_R2C or fft_type == cufft.CUFFT_D2Z:
         sz = n
-    if norm == 'backward' and direction == cufft.CUFFT_INVERSE:
+    if norm == "backward" and direction == cufft.CUFFT_INVERSE:
         out /= sz
-    elif norm == 'ortho':
+    elif norm == "ortho":
         out /= math.sqrt(sz)
-    elif norm == 'forward' and direction == cufft.CUFFT_FORWARD:
+    elif norm == "forward" and direction == cufft.CUFFT_FORWARD:
         out /= sz
 
     if axis % a.ndim != a.ndim - 1:
@@ -210,16 +221,15 @@ def _exec_fft(a, direction, value_type, norm, axis, overwrite_x,
 
 def _fft_c2c(a, direction, norm, axes, overwrite_x, plan=None):
     for axis in axes:
-        a = _exec_fft(a, direction, 'C2C', norm, axis, overwrite_x, plan=plan)
+        a = _exec_fft(a, direction, "C2C", norm, axis, overwrite_x, plan=plan)
     return a
 
 
-def _fft(a, s, axes, norm, direction, value_type='C2C', overwrite_x=False,
-         plan=None):
+def _fft(a, s, axes, norm, direction, value_type="C2C", overwrite_x=False, plan=None):
     if not isinstance(a, cupy.ndarray):
-        raise TypeError('The input array a must be a cupy.ndarray')
+        raise TypeError("The input array a must be a cupy.ndarray")
     if (s is not None) and (axes is not None) and len(s) != len(axes):
-        raise ValueError('Shape and axes have different lengths.')
+        raise ValueError("Shape and axes have different lengths.")
     if axes is None:
         if s is None:
             dim = a.ndim
@@ -229,37 +239,38 @@ def _fft(a, s, axes, norm, direction, value_type='C2C', overwrite_x=False,
     else:
         axes = tuple(axes)
     if not axes:
-        if value_type == 'C2C':
+        if value_type == "C2C":
             return a
         else:
-            raise IndexError('list index out of range')
+            raise IndexError("list index out of range")
     if norm is None:  # for backward compatibility
-        norm = 'backward'
+        norm = "backward"
     # it is important that we check norm after validating axes for NumPy
     # compatibility: if axes=(), early return is triggered and norm is not
     # checked...
-    if norm not in ('backward', 'ortho', 'forward'):
-        raise ValueError('Invalid norm value %s, should be "backward", '
-                         '"ortho", or "forward".' % norm)
+    if norm not in ("backward", "ortho", "forward"):
+        raise ValueError(
+            'Invalid norm value %s, should be "backward", '
+            '"ortho", or "forward".' % norm
+        )
     a = _convert_dtype(a, value_type)
     a = _cook_shape(a, s, axes, value_type)
 
-    if value_type == 'C2C':
+    if value_type == "C2C":
         a = _fft_c2c(a, direction, norm, axes, overwrite_x, plan=plan)
-    elif value_type == 'R2C':
+    elif value_type == "R2C":
         a = _exec_fft(a, direction, value_type, norm, axes[-1], overwrite_x)
         a = _fft_c2c(a, direction, norm, axes[:-1], overwrite_x)
     else:  # C2R
         a = _fft_c2c(a, direction, norm, axes[:-1], overwrite_x)
         # _cook_shape tells us input shape only, and no output shape
         out_size = _get_fftn_out_size(a.shape, s, axes[-1], value_type)
-        a = _exec_fft(a, direction, value_type, norm, axes[-1], overwrite_x,
-                      out_size)
+        a = _exec_fft(a, direction, value_type, norm, axes[-1], overwrite_x, out_size)
 
     return a
 
 
-def _prep_fftn_axes(ndim, s=None, axes=None, value_type='C2C'):
+def _prep_fftn_axes(ndim, s=None, axes=None, value_type="C2C"):
     """Configure axes argument for an n-dimensional FFT.
 
     The axes to be transformed are returned in ascending order.
@@ -282,7 +293,7 @@ def _prep_fftn_axes(ndim, s=None, axes=None, value_type='C2C'):
             return (), ()
         if _reduce(min, axes) < -ndim or _reduce(max, axes) > ndim - 1:
             raise ValueError("The specified axes exceed the array dimensions.")
-        if value_type == 'C2C':
+        if value_type == "C2C":
             axes_sorted = tuple(sorted([ax % ndim for ax in axes]))
         else:  # C2R or R2C
             # The last axis is special, need to isolate it and append
@@ -298,14 +309,19 @@ def _prep_fftn_axes(ndim, s=None, axes=None, value_type='C2C'):
 def _nd_plan_is_possible(axes_sorted, ndim):
     # PlanNd supports 1D, 2D and 3D batch transforms over contiguous axes
     # Axes must be contiguous and the first or last axis must be in the axes.
-    return (0 < len(axes_sorted) <= 3
-            and (0 in axes_sorted or (ndim - 1) in axes_sorted)
-            and all((axes_sorted[n + 1] - axes_sorted[n]) == 1
-                    for n in range(len(axes_sorted) - 1)))
+    return (
+        0 < len(axes_sorted) <= 3
+        and (0 in axes_sorted or (ndim - 1) in axes_sorted)
+        and all(
+            (axes_sorted[n + 1] - axes_sorted[n]) == 1
+            for n in range(len(axes_sorted) - 1)
+        )
+    )
 
 
 def _get_cufft_plan_nd(
-        shape, fft_type, axes=None, order='C', out_size=None, to_cache=True):
+    shape, fft_type, axes=None, order="C", out_size=None, to_cache=True
+):
     """Generate a CUDA FFT plan for transforming up to three axes.
 
     Args:
@@ -332,28 +348,28 @@ def _get_cufft_plan_nd(
     ndim = len(shape)
 
     if fft_type in (cufft.CUFFT_C2C, cufft.CUFFT_Z2Z):
-        value_type = 'C2C'
+        value_type = "C2C"
     elif fft_type in (cufft.CUFFT_C2R, cufft.CUFFT_Z2D):
-        value_type = 'C2R'
+        value_type = "C2R"
     else:  # CUFFT_R2C or CUFFT_D2Z
-        value_type = 'R2C'
+        value_type = "R2C"
 
     if axes is None:
         # transform over all axes
         fft_axes = tuple(range(ndim))
     else:
-        _, fft_axes = _prep_fftn_axes(ndim, s=None, axes=axes,
-                                      value_type=value_type)
+        _, fft_axes = _prep_fftn_axes(ndim, s=None, axes=axes, value_type=value_type)
 
     if not _nd_plan_is_possible(fft_axes, ndim):
         raise ValueError(
             "An n-dimensional cuFFT plan could not be created. The axes must "
             "be contiguous and non-repeating. Between one and three axes can "
             "be transformed and either the first or last axis must be "
-            "included in axes.")
+            "included in axes."
+        )
 
-    if order not in ['C', 'F']:
-        raise ValueError('order must be \'C\' or \'F\'')
+    if order not in ["C", "F"]:
+        raise ValueError("order must be 'C' or 'F'")
 
     """
     For full details on idist, istride, iembed, etc. see:
@@ -375,7 +391,7 @@ def _get_cufft_plan_nd(
     # we only need to consider C2C, and not C2R or R2C.
     # TODO(leofang): figure out if we really have to skip F-order?
     in_dimensions = [shape[d] for d in fft_axes]
-    if order == 'F':
+    if order == "F":
         in_dimensions = in_dimensions[::-1]
     in_dimensions = tuple(in_dimensions)
     if fft_type in (cufft.CUFFT_C2C, cufft.CUFFT_Z2Z):
@@ -404,13 +420,13 @@ def _get_cufft_plan_nd(
             # don't FFT along the first min_axis_fft axes
             min_axis_fft = _reduce(min, fft_axes)
             nbatch = _prod(shape[:min_axis_fft])
-            if order == 'C':
+            if order == "C":
                 # C-ordered GPU array with batch along first dim
                 idist = _prod(in_dimensions)
                 odist = _prod(out_dimensions)
                 istride = 1
                 ostride = 1
-            elif order == 'F':
+            elif order == "F":
                 # F-ordered GPU array with batch along first dim
                 idist = 1
                 odist = 1
@@ -420,13 +436,13 @@ def _get_cufft_plan_nd(
             # don't FFT along the last axis
             num_axes_batch = ndim - len(fft_axes)
             nbatch = _prod(shape[-num_axes_batch:])
-            if order == 'C':
+            if order == "C":
                 # C-ordered GPU array with batch along last dim
                 idist = 1
                 odist = 1
                 istride = nbatch
                 ostride = nbatch
-            elif order == 'F':
+            elif order == "F":
                 # F-ordered GPU array with batch along last dim
                 idist = _prod(in_dimensions)
                 odist = _prod(out_dimensions)
@@ -434,18 +450,29 @@ def _get_cufft_plan_nd(
                 ostride = 1
         else:
             raise ValueError(
-                'General subsets of FFT axes not currently supported for '
-                'GPU case (Can only batch FFT over the first or last '
-                'spatial axes).')
+                "General subsets of FFT axes not currently supported for "
+                "GPU case (Can only batch FFT over the first or last "
+                "spatial axes)."
+            )
 
     for n in plan_dimensions:
         if n < 1:
-            raise ValueError(
-                'Invalid number of FFT data points specified.')
+            raise ValueError("Invalid number of FFT data points specified.")
 
-    keys = (plan_dimensions, inembed, istride,
-            idist, onembed, ostride, odist,
-            fft_type, nbatch, order, fft_axes[-1], out_size)
+    keys = (
+        plan_dimensions,
+        inembed,
+        istride,
+        idist,
+        onembed,
+        ostride,
+        odist,
+        fft_type,
+        nbatch,
+        order,
+        fft_axes[-1],
+        out_size,
+    )
     mgr = config.get_current_callback_manager()
     if mgr is not None:
         # to avoid a weird segfault, we generate and cache distinct plans
@@ -453,9 +480,12 @@ def _get_cufft_plan_nd(
         # still generated from the same external Python module
         load_aux = mgr.cb_load_aux_arr
         store_aux = mgr.cb_store_aux_arr
-        keys += (mgr.cb_load, mgr.cb_store,
-                 0 if load_aux is None else load_aux.data.ptr,
-                 0 if store_aux is None else store_aux.data.ptr)
+        keys += (
+            mgr.cb_load,
+            mgr.cb_store,
+            0 if load_aux is None else load_aux.data.ptr,
+            0 if store_aux is None else store_aux.data.ptr,
+        )
     cache = get_plan_cache()
     cached_plan = cache.get(keys)
     if cached_plan is not None:
@@ -465,7 +495,7 @@ def _get_cufft_plan_nd(
         if to_cache:
             cache[keys] = plan
     else:  # has callback
-        plan = mgr.create_plan(('PlanNd', keys[:-4]))
+        plan = mgr.create_plan(("PlanNd", keys[:-4]))
         mgr.set_callbacks(plan)
         if to_cache:
             cache[keys] = plan
@@ -474,36 +504,45 @@ def _get_cufft_plan_nd(
 
 
 def _get_fftn_out_size(in_shape, s, last_axis, value_type):
-    if value_type == 'C2R':
+    if value_type == "C2R":
         if (s is None) or (s[-1] is None):
             out_size = 2 * (in_shape[last_axis] - 1)
         else:
             out_size = s[-1]
-    elif value_type == 'R2C':
+    elif value_type == "R2C":
         out_size = in_shape[last_axis] // 2 + 1
     else:  # C2C
         out_size = None
     return out_size
 
 
-def _exec_fftn(a, direction, value_type, norm, axes, overwrite_x,
-               plan=None, out=None, out_size=None):
+def _exec_fftn(
+    a,
+    direction,
+    value_type,
+    norm,
+    axes,
+    overwrite_x,
+    plan=None,
+    out=None,
+    out_size=None,
+):
     from cupy.cuda import cufft
 
     fft_type = _convert_fft_type(a.dtype, value_type)
 
     if a.flags.c_contiguous:
-        order = 'C'
+        order = "C"
     elif a.flags.f_contiguous:
-        order = 'F'
+        order = "F"
     else:
-        raise ValueError('a must be contiguous')
+        raise ValueError("a must be contiguous")
 
-    if value_type == 'C2R' and not overwrite_x:
+    if value_type == "C2R" and not overwrite_x:
         # The input array may be modified in CUDA 10.1 and above.
         # See #3763 for the discussion.
         a = a.copy()
-    elif cupy.cuda.runtime.is_hip and value_type != 'C2C':
+    elif cupy.cuda.runtime.is_hip and value_type != "C2C":
         # hipFFT's R2C would overwrite input
         # hipFFT's C2R PlanNd is actually not in use so it's fine here
         a = a.copy()
@@ -519,17 +558,19 @@ def _exec_fftn(a, direction, value_type, norm, axes, overwrite_x,
         # don't check repeated usage; it's done in _default_fft_func()
     if plan is None:
         # search from cache, and generate a plan if not found
-        plan = _get_cufft_plan_nd(a.shape, fft_type, axes=axes, order=order,
-                                  out_size=out_size)
+        plan = _get_cufft_plan_nd(
+            a.shape, fft_type, axes=axes, order=order, out_size=out_size
+        )
     else:
         if not isinstance(plan, cufft.PlanNd):
-            raise ValueError('expected plan to have type cufft.PlanNd')
+            raise ValueError("expected plan to have type cufft.PlanNd")
         if order != plan.order:
-            raise ValueError('array orders mismatch (plan: {}, input: {})'
-                             .format(plan.order, order))
+            raise ValueError(
+                "array orders mismatch (plan: {}, input: {})".format(plan.order, order)
+            )
         if a.flags.c_contiguous:
             expected_shape = [a.shape[ax] for ax in axes]
-            if value_type == 'C2R':
+            if value_type == "C2R":
                 expected_shape[-1] = out_size
         else:
             # plan.shape will be reversed for Fortran-ordered inputs
@@ -538,20 +579,21 @@ def _exec_fftn(a, direction, value_type, norm, axes, overwrite_x,
         expected_shape = tuple(expected_shape)
         if expected_shape != plan.shape:
             raise ValueError(
-                'The cuFFT plan and a.shape do not match: '
-                'plan.shape = {}, expected_shape={}, a.shape = {}'.format(
-                    plan.shape, expected_shape, a.shape))
+                "The cuFFT plan and a.shape do not match: "
+                "plan.shape = {}, expected_shape={}, a.shape = {}".format(
+                    plan.shape, expected_shape, a.shape
+                )
+            )
         if fft_type != plan.fft_type:
-            raise ValueError('cuFFT plan dtype mismatch.')
-        if value_type != 'C2C':
+            raise ValueError("cuFFT plan dtype mismatch.")
+        if value_type != "C2C":
             if axes[-1] != plan.last_axis:
-                raise ValueError('The last axis for R2C/C2R mismatch')
+                raise ValueError("The last axis for R2C/C2R mismatch")
             if out_size != plan.last_size:
-                raise ValueError('The size along the last R2C/C2R axis '
-                                 'mismatch')
+                raise ValueError("The size along the last R2C/C2R axis " "mismatch")
 
     # TODO(leofang): support in-place transform for R2C/C2R
-    if overwrite_x and value_type == 'C2C':
+    if overwrite_x and value_type == "C2C":
         out = a
     elif out is None:
         out = plan.get_output_array(a, order=order)
@@ -564,68 +606,87 @@ def _exec_fftn(a, direction, value_type, norm, axes, overwrite_x,
     # normalize by the product of the shape along the transformed axes
     arr = a if fft_type in (cufft.CUFFT_R2C, cufft.CUFFT_D2Z) else out
     sz = _prod([arr.shape[ax] for ax in axes])
-    if norm == 'backward' and direction == cufft.CUFFT_INVERSE:
+    if norm == "backward" and direction == cufft.CUFFT_INVERSE:
         out /= sz
-    elif norm == 'ortho':
+    elif norm == "ortho":
         out /= math.sqrt(sz)
-    elif norm == 'forward' and direction == cufft.CUFFT_FORWARD:
+    elif norm == "forward" and direction == cufft.CUFFT_FORWARD:
         out /= sz
 
     return out
 
 
-def _fftn(a, s, axes, norm, direction, value_type='C2C', order='A', plan=None,
-          overwrite_x=False, out=None):
+def _fftn(
+    a,
+    s,
+    axes,
+    norm,
+    direction,
+    value_type="C2C",
+    order="A",
+    plan=None,
+    overwrite_x=False,
+    out=None,
+):
     if not isinstance(a, cupy.ndarray):
-        raise TypeError('The input array a must be a cupy.ndarray')
+        raise TypeError("The input array a must be a cupy.ndarray")
     if norm is None:  # for backward compatibility
-        norm = 'backward'
-    if norm not in ('backward', 'ortho', 'forward'):
-        raise ValueError('Invalid norm value %s, should be "backward", '
-                         '"ortho", or "forward".' % norm)
+        norm = "backward"
+    if norm not in ("backward", "ortho", "forward"):
+        raise ValueError(
+            'Invalid norm value %s, should be "backward", '
+            '"ortho", or "forward".' % norm
+        )
 
     axes, axes_sorted = _prep_fftn_axes(a.ndim, s, axes, value_type)
     if not axes_sorted:
-        if value_type == 'C2C':
+        if value_type == "C2C":
             return a
         else:
-            raise IndexError('list index out of range')
+            raise IndexError("list index out of range")
     a = _convert_dtype(a, value_type)
 
-    if order == 'A':
+    if order == "A":
         if a.flags.f_contiguous:
-            order = 'F'
+            order = "F"
         elif a.flags.c_contiguous:
-            order = 'C'
+            order = "C"
         else:
             a = cupy.ascontiguousarray(a)
-            order = 'C'
-    elif order not in ['C', 'F']:
-        raise ValueError('Unsupported order: {}'.format(order))
+            order = "C"
+    elif order not in ["C", "F"]:
+        raise ValueError("Unsupported order: {}".format(order))
 
     # Note: need to call _cook_shape prior to sorting the axes
     a = _cook_shape(a, s, axes, value_type, order=order)
 
     for n in a.shape:
         if n < 1:
-            raise ValueError(
-                'Invalid number of FFT data points (%d) specified.' % n)
+            raise ValueError("Invalid number of FFT data points (%d) specified." % n)
 
-    if order == 'C' and not a.flags.c_contiguous:
+    if order == "C" and not a.flags.c_contiguous:
         a = cupy.ascontiguousarray(a)
-    elif order == 'F' and not a.flags.f_contiguous:
+    elif order == "F" and not a.flags.f_contiguous:
         a = cupy.asfortranarray(a)
 
     # _cook_shape tells us input shape only, and not output shape
     out_size = _get_fftn_out_size(a.shape, s, axes_sorted[-1], value_type)
 
-    a = _exec_fftn(a, direction, value_type, norm=norm, axes=axes_sorted,
-                   overwrite_x=overwrite_x, plan=plan, out=out,
-                   out_size=out_size)
+    a = _exec_fftn(
+        a,
+        direction,
+        value_type,
+        norm=norm,
+        axes=axes_sorted,
+        overwrite_x=overwrite_x,
+        plan=plan,
+        out=out,
+        out_size=out_size,
+    )
     return a
 
 
-def _default_fft_func(a, s=None, axes=None, plan=None, value_type='C2C'):
+def _default_fft_func(a, s=None, axes=None, plan=None, value_type="C2C"):
     from cupy.cuda import cufft
 
     curr_plan = cufft.get_current_plan()
@@ -633,17 +694,17 @@ def _default_fft_func(a, s=None, axes=None, plan=None, value_type='C2C'):
         if plan is None:
             plan = curr_plan
         else:
-            raise RuntimeError('Use the cuFFT plan either as a context manager'
-                               ' or as an argument.')
+            raise RuntimeError(
+                "Use the cuFFT plan either as a context manager" " or as an argument."
+            )
 
     if isinstance(plan, cufft.PlanNd):  # a shortcut for using _fftn
         return _fftn
-    elif (isinstance(plan, cufft.Plan1d) or
-          a.ndim == 1 or not config.enable_nd_planning):
+    elif isinstance(plan, cufft.Plan1d) or a.ndim == 1 or not config.enable_nd_planning:
         return _fft
 
     # cuFFT's N-D C2R/R2C transforms may not agree with NumPy's outcomes
-    if a.flags.f_contiguous and value_type != 'C2C':
+    if a.flags.f_contiguous and value_type != "C2C":
         return _fft
 
     _, axes_sorted = _prep_fftn_axes(a.ndim, s, axes, value_type)
@@ -651,12 +712,15 @@ def _default_fft_func(a, s=None, axes=None, plan=None, value_type='C2C'):
         # circumvent two potential hipFFT/rocFFT bugs as of ROCm 3.5.0
         # TODO(leofang): understand hipFFT better and test newer ROCm versions
         if cupy.cuda.runtime.is_hip:
-            if (0 == axes_sorted[0] and len(axes_sorted) != a.ndim
-                    and a.flags.c_contiguous):
+            if (
+                0 == axes_sorted[0]
+                and len(axes_sorted) != a.ndim
+                and a.flags.c_contiguous
+            ):
                 return _fft
 
             # For C2R, we don't use PlanNd; see the workaround in _exec_fft()
-            if value_type == 'C2R':
+            if value_type == "C2R":
                 return _fft
 
         # prefer Plan1D in the 1D case
@@ -692,6 +756,7 @@ def fft(a, n=None, axis=-1, norm=None):
     .. seealso:: :func:`numpy.fft.fft`
     """
     from cupy.cuda import cufft
+
     return _fft(a, (n,), (axis,), norm, cufft.CUFFT_FORWARD)
 
 
@@ -716,6 +781,7 @@ def ifft(a, n=None, axis=-1, norm=None):
     .. seealso:: :func:`numpy.fft.ifft`
     """
     from cupy.cuda import cufft
+
     return _fft(a, (n,), (axis,), norm, cufft.CUFFT_INVERSE)
 
 
@@ -846,7 +912,7 @@ def rfft(a, n=None, axis=-1, norm=None):
     """
     from cupy.cuda import cufft
 
-    return _fft(a, (n,), (axis,), norm, cufft.CUFFT_FORWARD, 'R2C')
+    return _fft(a, (n,), (axis,), norm, cufft.CUFFT_FORWARD, "R2C")
 
 
 def irfft(a, n=None, axis=-1, norm=None):
@@ -875,7 +941,7 @@ def irfft(a, n=None, axis=-1, norm=None):
     from cupy.cuda import cufft
 
     caster = _compat_caster(a, (axis,))
-    return caster(_fft(a, (n,), (axis,), norm, cufft.CUFFT_INVERSE, 'C2R'))
+    return caster(_fft(a, (n,), (axis,), norm, cufft.CUFFT_INVERSE, "C2R"))
 
 
 def rfft2(a, s=None, axes=(-2, -1), norm=None):
@@ -901,8 +967,8 @@ def rfft2(a, s=None, axes=(-2, -1), norm=None):
     """
     from cupy.cuda import cufft
 
-    func = _default_fft_func(a, s, axes, value_type='R2C')
-    return func(a, s, axes, norm, cufft.CUFFT_FORWARD, 'R2C')
+    func = _default_fft_func(a, s, axes, value_type="R2C")
+    return func(a, s, axes, norm, cufft.CUFFT_FORWARD, "R2C")
 
 
 def irfft2(a, s=None, axes=(-2, -1), norm=None):
@@ -931,8 +997,8 @@ def irfft2(a, s=None, axes=(-2, -1), norm=None):
     from cupy.cuda import cufft
 
     caster = _compat_caster(a, axes)
-    func = _default_fft_func(a, s, axes, value_type='C2R')
-    return caster(func(a, s, axes, norm, cufft.CUFFT_INVERSE, 'C2R'))
+    func = _default_fft_func(a, s, axes, value_type="C2R")
+    return caster(func(a, s, axes, norm, cufft.CUFFT_INVERSE, "C2R"))
 
 
 def rfftn(a, s=None, axes=None, norm=None):
@@ -958,8 +1024,8 @@ def rfftn(a, s=None, axes=None, norm=None):
     """
     from cupy.cuda import cufft
 
-    func = _default_fft_func(a, s, axes, value_type='R2C')
-    return func(a, s, axes, norm, cufft.CUFFT_FORWARD, 'R2C')
+    func = _default_fft_func(a, s, axes, value_type="R2C")
+    return func(a, s, axes, norm, cufft.CUFFT_FORWARD, "R2C")
 
 
 def _size_last_transform_axis(shape, s, axes):
@@ -997,18 +1063,20 @@ def irfftn(a, s=None, axes=None, norm=None):
     from cupy.cuda import cufft
 
     caster = _compat_caster(a, axes)
-    func = _default_fft_func(a, s, axes, value_type='C2R')
-    return caster(func(a, s, axes, norm, cufft.CUFFT_INVERSE, 'C2R'))
+    func = _default_fft_func(a, s, axes, value_type="C2R")
+    return caster(func(a, s, axes, norm, cufft.CUFFT_INVERSE, "C2R"))
 
 
 def _swap_direction(norm):
-    if norm in (None, 'backward'):
-        norm = 'forward'
-    elif norm == 'forward':
-        norm = 'backward'
-    elif norm != 'ortho':
-        raise ValueError('Invalid norm value %s; should be "backward", '
-                         '"ortho", or "forward".' % norm)
+    if norm in (None, "backward"):
+        norm = "forward"
+    elif norm == "forward":
+        norm = "backward"
+    elif norm != "ortho":
+        raise ValueError(
+            'Invalid norm value %s; should be "backward", '
+            '"ortho", or "forward".' % norm
+        )
     return norm
 
 
@@ -1074,8 +1142,12 @@ def fftfreq(n, d=1.0):
 
     .. seealso:: :func:`numpy.fft.fftfreq`
     """
-    return cupy.hstack((cupy.arange(0, (n - 1) // 2 + 1, dtype=np.float64),
-                        cupy.arange(-(n // 2), 0, dtype=np.float64))) / (n * d)
+    return cupy.hstack(
+        (
+            cupy.arange(0, (n - 1) // 2 + 1, dtype=np.float64),
+            cupy.arange(-(n // 2), 0, dtype=np.float64),
+        )
+    ) / (n * d)
 
 
 def rfftfreq(n, d=1.0):

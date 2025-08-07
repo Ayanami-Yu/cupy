@@ -7,11 +7,11 @@ from cupy import testing
 import cupyx.scipy.special  # NOQA
 
 
-@testing.with_requires('scipy>=1.15')
+@testing.with_requires("scipy>=1.15")
 class TestSpecial:
 
     @testing.for_all_dtypes(no_complex=True)
-    @testing.numpy_cupy_allclose(rtol=1e-5, scipy_name='scp')
+    @testing.numpy_cupy_allclose(rtol=1e-5, scipy_name="scp")
     def check_unary(self, name, xp, scp, dtype):
         import scipy.special  # NOQA
 
@@ -19,44 +19,44 @@ class TestSpecial:
         return getattr(scp.special, name)(a)
 
     def test_j0(self):
-        self.check_unary('j0')
+        self.check_unary("j0")
 
     def test_j1(self):
-        self.check_unary('j1')
+        self.check_unary("j1")
 
     def test_y0(self):
-        self.check_unary('y0')
+        self.check_unary("y0")
 
     def test_y1(self):
-        self.check_unary('y1')
+        self.check_unary("y1")
 
     def test_i0(self):
-        self.check_unary('i0')
+        self.check_unary("i0")
 
     def test_i0e(self):
-        self.check_unary('i0e')
+        self.check_unary("i0e")
 
     def test_i1(self):
-        self.check_unary('i1')
+        self.check_unary("i1")
 
     def test_i1e(self):
-        self.check_unary('i1e')
+        self.check_unary("i1e")
 
     def test_k0(self):
-        self.check_unary('k0')
+        self.check_unary("k0")
 
     def test_k0e(self):
-        self.check_unary('k0e')
+        self.check_unary("k0e")
 
     def test_k1(self):
-        self.check_unary('k1')
+        self.check_unary("k1")
 
     def test_k1e(self):
-        self.check_unary('k1e')
+        self.check_unary("k1e")
 
-    @testing.for_dtypes('iId', name='order_dtype')
-    @testing.for_dtypes('efd')
-    @testing.numpy_cupy_allclose(atol=1e-12, scipy_name='scp')
+    @testing.for_dtypes("iId", name="order_dtype")
+    @testing.for_dtypes("efd")
+    @testing.numpy_cupy_allclose(atol=1e-12, scipy_name="scp")
     def test_yn(self, xp, scp, dtype, order_dtype):
         import scipy.special  # NOQA
 
@@ -65,11 +65,11 @@ class TestSpecial:
         return scp.special.yn(n[:, xp.newaxis], a[xp.newaxis, :])
 
 
-@testing.with_requires('scipy>=1.15')
+@testing.with_requires("scipy>=1.15")
 class TestFusionSpecial(unittest.TestCase):
 
-    @testing.for_dtypes(['e', 'f', 'd'])
-    @testing.numpy_cupy_allclose(rtol=1e-5, scipy_name='scp')
+    @testing.for_dtypes(["e", "f", "d"])
+    @testing.numpy_cupy_allclose(rtol=1e-5, scipy_name="scp")
     def check_unary(self, name, xp, scp, dtype):
         import scipy.special  # NOQA
 
@@ -82,43 +82,43 @@ class TestFusionSpecial(unittest.TestCase):
         return f(a)
 
     def test_j0(self):
-        self.check_unary('j0')
+        self.check_unary("j0")
 
     def test_j1(self):
-        self.check_unary('j1')
+        self.check_unary("j1")
 
     def test_y0(self):
-        self.check_unary('y0')
+        self.check_unary("y0")
 
     def test_y1(self):
-        self.check_unary('y1')
+        self.check_unary("y1")
 
     def test_i0(self):
-        self.check_unary('i0')
+        self.check_unary("i0")
 
     def test_i0e(self):
-        self.check_unary('i0e')
+        self.check_unary("i0e")
 
     def test_i1(self):
-        self.check_unary('i1')
+        self.check_unary("i1")
 
     def test_i1e(self):
-        self.check_unary('i1e')
+        self.check_unary("i1e")
 
     def test_k0(self):
-        self.check_unary('k0')
+        self.check_unary("k0")
 
     def test_k0e(self):
-        self.check_unary('k0e')
+        self.check_unary("k0e")
 
     def test_k1(self):
-        self.check_unary('k1')
+        self.check_unary("k1")
 
     def test_k1e(self):
-        self.check_unary('k1e')
+        self.check_unary("k1e")
 
-    @testing.for_dtypes(['e', 'f', 'd'])
-    @testing.numpy_cupy_allclose(rtol=1e-5, scipy_name='scp')
+    @testing.for_dtypes(["e", "f", "d"])
+    @testing.numpy_cupy_allclose(rtol=1e-5, scipy_name="scp")
     def test_chbevl_dependent_fusion(self, dtype, xp, scp):
         @cupy.fuse
         def fused(x):

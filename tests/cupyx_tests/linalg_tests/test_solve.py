@@ -12,12 +12,15 @@ from cupy import testing
 import cupyx
 
 
-@testing.parameterize(*testing.product({
-    'size': [5, 9, 17, 33],
-    'dtype': [numpy.float32, numpy.float64, numpy.complex64, numpy.complex128],
-}))
-@pytest.mark.xfail(runtime.is_hip,
-                   reason='rocSOLVER does not implement potrs yet.')
+@testing.parameterize(
+    *testing.product(
+        {
+            "size": [5, 9, 17, 33],
+            "dtype": [numpy.float32, numpy.float64, numpy.complex64, numpy.complex128],
+        }
+    )
+)
+@pytest.mark.xfail(runtime.is_hip, reason="rocSOLVER does not implement potrs yet.")
 class TestInvh(unittest.TestCase):
 
     @testing.numpy_cupy_allclose(atol=1e-5)
@@ -44,18 +47,23 @@ class TestInvh(unittest.TestCase):
         return a
 
 
-@testing.parameterize(*testing.product({
-    'size': [8],
-    'dtype': [numpy.float32, numpy.float64, numpy.complex64, numpy.complex128],
-}))
+@testing.parameterize(
+    *testing.product(
+        {
+            "size": [8],
+            "dtype": [numpy.float32, numpy.float64, numpy.complex64, numpy.complex128],
+        }
+    )
+)
 class TestErrorInvh(unittest.TestCase):
 
     @pytest.mark.skipif(
         cupy.cuda.runtime.runtimeGetVersion() == 12000,
-        reason='This fails with CUDA 12.0.0 but pass in CUDA 12.0.1. (#7309)')
+        reason="This fails with CUDA 12.0.0 but pass in CUDA 12.0.1. (#7309)",
+    )
     def test_invh(self):
         a = self._create_symmetric_matrix(self.size, self.dtype)
-        with cupyx.errstate(linalg='raise'):
+        with cupyx.errstate(linalg="raise"):
             with self.assertRaises(numpy.linalg.LinAlgError):
                 cupyx.linalg.invh(a)
 
@@ -66,17 +74,21 @@ class TestErrorInvh(unittest.TestCase):
 
 
 # TODO: cusolver does not support nrhs > 1 for potrsBatched
-@testing.parameterize(*testing.product({
-    'shape': [(2, 3, 3)],
-    'dtype': [numpy.float32, numpy.float64, numpy.complex64, numpy.complex128],
-}))
+@testing.parameterize(
+    *testing.product(
+        {
+            "shape": [(2, 3, 3)],
+            "dtype": [numpy.float32, numpy.float64, numpy.complex64, numpy.complex128],
+        }
+    )
+)
 class TestXFailBatchedInvh(unittest.TestCase):
 
     def test_invh(self):
-        if not cusolver.check_availability('potrsBatched'):
-            pytest.skip('potrsBatched is not available')
+        if not cusolver.check_availability("potrsBatched"):
+            pytest.skip("potrsBatched is not available")
         a = self._create_symmetric_matrix(self.shape, self.dtype)
-        with cupyx.errstate(linalg='raise'):
+        with cupyx.errstate(linalg="raise"):
             with self.assertRaises(numpy.linalg.LinAlgError):
                 cupyx.linalg.invh(a)
 

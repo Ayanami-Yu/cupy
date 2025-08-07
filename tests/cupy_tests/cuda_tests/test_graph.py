@@ -10,8 +10,7 @@ from cupy import testing
 import cupyx
 
 
-@pytest.mark.skipif(cuda.runtime.is_hip,
-                    reason='HIP does not support this')
+@pytest.mark.skipif(cuda.runtime.is_hip, reason="HIP does not support this")
 class TestGraph:
 
     def _helper1(self, a):
@@ -41,12 +40,12 @@ class TestGraph:
             result += 2
         return result
 
-    @pytest.mark.parametrize('upload', (True, False))
+    @pytest.mark.parametrize("upload", (True, False))
     def test_capture_run_on_same_stream(self, upload):
         s = cupy.cuda.Stream(non_blocking=True)
 
         for n in range(3):
-            func = getattr(self, '_helper{}'.format(n+1))
+            func = getattr(self, "_helper{}".format(n + 1))
             a = cupy.random.random((100,))
 
             with s:
@@ -61,13 +60,13 @@ class TestGraph:
             out2 = func(a)
             testing.assert_array_equal(out1, out2)
 
-    @pytest.mark.parametrize('upload', (True, False))
+    @pytest.mark.parametrize("upload", (True, False))
     def test_capture_run_on_different_streams(self, upload):
         s1 = cupy.cuda.Stream(non_blocking=True)
         s2 = cupy.cuda.Stream(non_blocking=True)
 
         for n in range(3):
-            func = getattr(self, '_helper{}'.format(n+1))
+            func = getattr(self, "_helper{}".format(n + 1))
             a = cupy.random.random((100,))
 
             with s1:
@@ -83,7 +82,7 @@ class TestGraph:
             out2 = func(a)
             testing.assert_array_equal(out1, out2)
 
-    @pytest.mark.parametrize('upload', (True, False))
+    @pytest.mark.parametrize("upload", (True, False))
     def test_stream_is_capturing(self, upload):
         s = cupy.cuda.Stream(non_blocking=True)
         a = cupy.random.random((100,))
@@ -104,20 +103,20 @@ class TestGraph:
         s.synchronize()
         testing.assert_array_equal(b, 3 * a)
 
-    @pytest.mark.parametrize('upload', (True, False))
+    @pytest.mark.parametrize("upload", (True, False))
     def test_capture_launch_host_func(self, upload):
         s = cupy.cuda.Stream(non_blocking=True)
 
-        counter = {'count': 0}
+        counter = {"count": 0}
 
         def callback(x):
             nonlocal counter
-            counter['count'] += x['delta']
+            counter["count"] += x["delta"]
 
         with s:
             s.begin_capture()
             # Let launch_host_func keep the reference to the callback/args.
-            s.launch_host_func(callback, {'delta': 1})
+            s.launch_host_func(callback, {"delta": 1})
             del callback
             gc.collect()
             g = s.end_capture()
@@ -125,12 +124,12 @@ class TestGraph:
             g.upload()
         g.launch()
         cuda.stream.get_current_stream().synchronize()
-        assert counter['count'] == 1
+        assert counter["count"] == 1
         g.launch()
         cuda.stream.get_current_stream().synchronize()
-        assert counter['count'] == 2
+        assert counter["count"] == 2
 
-    @pytest.mark.parametrize('upload', (True, False))
+    @pytest.mark.parametrize("upload", (True, False))
     def test_stream_fork_join(self, upload):
         s1 = cupy.cuda.Stream(non_blocking=True)
         s2 = cupy.cuda.Stream(non_blocking=True)
@@ -161,7 +160,7 @@ class TestGraph:
         s1.synchronize()
         testing.assert_array_equal(out2, func(a * 100))
 
-    @pytest.mark.parametrize('upload', (True, False))
+    @pytest.mark.parametrize("upload", (True, False))
     def test_null_stream_cannot_capture(self, upload):
         s = cupy.cuda.Stream(non_blocking=False)
         a = cupy.random.random((100,))
@@ -173,7 +172,7 @@ class TestGraph:
             # cudaStreamLegacy is unhappy when a blocking stream is capturing
             with pytest.raises(cuda.runtime.CUDARuntimeError) as e:
                 cuda.Stream.null.is_capturing()
-            assert 'cudaErrorStreamCaptureImplicit' in str(e.value)
+            assert "cudaErrorStreamCaptureImplicit" in str(e.value)
             g = s.end_capture()
         assert not s.is_capturing()
         assert not cuda.Stream.null.is_capturing()
@@ -192,11 +191,11 @@ class TestGraph:
             s.begin_capture()
             with pytest.raises(cuda.runtime.CUDARuntimeError) as e:
                 s.synchronize()
-            assert 'cudaErrorStreamCaptureUnsupported' in str(e.value)
+            assert "cudaErrorStreamCaptureUnsupported" in str(e.value)
             # invalid operation causes the capture sequence to be invalidated
             with pytest.raises(cuda.runtime.CUDARuntimeError) as e:
                 g = s.end_capture()  # noqa
-            assert 'cudaErrorStreamCaptureInvalidated' in str(e.value)
+            assert "cudaErrorStreamCaptureInvalidated" in str(e.value)
 
         # check s left the capture mode and permits normal usage
         assert not s.is_capturing()
@@ -212,18 +211,18 @@ class TestGraph:
             s1.begin_capture()
             with pytest.raises(cuda.runtime.CUDARuntimeError) as e:
                 g = s2.end_capture()
-            assert 'cudaErrorIllegalState' in str(e.value)
+            assert "cudaErrorIllegalState" in str(e.value)
             e2.record(s1)
             s2.wait_event(e2)
             with s2:
                 b = a**3  # noqa
             with pytest.raises(cuda.runtime.CUDARuntimeError) as e:
                 g = s2.end_capture()
-            assert 'cudaErrorStreamCaptureUnmatched' in str(e.value)
+            assert "cudaErrorStreamCaptureUnmatched" in str(e.value)
             # invalid operation causes the capture sequence to be invalidated
             with pytest.raises(cuda.runtime.CUDARuntimeError) as e:
                 g = s1.end_capture()  # noqa
-            assert 'cudaErrorStreamCaptureInvalidated' in str(e.value)
+            assert "cudaErrorStreamCaptureInvalidated" in str(e.value)
 
         # check both s1 and s2 left the capture mode and permit normal usage
         assert not s1.is_capturing()
@@ -246,11 +245,11 @@ class TestGraph:
                 # incompatible with stream capturing and so we raise
                 with pytest.raises(RuntimeError) as e:
                     b = cupy.where(a > 0.5)  # noqa
-                assert 'is capturing' in str(e.value)
+                assert "is capturing" in str(e.value)
             # invalid operation causes the capture sequence to be invalidated
             with pytest.raises(cuda.runtime.CUDARuntimeError) as e:
                 g = s1.end_capture()  # noqa
-            assert 'cudaErrorStreamCaptureUnjoined' in str(e.value)
+            assert "cudaErrorStreamCaptureUnjoined" in str(e.value)
 
         # check both s1 and s2 left the capture mode and permit normal usage
         assert not s1.is_capturing()
@@ -267,7 +266,7 @@ class TestGraph:
             s.done
             with pytest.raises(cuda.runtime.CUDARuntimeError) as e:
                 s.end_capture()
-            assert 'cudaErrorStreamCaptureInvalidated' in str(e.value)
+            assert "cudaErrorStreamCaptureInvalidated" in str(e.value)
 
         # check s left the capture mode and permits normal usage
         assert not s.is_capturing()
@@ -284,7 +283,7 @@ class TestGraph:
             # incompatible with stream capturing and so we raise
             with pytest.raises(RuntimeError) as e:
                 func(a)
-            assert 'is capturing' in str(e.value)
+            assert "is capturing" in str(e.value)
             s.end_capture()
 
         # check s left the capture mode and permits normal usage
@@ -299,10 +298,10 @@ class TestGraph:
             # synchronize the stream is illegal during capturing
             with pytest.raises(cuda.runtime.CUDARuntimeError) as e:
                 s.synchronize()
-            assert 'cudaErrorStreamCaptureUnsupported' in str(e.value)
+            assert "cudaErrorStreamCaptureUnsupported" in str(e.value)
             with pytest.raises(cuda.runtime.CUDARuntimeError) as e:
                 s.end_capture()
-            assert 'cudaErrorStreamCaptureInvalidated' in str(e.value)
+            assert "cudaErrorStreamCaptureInvalidated" in str(e.value)
 
         # check s left the capture mode and permits normal usage
         assert not s.is_capturing()
@@ -317,7 +316,7 @@ class TestGraph:
             s.begin_capture()
             with pytest.raises(NotImplementedError) as e:
                 cupy.matmul(a, b)
-            assert 'cuBLAS' in str(e.value)
+            assert "cuBLAS" in str(e.value)
             s.end_capture()
 
         # check s left the capture mode and permits normal usage
@@ -333,7 +332,7 @@ class TestGraph:
             s.begin_capture()
             with pytest.raises(NotImplementedError) as e:
                 cupy.linalg.svd(a)
-            assert 'cuSOLVER' in str(e.value)
+            assert "cuSOLVER" in str(e.value)
             s.end_capture()
 
         # check s left the capture mode and permits normal usage
@@ -347,7 +346,7 @@ class TestGraph:
             s.begin_capture()
             with pytest.raises(NotImplementedError) as e:
                 cupy.random.random(100)
-            assert 'cuRAND' in str(e.value)
+            assert "cuRAND" in str(e.value)
             s.end_capture()
 
         # check s left the capture mode and permits normal usage
@@ -365,15 +364,16 @@ class TestGraph:
             s.begin_capture()
             with pytest.raises(NotImplementedError) as e:
                 a * a.T
-            assert 'cuSPARSE' in str(e.value)
+            assert "cuSPARSE" in str(e.value)
             s.end_capture()
 
         # check s left the capture mode and permits normal usage
         assert not s.is_capturing()
         s.synchronize()
 
-    @pytest.mark.skipif(cuda.driver.get_build_version() < 11030,
-                        reason='Requires CUDA 11.3+')
+    @pytest.mark.skipif(
+        cuda.driver.get_build_version() < 11030, reason="Requires CUDA 11.3+"
+    )
     def test_debug_dot_str(self):
         s = cupy.cuda.Stream(non_blocking=True)
 
@@ -383,8 +383,9 @@ class TestGraph:
             cupy.sin(a)
             g = s.end_capture()
             debug_str = g.debug_dot_str()
-            assert 'cupy_sin' in debug_str
+            assert "cupy_sin" in debug_str
             debug_str_verbose = g.debug_dot_str(
-                cupy.cuda.runtime.cudaGraphDebugDotFlagsVerbose)
-            assert 'cupy_sin' in debug_str_verbose
+                cupy.cuda.runtime.cudaGraphDebugDotFlagsVerbose
+            )
+            assert "cupy_sin" in debug_str_verbose
             assert debug_str != debug_str_verbose

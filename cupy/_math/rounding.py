@@ -24,8 +24,7 @@ def around(a, decimals=0, out=None):
 
     """
     if fusion._is_fusing():
-        return fusion._call_ufunc(
-            _core.core._round_ufunc, a, decimals, out=out)
+        return fusion._call_ufunc(_core.core._round_ufunc, a, decimals, out=out)
     a = _core.array(a, copy=False)
     return a.round(decimals, out=out)
 
@@ -35,17 +34,20 @@ def round(a, decimals=0, out=None):
 
 
 def round_(a, decimals=0, out=None):
-    warnings.warn('Please use `round` instead.', DeprecationWarning)
+    warnings.warn("Please use `round` instead.", DeprecationWarning)
     return around(a, decimals, out=out)
 
 
 rint = ufunc.create_math_ufunc(
-    'rint', 1, 'cupy_rint',
-    '''Rounds each element of an array to the nearest integer.
+    "rint",
+    1,
+    "cupy_rint",
+    """Rounds each element of an array to the nearest integer.
 
     .. seealso:: :data:`numpy.rint`
 
-    ''')
+    """,
+)
 
 
 def create_rounding_ufunc(name, op, doc):

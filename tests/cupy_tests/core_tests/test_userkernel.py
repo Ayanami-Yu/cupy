@@ -8,9 +8,13 @@ import pytest
 import cupy
 from cupy import testing
 from cupy.cuda import runtime
-from cupy.cuda.texture import (ChannelFormatDescriptor, CUDAarray,
-                               ResourceDescriptor, TextureDescriptor,
-                               TextureObject,)
+from cupy.cuda.texture import (
+    ChannelFormatDescriptor,
+    CUDAarray,
+    ResourceDescriptor,
+    TextureDescriptor,
+    TextureObject,
+)
 
 
 class TestUserkernel(unittest.TestCase):
@@ -19,21 +23,23 @@ class TestUserkernel(unittest.TestCase):
         in1 = cupy.random.uniform(-1, 1, n).astype(cupy.float32)
         in2 = cupy.random.uniform(-1, 1, n).astype(cupy.float32)
         uesr_kernel_1 = cupy.ElementwiseKernel(
-            'T x, T y',
-            'T z',
-            '''
+            "T x, T y",
+            "T z",
+            """
                 z = x + y;
-            ''',
-            'uesr_kernel_1')
+            """,
+            "uesr_kernel_1",
+        )
         out1 = uesr_kernel_1(in1, in2)
 
         uesr_kernel_2 = cupy.ElementwiseKernel(
-            'raw T x, raw T y',
-            'raw T z',
-            '''
+            "raw T x, raw T y",
+            "raw T z",
+            """
                 z[i] = x[i] + y[i];
-            ''',
-            'uesr_kernel_2')
+            """,
+            "uesr_kernel_2",
+        )
         out2 = uesr_kernel_2(in1, in2, size=n)
 
         testing.assert_array_equal(out1, out2)
@@ -45,12 +51,13 @@ class TestUserkernel(unittest.TestCase):
             in1 = cupy.array(in1_cpu)
             scalar_value = typ(2)
             uesr_kernel_1 = cupy.ElementwiseKernel(
-                'T x, T y',
-                'T z',
-                '''
+                "T x, T y",
+                "T z",
+                """
                     z = x + y;
-                ''',
-                'uesr_kernel_1')
+                """,
+                "uesr_kernel_1",
+            )
             out1 = uesr_kernel_1(in1, scalar_value)
 
             expected = in1_cpu + dtype(2)
@@ -62,12 +69,13 @@ class TestUserkernel(unittest.TestCase):
         in1 = cupy.array(in1_cpu)
         scalar_value = dtype(2)
         uesr_kernel_1 = cupy.ElementwiseKernel(
-            'T x, T y',
-            'T z',
-            '''
+            "T x, T y",
+            "T z",
+            """
                 z = x + y;
-            ''',
-            'uesr_kernel_1')
+            """,
+            "uesr_kernel_1",
+        )
         out1 = uesr_kernel_1(in1, scalar_value)
 
         expected = in1_cpu + dtype(2)
@@ -77,12 +85,13 @@ class TestUserkernel(unittest.TestCase):
         in1 = cupy.random.uniform(-1, 1, 100).astype(cupy.float32)
         in2 = cupy.random.uniform(-1, 1, 100).astype(cupy.float32)
         user_kernel_1 = cupy.ElementwiseKernel(
-            'T x, T y',
-            'T z',
-            '''
+            "T x, T y",
+            "T z",
+            """
                 z = x + y;
-            ''',
-            'uesr_kernel_1')
+            """,
+            "uesr_kernel_1",
+        )
         assert len(user_kernel_1._cached_codes) == 0
         user_kernel_1(in1, in2)
         assert len(user_kernel_1._cached_codes) == 1
@@ -97,30 +106,32 @@ class TestElementwiseKernelSize(unittest.TestCase):
     # depending on the raw specifiers of a user kernel.
 
     def setUp(self):
-        self.arr1 = cupy.array([1, 2], dtype='float32')
-        self.arr2 = cupy.array([3, 4], dtype='float32')
+        self.arr1 = cupy.array([1, 2], dtype="float32")
+        self.arr2 = cupy.array([3, 4], dtype="float32")
 
     def raises_size_not_allowed(self):
-        return pytest.raises(ValueError, match=r'^Specified \'size\' can')
+        return pytest.raises(ValueError, match=r"^Specified \'size\' can")
 
     def raises_size_required(self):
-        return pytest.raises(ValueError, match=r'^Loop size is undecided\.')
+        return pytest.raises(ValueError, match=r"^Loop size is undecided\.")
 
     def create_kernel(self, input_raw, output_raw):
         # Creates a no-op kernel with given parameter specification.
         # input_raw and output_raw are tuples of True/False whose
         # corresponding parameter will be designated as 'raw' if True.
-        input_types = (
-            ', '.join([
-                '{}float32 x{}'.format(
-                    ('raw ' if raw else ''), i)
-                for i, raw in enumerate(input_raw)]))
-        output_types = (
-            ', '.join([
-                '{}float32 y{}'.format(
-                    ('raw ' if raw else ''), i)
-                for i, raw in enumerate(output_raw)]))
-        return cupy.ElementwiseKernel(input_types, output_types, '', 'kernel')
+        input_types = ", ".join(
+            [
+                "{}float32 x{}".format(("raw " if raw else ""), i)
+                for i, raw in enumerate(input_raw)
+            ]
+        )
+        output_types = ", ".join(
+            [
+                "{}float32 y{}".format(("raw " if raw else ""), i)
+                for i, raw in enumerate(output_raw)
+            ]
+        )
+        return cupy.ElementwiseKernel(input_types, output_types, "", "kernel")
 
     def test_all_raws(self):
         # Input arrays are all raw -> size required
@@ -231,9 +242,13 @@ class TestElementwiseKernelSize(unittest.TestCase):
             kernel1(self.arr1)
 
 
-@testing.parameterize(*testing.product({
-    'value': [-1, 2 ** 32, 2 ** 63 - 1, -(2 ** 63)],
-}))
+@testing.parameterize(
+    *testing.product(
+        {
+            "value": [-1, 2**32, 2**63 - 1, -(2**63)],
+        }
+    )
+)
 class TestUserkernelScalar(unittest.TestCase):
 
     @testing.for_all_dtypes()
@@ -244,7 +259,7 @@ class TestUserkernelScalar(unittest.TestCase):
             y = numpy.array(self.value).astype(dtype)
             return x + y
         else:
-            kernel = cupy.ElementwiseKernel('T x, T y', 'T z', 'z = x + y')
+            kernel = cupy.ElementwiseKernel("T x, T y", "T z", "z = x + y")
             return kernel(x, self.value)
 
 
@@ -252,22 +267,27 @@ class TestUserkernelManualBlockSize(unittest.TestCase):
 
     def test_invalid_block_size(self):
         x = testing.shaped_arange((2, 3, 4), cupy, cupy.float32)
-        kernel = cupy.ElementwiseKernel('T x, T y', 'T z', 'z = x + y')
+        kernel = cupy.ElementwiseKernel("T x, T y", "T z", "z = x + y")
         with pytest.raises(ValueError):
             kernel(x, 1, block_size=0)
 
     def test_block_size(self):
         x = testing.shaped_arange((2, 3, 4), cupy, cupy.float32)
-        kernel = cupy.ElementwiseKernel('T x, T y', 'T z', 'z = x + y')
+        kernel = cupy.ElementwiseKernel("T x, T y", "T z", "z = x + y")
         y = kernel(x, 1, block_size=1)
         testing.assert_array_equal(y, x + 1)
 
 
-@testing.parameterize(*testing.product({
-    'dimensions': ((64, 0, 0), (64, 32, 0), (64, 32, 19)),
-}))
-@pytest.mark.skipif(runtime.is_hip,
-                    reason='texture support on HIP is not yet implemented')
+@testing.parameterize(
+    *testing.product(
+        {
+            "dimensions": ((64, 0, 0), (64, 32, 0), (64, 32, 19)),
+        }
+    )
+)
+@pytest.mark.skipif(
+    runtime.is_hip, reason="texture support on HIP is not yet implemented"
+)
 class TestElementwiseKernelTexture(unittest.TestCase):
 
     def _prep_texture(self):
@@ -275,72 +295,79 @@ class TestElementwiseKernelTexture(unittest.TestCase):
         dim = 3 if depth != 0 else 2 if height != 0 else 1
 
         # generate input data and allocate output buffer
-        shape = (depth, height, width) if dim == 3 else \
-                (height, width) if dim == 2 else \
-                (width,)
+        shape = (
+            (depth, height, width)
+            if dim == 3
+            else (height, width) if dim == 2 else (width,)
+        )
         self.shape = shape
 
         # prepare input, output, and texture memory
         # self.data holds the data stored in the texture memory
         tex_data = cupy.random.random(shape, dtype=cupy.float32)
-        ch = ChannelFormatDescriptor(32, 0, 0, 0,
-                                     runtime.cudaChannelFormatKindFloat)
+        ch = ChannelFormatDescriptor(32, 0, 0, 0, runtime.cudaChannelFormatKindFloat)
         arr = CUDAarray(ch, width, height, depth)
         arr.copy_from(tex_data)
         self.data = tex_data
 
         # create resource and texture descriptors
         res = ResourceDescriptor(runtime.cudaResourceTypeArray, cuArr=arr)
-        address_mode = (runtime.cudaAddressModeClamp,
-                        runtime.cudaAddressModeClamp)
-        tex = TextureDescriptor(address_mode, runtime.cudaFilterModePoint,
-                                runtime.cudaReadModeElementType)
+        address_mode = (runtime.cudaAddressModeClamp, runtime.cudaAddressModeClamp)
+        tex = TextureDescriptor(
+            address_mode, runtime.cudaFilterModePoint, runtime.cudaReadModeElementType
+        )
 
         # create a texture object
         return TextureObject(res, tex)
 
     def _prep_kernel1D(self):
         return cupy.ElementwiseKernel(
-            'T x, U texObj',
-            'T y',
-            '''
+            "T x, U texObj",
+            "T y",
+            """
             T temp = tex1D<T>(texObj,
                               float(i)
                               );
             y = temp + x;
-            ''', name='test_tex1D')
+            """,
+            name="test_tex1D",
+        )
 
     def _prep_kernel2D(self):
         return cupy.ElementwiseKernel(
-            'T x, U texObj, uint64 width',
-            'T y',
-            '''
+            "T x, U texObj, uint64 width",
+            "T y",
+            """
             T temp = tex2D<T>(texObj,
                               (float)(i % width),
                               (float)(i / width)
                               );
             y = temp + x;
-            ''', name='test_tex2D')
+            """,
+            name="test_tex2D",
+        )
 
     def _prep_kernel3D(self):
         return cupy.ElementwiseKernel(
-            'T x, U texObj, uint64 width, uint64 height',
-            'T y',
-            '''
+            "T x, U texObj, uint64 width, uint64 height",
+            "T y",
+            """
             T temp = tex3D<T>(texObj,
                               (float)((i % (width * height)) % width),
                               (float)((i % (width * height)) / width),
                               (float)((i / (width * height)))
                               );
             y = temp + x;
-            ''', name='test_tex3D')
+            """,
+            name="test_tex3D",
+        )
 
     def test_texture_input(self):
         width, height, depth = self.dimensions
         dim = 3 if depth != 0 else 2 if height != 0 else 1
 
         texobj = self._prep_texture()
-        ker = getattr(self, f'_prep_kernel{dim}D')()
+        ker = getattr(self, f"_prep_kernel{dim}D")()
 
         # prepare input
         args = [None, texobj]

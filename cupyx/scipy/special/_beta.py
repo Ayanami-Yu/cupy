@@ -12,6 +12,7 @@ https://github.com/scipy/scipy/blob/main/scipy/special/cephes/incbi.c
 Cephes Math Library, Release 2.3:  March, 1995
 Copyright 1984, 1995 by Stephen L. Moshier
 """
+
 from __future__ import annotations
 
 
@@ -395,13 +396,13 @@ beta = _core.create_ufunc(
     ("ll->d", "LL->d", "ee->d", "ff->f", "dd->d"),
     "out0 = out0_type(beta(in0, in1));",
     preamble=(
-        beta_preamble +
-        gamma_definition +
-        polevl_definition +
-        p1evl_definition +
-        lgam_sgn_definition +
-        lbeta_symp_definition +
-        beta_definition
+        beta_preamble
+        + gamma_definition
+        + polevl_definition
+        + p1evl_definition
+        + lgam_sgn_definition
+        + lbeta_symp_definition
+        + beta_definition
     ),
     doc="""Beta function.
 
@@ -430,13 +431,13 @@ betaln = _core.create_ufunc(
     ("ll->d", "LL->d", "ee->d", "ff->f", "dd->d"),
     "out0 = out0_type(lbeta(in0, in1));",
     preamble=(
-        beta_preamble +
-        gamma_definition +
-        polevl_definition +
-        p1evl_definition +
-        lgam_sgn_definition +
-        lbeta_symp_definition +
-        lbeta_definition
+        beta_preamble
+        + gamma_definition
+        + polevl_definition
+        + p1evl_definition
+        + lgam_sgn_definition
+        + lbeta_symp_definition
+        + lbeta_definition
     ),
     doc="""Natural logarithm of absolute value of beta function.
 
@@ -791,15 +792,15 @@ __noinline__ __device__ static double pseries(double a, double b, double x)
 """
 
 incbet_preamble = (
-    beta_preamble +
-    gamma_definition +
-    polevl_definition +
-    p1evl_definition +
-    lgam_sgn_definition +
-    lbeta_symp_definition +
-    beta_definition +
-    lbeta_definition +
-    incbet_definition
+    beta_preamble
+    + gamma_definition
+    + polevl_definition
+    + p1evl_definition
+    + lgam_sgn_definition
+    + lbeta_symp_definition
+    + beta_definition
+    + lbeta_definition
+    + incbet_definition
 )
 
 

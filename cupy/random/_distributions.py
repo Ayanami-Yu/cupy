@@ -202,7 +202,7 @@ def gamma(shape, scale=1.0, size=None, dtype=float):
     return rs.gamma(shape, scale, size, dtype)
 
 
-def geometric(p, size=None, dtype='l'):
+def geometric(p, size=None, dtype="l"):
     """Geometric distribution.
 
     Returns an array of samples drawn from the geometric distribution. Its
@@ -261,7 +261,7 @@ def gumbel(loc=0.0, scale=1.0, size=None, dtype=float):
     return rs.gumbel(loc, scale, size, dtype)
 
 
-def hypergeometric(ngood, nbad, nsample, size=None, dtype='l'):
+def hypergeometric(ngood, nbad, nsample, size=None, dtype="l"):
     """hypergeometric distribution.
 
     Returns an array of samples drawn from the hypergeometric distribution. Its
@@ -370,7 +370,7 @@ def lognormal(mean=0.0, sigma=1.0, size=None, dtype=float):
     return rs.lognormal(mean, sigma, size=size, dtype=dtype)
 
 
-def logseries(p, size=None, dtype='l'):
+def logseries(p, size=None, dtype="l"):
     """Log series distribution.
 
     Returns an array of samples drawn from the log series distribution. Its
@@ -423,8 +423,15 @@ def negative_binomial(n, p, size=None, dtype=int):
     return rs.negative_binomial(n, p, size=size, dtype=dtype)
 
 
-def multivariate_normal(mean, cov, size=None, check_valid='ignore',
-                        tol=1e-08, method='cholesky', dtype=float):
+def multivariate_normal(
+    mean,
+    cov,
+    size=None,
+    check_valid="ignore",
+    tol=1e-08,
+    method="cholesky",
+    dtype=float,
+):
     """Multivariate normal distribution.
 
     Returns an array of samples drawn from the multivariate normal
@@ -475,10 +482,9 @@ def multivariate_normal(mean, cov, size=None, check_valid='ignore',
     .. seealso:: :func:`numpy.random.multivariate_normal`
 
     """
-    _util.experimental('cupy.random.multivariate_normal')
+    _util.experimental("cupy.random.multivariate_normal")
     rs = _generator.get_random_state()
-    return rs.multivariate_normal(
-        mean, cov, size, check_valid, tol, method, dtype)
+    return rs.multivariate_normal(mean, cov, size, check_valid, tol, method, dtype)
 
 
 def normal(loc=0.0, scale=1.0, size=None, dtype=float):
@@ -589,7 +595,7 @@ def noncentral_f(dfnum, dfden, nonc, size=None, dtype=float):
     return rs.noncentral_f(dfnum, dfden, nonc, size=size, dtype=dtype)
 
 
-def poisson(lam=1.0, size=None, dtype='l'):
+def poisson(lam=1.0, size=None, dtype="l"):
     """Poisson distribution.
 
     Returns an array of samples drawn from the poisson distribution. Its

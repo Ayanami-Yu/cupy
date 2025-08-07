@@ -82,8 +82,8 @@ class TestMayShareMemory(unittest.TestCase):
 
         arrays = []
 
-        array_1d_np = memory_np[5:5+size]
-        array_1d_cp = memory_cp[5:5+size]
+        array_1d_np = memory_np[5 : 5 + size]
+        array_1d_cp = memory_cp[5 : 5 + size]
         for s in slices:
             arrays.append((array_1d_np[s], array_1d_cp[s], s))
 
@@ -91,15 +91,13 @@ class TestMayShareMemory(unittest.TestCase):
         array_2d_cp = memory_cp.reshape(size, size)
         for s1 in slices:
             for s2 in slices:
-                arrays.append((
-                    array_2d_np[s1, s2], array_2d_cp[s1, s2], (s1, s2)))
+                arrays.append((array_2d_np[s1, s2], array_2d_cp[s1, s2], (s1, s2)))
 
         for array1_np, array1_cp, sl1 in arrays:
             for array2_np, array2_cp, sl2 in arrays:
                 ret_np = numpy.may_share_memory(array1_np, array2_np)
                 ret_cp = cupy.may_share_memory(array1_cp, array2_cp)
-                assert ret_np == ret_cp, \
-                    'Failed in case of {} and {}'.format(sl1, sl2)
+                assert ret_np == ret_cp, "Failed in case of {} and {}".format(sl1, sl2)
 
 
 class TestSharesMemory(unittest.TestCase):

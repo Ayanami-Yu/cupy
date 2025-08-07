@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 
-
 from typing import TYPE_CHECKING, List, Optional, Tuple, Union
 
 if TYPE_CHECKING:
@@ -74,7 +73,7 @@ def asarray(
             finally:
                 runtime.setDevice(prev_device)
         return obj
-    if dtype is None and isinstance(obj, int) and (obj > 2 ** 64 or obj < -(2 ** 63)):
+    if dtype is None and isinstance(obj, int) and (obj > 2**64 or obj < -(2**63)):
         # Give a better error message in this case. NumPy would convert this
         # to an object array. TODO: This won't handle large integers in lists.
         raise OverflowError("Integer out of bounds for array dtypes")
@@ -201,6 +200,7 @@ def from_dlpack(x: object, /) -> Array:
     See its docstring for more information.
     """
     from ._array_object import Array
+
     return Array._new(np.from_dlpack(x))
 
 

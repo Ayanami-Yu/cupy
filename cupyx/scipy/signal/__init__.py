@@ -45,7 +45,7 @@ from cupyx.scipy.signal._bsplines import gauss_spline  # NOQA
 from cupyx.scipy.signal._splines import symiirorder1  # NOQA
 from cupyx.scipy.signal._splines import symiirorder2  # NOQA
 
-from cupyx.scipy.signal._savitzky_golay import savgol_coeffs, savgol_filter   # NOQA
+from cupyx.scipy.signal._savitzky_golay import savgol_coeffs, savgol_filter  # NOQA
 
 from cupyx.scipy.signal._filter_design import gammatone  # NOQA
 from cupyx.scipy.signal._filter_design import group_delay  # NOQA
@@ -71,7 +71,7 @@ from cupyx.scipy.signal._iir_filter_conversions import lp2bs_zpk  # NOQA
 
 from cupyx.scipy.signal._iir_filter_conversions import zpk2tf  # NOQA
 from cupyx.scipy.signal._iir_filter_conversions import zpk2sos  # NOQA
-from cupyx.scipy.signal._iir_filter_conversions import zpk2ss   # NOQA
+from cupyx.scipy.signal._iir_filter_conversions import zpk2ss  # NOQA
 from cupyx.scipy.signal._iir_filter_conversions import tf2zpk  # NOQA
 from cupyx.scipy.signal._iir_filter_conversions import tf2sos  # NOQA
 from cupyx.scipy.signal._iir_filter_conversions import tf2ss  # NOQA
@@ -125,7 +125,7 @@ from cupyx.scipy.signal._waveforms import unit_impulse  # NOQA
 from cupyx.scipy.signal._waveforms import sweep_poly  # NOQA
 from cupyx.scipy.signal._max_len_seq import max_len_seq  # NOQA
 
-from cupyx.scipy.signal._czt import *   # NOQA
+from cupyx.scipy.signal._czt import *  # NOQA
 
 from cupyx.scipy.signal._wavelets import morlet  # NOQA
 from cupyx.scipy.signal._wavelets import qmf  # NOQA
@@ -133,7 +133,7 @@ from cupyx.scipy.signal._wavelets import ricker  # NOQA
 from cupyx.scipy.signal._wavelets import morlet2  # NOQA
 from cupyx.scipy.signal._wavelets import cwt  # NOQA
 
-from cupyx.scipy.signal._lti_conversion import abcd_normalize   # NOQA
+from cupyx.scipy.signal._lti_conversion import abcd_normalize  # NOQA
 
 from cupyx.scipy.signal._upfirdn import upfirdn  # NOQA
 

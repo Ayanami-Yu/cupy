@@ -15,6 +15,7 @@ try:
     import scipy
     import scipy.fft as _scipy_fft
 except ImportError:
+
     class _DummyModule:
         def __getattr__(self, name):
             return None
@@ -22,14 +23,15 @@ except ImportError:
     _scipy_fft = _DummyModule()
 else:
     from numpy.lib import NumpyVersion as Version
-    _scipy_150 = Version(scipy.__version__) >= Version('1.5.0')
-    _scipy_160 = Version(scipy.__version__) >= Version('1.6.0')
+
+    _scipy_150 = Version(scipy.__version__) >= Version("1.5.0")
+    _scipy_160 = Version(scipy.__version__) >= Version("1.6.0")
     del Version
     del scipy
 
 # Backend support for scipy.fft
 
-__ua_domain__ = 'numpy.scipy.fft'
+__ua_domain__ = "numpy.scipy.fft"
 _implemented: dict = {}
 
 
@@ -37,15 +39,22 @@ def __ua_convert__(dispatchables, coerce):
     if coerce:
         try:
             replaced = [
-                cupy.asarray(d.value) if d.coercible and d.type is np.ndarray
-                else d.value for d in dispatchables]
+                (
+                    cupy.asarray(d.value)
+                    if d.coercible and d.type is np.ndarray
+                    else d.value
+                )
+                for d in dispatchables
+            ]
         except TypeError:
             return NotImplemented
     else:
         replaced = [d.value for d in dispatchables]
 
-    if not all(d.type is not np.ndarray or isinstance(r, cupy.ndarray)
-               for r, d in zip(replaced, dispatchables)):
+    if not all(
+        d.type is not np.ndarray or isinstance(r, cupy.ndarray)
+        for r, d in zip(replaced, dispatchables)
+    ):
         return NotImplemented
 
     return replaced
@@ -55,13 +64,14 @@ def __ua_function__(method, args, kwargs):
     fn = _implemented.get(method, None)
     if fn is None:
         return NotImplemented
-    if 'plan' in kwargs and not _scipy_150:
-        warnings.warn('The \'plan\' argument is supported in SciPy v1.5.0+')
+    if "plan" in kwargs and not _scipy_150:
+        warnings.warn("The 'plan' argument is supported in SciPy v1.5.0+")
     return fn(*args, **kwargs)
 
 
 def _implements(scipy_func):
     """Decorator adds function to the dictionary of implemented functions"""
+
     def inner(func):
         _implemented[scipy_func] = func
         return func
@@ -106,8 +116,10 @@ def fft(x, n=None, axis=-1, norm=None, overwrite_x=False, *, plan=None):
     .. seealso:: :func:`scipy.fft.fft`
     """
     from cupy.cuda import cufft
-    return _fft(x, (n,), (axis,), norm, cufft.CUFFT_FORWARD,
-                overwrite_x=overwrite_x, plan=plan)
+
+    return _fft(
+        x, (n,), (axis,), norm, cufft.CUFFT_FORWARD, overwrite_x=overwrite_x, plan=plan
+    )
 
 
 @_implements(_scipy_fft.ifft)
@@ -140,8 +152,10 @@ def ifft(x, n=None, axis=-1, norm=None, overwrite_x=False, *, plan=None):
     .. seealso:: :func:`scipy.fft.ifft`
     """
     from cupy.cuda import cufft
-    return _fft(x, (n,), (axis,), norm, cufft.CUFFT_INVERSE,
-                overwrite_x=overwrite_x, plan=plan)
+
+    return _fft(
+        x, (n,), (axis,), norm, cufft.CUFFT_INVERSE, overwrite_x=overwrite_x, plan=plan
+    )
 
 
 @_implements(_scipy_fft.fft2)
@@ -177,8 +191,7 @@ def fft2(x, s=None, axes=(-2, -1), norm=None, overwrite_x=False, *, plan=None):
 
 
 @_implements(_scipy_fft.ifft2)
-def ifft2(x, s=None, axes=(-2, -1), norm=None, overwrite_x=False, *,
-          plan=None):
+def ifft2(x, s=None, axes=(-2, -1), norm=None, overwrite_x=False, *, plan=None):
     """Compute the two-dimensional inverse FFT.
 
     Args:
@@ -243,8 +256,9 @@ def fftn(x, s=None, axes=None, norm=None, overwrite_x=False, *, plan=None):
     s = _assequence(s)
     axes = _assequence(axes)
     func = _default_fft_func(x, s, axes)
-    return func(x, s, axes, norm, cufft.CUFFT_FORWARD, overwrite_x=overwrite_x,
-                plan=plan)
+    return func(
+        x, s, axes, norm, cufft.CUFFT_FORWARD, overwrite_x=overwrite_x, plan=plan
+    )
 
 
 @_implements(_scipy_fft.ifftn)
@@ -281,8 +295,9 @@ def ifftn(x, s=None, axes=None, norm=None, overwrite_x=False, *, plan=None):
     s = _assequence(s)
     axes = _assequence(axes)
     func = _default_fft_func(x, s, axes)
-    return func(x, s, axes, norm, cufft.CUFFT_INVERSE, overwrite_x=overwrite_x,
-                plan=plan)
+    return func(
+        x, s, axes, norm, cufft.CUFFT_INVERSE, overwrite_x=overwrite_x, plan=plan
+    )
 
 
 @_implements(_scipy_fft.rfft)
@@ -320,8 +335,16 @@ def rfft(x, n=None, axis=-1, norm=None, overwrite_x=False, *, plan=None):
     """
     from cupy.cuda import cufft
 
-    return _fft(x, (n,), (axis,), norm, cufft.CUFFT_FORWARD, 'R2C',
-                overwrite_x=overwrite_x, plan=plan)
+    return _fft(
+        x,
+        (n,),
+        (axis,),
+        norm,
+        cufft.CUFFT_FORWARD,
+        "R2C",
+        overwrite_x=overwrite_x,
+        plan=plan,
+    )
 
 
 @_implements(_scipy_fft.irfft)
@@ -354,13 +377,21 @@ def irfft(x, n=None, axis=-1, norm=None, overwrite_x=False, *, plan=None):
     .. seealso:: :func:`scipy.fft.irfft`
     """
     from cupy.cuda import cufft
-    return _fft(x, (n,), (axis,), norm, cufft.CUFFT_INVERSE, 'C2R',
-                overwrite_x=overwrite_x, plan=plan)
+
+    return _fft(
+        x,
+        (n,),
+        (axis,),
+        norm,
+        cufft.CUFFT_INVERSE,
+        "C2R",
+        overwrite_x=overwrite_x,
+        plan=plan,
+    )
 
 
 @_implements(_scipy_fft.rfft2)
-def rfft2(x, s=None, axes=(-2, -1), norm=None, overwrite_x=False, *,
-          plan=None):
+def rfft2(x, s=None, axes=(-2, -1), norm=None, overwrite_x=False, *, plan=None):
     """Compute the two-dimensional FFT for real input.
 
     Args:
@@ -394,8 +425,7 @@ def rfft2(x, s=None, axes=(-2, -1), norm=None, overwrite_x=False, *,
 
 
 @_implements(_scipy_fft.irfft2)
-def irfft2(x, s=None, axes=(-2, -1), norm=None, overwrite_x=False, *,
-           plan=None):
+def irfft2(x, s=None, axes=(-2, -1), norm=None, overwrite_x=False, *, plan=None):
     """Compute the two-dimensional inverse FFT for real input.
 
     Args:
@@ -465,9 +495,10 @@ def rfftn(x, s=None, axes=None, norm=None, overwrite_x=False, *, plan=None):
 
     s = _assequence(s)
     axes = _assequence(axes)
-    func = _default_fft_func(x, s, axes, value_type='R2C')
-    return func(x, s, axes, norm, cufft.CUFFT_FORWARD, 'R2C',
-                overwrite_x=overwrite_x, plan=plan)
+    func = _default_fft_func(x, s, axes, value_type="R2C")
+    return func(
+        x, s, axes, norm, cufft.CUFFT_FORWARD, "R2C", overwrite_x=overwrite_x, plan=plan
+    )
 
 
 @_implements(_scipy_fft.irfftn)
@@ -507,9 +538,10 @@ def irfftn(x, s=None, axes=None, norm=None, overwrite_x=False, *, plan=None):
 
     s = _assequence(s)
     axes = _assequence(axes)
-    func = _default_fft_func(x, s, axes, value_type='C2R')
-    return func(x, s, axes, norm, cufft.CUFFT_INVERSE, 'C2R',
-                overwrite_x=overwrite_x, plan=plan)
+    func = _default_fft_func(x, s, axes, value_type="C2R")
+    return func(
+        x, s, axes, norm, cufft.CUFFT_INVERSE, "C2R", overwrite_x=overwrite_x, plan=plan
+    )
 
 
 @_implements(_scipy_fft.hfft)
@@ -540,7 +572,7 @@ def hfft(x, n=None, axis=-1, norm=None, overwrite_x=False, *, plan=None):
     """
     # TODO(leofang): support R2C & C2R plans
     if plan is not None:
-        raise NotImplementedError('hfft plan is currently not yet supported')
+        raise NotImplementedError("hfft plan is currently not yet supported")
     return irfft(x.conj(), n, axis, _swap_direction(norm))
 
 
@@ -570,13 +602,12 @@ def ihfft(x, n=None, axis=-1, norm=None, overwrite_x=False, *, plan=None):
     """
     # TODO(leofang): support R2C & C2R plans
     if plan is not None:
-        raise NotImplementedError('ihfft plan is currently not yet supported')
+        raise NotImplementedError("ihfft plan is currently not yet supported")
     return rfft(x, n, axis, _swap_direction(norm)).conj()
 
 
 @_implements(_scipy_fft.hfft2)
-def hfft2(x, s=None, axes=(-2, -1), norm=None, overwrite_x=False, *,
-          plan=None):
+def hfft2(x, s=None, axes=(-2, -1), norm=None, overwrite_x=False, *, plan=None):
     """Compute the FFT of a two-dimensional signal that has Hermitian symmetry.
 
     Args:
@@ -597,13 +628,12 @@ def hfft2(x, s=None, axes=(-2, -1), norm=None, overwrite_x=False, *,
     .. seealso:: :func:`scipy.fft.hfft2`
     """
     if plan is not None:
-        raise NotImplementedError('hfft2 plan is currently not yet supported')
+        raise NotImplementedError("hfft2 plan is currently not yet supported")
     return irfft2(x.conj(), s, axes, _swap_direction(norm))
 
 
 @_implements(_scipy_fft.ihfft2)
-def ihfft2(x, s=None, axes=(-2, -1), norm=None, overwrite_x=False, *,
-           plan=None):
+def ihfft2(x, s=None, axes=(-2, -1), norm=None, overwrite_x=False, *, plan=None):
     """Compute the Inverse FFT of a two-dimensional signal that has Hermitian
     symmetry.
 
@@ -625,13 +655,12 @@ def ihfft2(x, s=None, axes=(-2, -1), norm=None, overwrite_x=False, *,
     .. seealso:: :func:`scipy.fft.ihfft2`
     """
     if plan is not None:
-        raise NotImplementedError('ihfft2 plan is currently not yet supported')
+        raise NotImplementedError("ihfft2 plan is currently not yet supported")
     return rfft2(x, s, axes, _swap_direction(norm)).conj()
 
 
 @_implements(_scipy_fft.hfftn)
-def hfftn(x, s=None, axes=None, norm=None, overwrite_x=False, *,
-          plan=None):
+def hfftn(x, s=None, axes=None, norm=None, overwrite_x=False, *, plan=None):
     """Compute the FFT of a N-dimensional signal that has Hermitian symmetry.
 
     Args:
@@ -652,13 +681,12 @@ def hfftn(x, s=None, axes=None, norm=None, overwrite_x=False, *,
     .. seealso:: :func:`scipy.fft.hfftn`
     """
     if plan is not None:
-        raise NotImplementedError('hfftn plan is currently not yet supported')
+        raise NotImplementedError("hfftn plan is currently not yet supported")
     return irfftn(x.conj(), s, axes, _swap_direction(norm))
 
 
 @_implements(_scipy_fft.ihfftn)
-def ihfftn(x, s=None, axes=None, norm=None, overwrite_x=False, *,
-           plan=None):
+def ihfftn(x, s=None, axes=None, norm=None, overwrite_x=False, *, plan=None):
     """Compute the Inverse FFT of a N-dimensional signal that has Hermitian
     symmetry.
 
@@ -680,5 +708,5 @@ def ihfftn(x, s=None, axes=None, norm=None, overwrite_x=False, *,
     .. seealso:: :func:`scipy.fft.ihfftn`
     """
     if plan is not None:
-        raise NotImplementedError('ihfftn plan is currently not yet supported')
+        raise NotImplementedError("ihfftn plan is currently not yet supported")
     return rfftn(x, s, axes, _swap_direction(norm)).conj()

@@ -19,30 +19,33 @@ class TestComparison(unittest.TestCase):
         return getattr(xp, name)(a, b)
 
     def test_greater(self):
-        self.check_binary('greater')
+        self.check_binary("greater")
 
     def test_greater_equal(self):
-        self.check_binary('greater_equal')
+        self.check_binary("greater_equal")
 
     def test_less(self):
-        self.check_binary('less')
+        self.check_binary("less")
 
     def test_less_equal(self):
-        self.check_binary('less_equal')
+        self.check_binary("less_equal")
 
     def test_not_equal(self):
-        self.check_binary('not_equal')
+        self.check_binary("not_equal")
 
     def test_equal(self):
-        self.check_binary('equal')
+        self.check_binary("equal")
 
 
 class TestComparisonOperator(unittest.TestCase):
 
     operators = [
-        operator.lt, operator.le,
-        operator.eq, operator.ne,
-        operator.gt, operator.ge,
+        operator.lt,
+        operator.le,
+        operator.eq,
+        operator.ne,
+        operator.gt,
+        operator.ge,
     ]
 
     @testing.for_all_dtypes(no_complex=True)
@@ -97,22 +100,22 @@ class TestArrayEqual(unittest.TestCase):
         b = xp.array([1, 2, 3], dtype=dtype)
         return xp.array_equal(a, b)
 
-    @testing.with_requires('numpy>=1.19')
+    @testing.with_requires("numpy>=1.19")
     @testing.for_float_dtypes()
     @testing.numpy_cupy_equal()
     def test_array_equal_infinite_equal_nan(self, xp, dtype):
-        nan = float('nan')
-        inf = float('inf')
-        ninf = float('-inf')
+        nan = float("nan")
+        inf = float("inf")
+        ninf = float("-inf")
         a = xp.array([0, nan, inf, ninf], dtype=dtype)
         b = xp.array([0, nan, inf, ninf], dtype=dtype)
         return xp.array_equal(a, b, equal_nan=True)
 
-    @testing.with_requires('numpy>=1.19')
+    @testing.with_requires("numpy>=1.19")
     @testing.for_complex_dtypes()
     @testing.numpy_cupy_equal()
     def test_array_equal_complex_equal_nan(self, xp, dtype):
-        a = xp.array([1+2j], dtype=dtype)
+        a = xp.array([1 + 2j], dtype=dtype)
         b = a.copy()
         b.imag = xp.nan
         a.real = xp.nan
@@ -207,15 +210,15 @@ class TestAllclose(unittest.TestCase):
     @testing.numpy_cupy_equal()
     def test_allclose_min_int(self, xp, dtype):
         a = xp.array([0]).astype(dtype)
-        b = xp.array([numpy.iinfo('i').min]).astype(dtype)
+        b = xp.array([numpy.iinfo("i").min]).astype(dtype)
         return xp.allclose(a, b)
 
     @testing.for_float_dtypes()
     @testing.numpy_cupy_equal()
     def test_allclose_infinite(self, xp, dtype):
-        nan = float('nan')
-        inf = float('inf')
-        ninf = float('-inf')
+        nan = float("nan")
+        inf = float("inf")
+        ninf = float("-inf")
         a = xp.array([0, nan, nan, 0, inf, ninf]).astype(dtype)
         b = xp.array([0, nan, 0, nan, inf, ninf]).astype(dtype)
         return xp.allclose(a, b)
@@ -223,9 +226,9 @@ class TestAllclose(unittest.TestCase):
     @testing.for_float_dtypes()
     @testing.numpy_cupy_equal()
     def test_allclose_infinite_equal_nan(self, xp, dtype):
-        nan = float('nan')
-        inf = float('inf')
-        ninf = float('-inf')
+        nan = float("nan")
+        inf = float("inf")
+        ninf = float("-inf")
         a = xp.array([0, nan, inf, ninf]).astype(dtype)
         b = xp.array([0, nan, inf, ninf]).astype(dtype)
         return xp.allclose(a, b, equal_nan=True)
@@ -253,15 +256,15 @@ class TestIsclose(unittest.TestCase):
     def test_is_close_min_int(self, xp, dtype):
         # In numpy<1.10 this test fails when dtype is bool
         a = xp.array([0]).astype(dtype)
-        b = xp.array([numpy.iinfo('i').min]).astype(dtype)
+        b = xp.array([numpy.iinfo("i").min]).astype(dtype)
         return xp.isclose(a, b)
 
     @testing.for_float_dtypes()
     @testing.numpy_cupy_array_equal()
     def test_is_close_infinite(self, xp, dtype):
-        nan = float('nan')
-        inf = float('inf')
-        ninf = float('-inf')
+        nan = float("nan")
+        inf = float("inf")
+        ninf = float("-inf")
         a = xp.array([0, nan, nan, 0, inf, ninf]).astype(dtype)
         b = xp.array([0, nan, 0, nan, inf, ninf]).astype(dtype)
         return xp.isclose(a, b)
@@ -269,9 +272,9 @@ class TestIsclose(unittest.TestCase):
     @testing.for_float_dtypes()
     @testing.numpy_cupy_array_equal()
     def test_is_close_infinite_equal_nan(self, xp, dtype):
-        nan = float('nan')
-        inf = float('inf')
-        ninf = float('-inf')
+        nan = float("nan")
+        inf = float("inf")
+        ninf = float("-inf")
         a = xp.array([0, nan, inf, ninf]).astype(dtype)
         b = xp.array([0, nan, inf, ninf]).astype(dtype)
         return xp.isclose(a, b, equal_nan=True)

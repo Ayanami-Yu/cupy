@@ -39,13 +39,21 @@ examples = [
 ]
 
 
-@pytest.mark.parametrize('example', examples)
+@pytest.mark.parametrize("example", examples)
 @cp.testing.numpy_cupy_allclose(atol=1e-15, accept_error=OverflowError)
 def test_nep50_examples(xp, example):
-    dct = {'array': xp.array, 'uint8': xp.uint8, 'int64': xp.int64,
-           'float32': xp.float32, 'float64': xp.float64, 'int16': xp.int16,
-           'bool_': xp.bool_, 'int32': xp.int32, 'complex64': xp.complex64,
-           'int8': xp.int8, }
+    dct = {
+        "array": xp.array,
+        "uint8": xp.uint8,
+        "int64": xp.int64,
+        "float32": xp.float32,
+        "float64": xp.float64,
+        "int16": xp.int16,
+        "bool_": xp.bool_,
+        "int32": xp.int32,
+        "complex64": xp.complex64,
+        "int8": xp.int8,
+    }
 
     if isinstance(example, tuple):
         example, mesg = example

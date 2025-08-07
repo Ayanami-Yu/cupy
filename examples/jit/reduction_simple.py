@@ -25,7 +25,7 @@ def reduction(x, y, size):
         y[0] = value
 
 
-size = cupy.uint32(2 ** 22)
+size = cupy.uint32(2**22)
 x = cupy.random.normal(size=(size,), dtype=cupy.float32)
 y = cupy.empty((1,), dtype=cupy.float32)
 

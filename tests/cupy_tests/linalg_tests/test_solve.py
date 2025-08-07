@@ -12,10 +12,14 @@ import cupyx
 from cupy.cublas import get_batched_gesv_limit, set_batched_gesv_limit
 
 
-@testing.parameterize(*testing.product({
-    'batched_gesv_limit': [None, 0],
-    'order': ['C', 'F'],
-}))
+@testing.parameterize(
+    *testing.product(
+        {
+            "batched_gesv_limit": [None, 0],
+            "order": ["C", "F"],
+        }
+    )
+)
 @testing.fix_random()
 class TestSolve(unittest.TestCase):
 
@@ -28,7 +32,7 @@ class TestSolve(unittest.TestCase):
         if self.batched_gesv_limit is not None:
             set_batched_gesv_limit(self.old_limit)
 
-    @testing.for_dtypes('ifdFD')
+    @testing.for_dtypes("ifdFD")
     # TODO(kataoka): Fix contiguity
     @testing.numpy_cupy_allclose(atol=1e-3, contiguous_check=False)
     def check_x(self, a_shape, b_shape, xp, dtype):
@@ -80,19 +84,45 @@ class TestSolve(unittest.TestCase):
         self.check_shape((0, 3, 4), (3,), numpy.linalg.LinAlgError)
         self.check_shape((3, 3), (), ValueError)
         # Not allowed since numpy 2
-        self.check_shape((0, 2, 2), (0, 2,), ValueError)
-        self.check_shape((2, 4, 4), (2, 4,), ValueError)
-        self.check_shape((2, 3, 2, 2), (2, 3, 2,), ValueError)
+        self.check_shape(
+            (0, 2, 2),
+            (
+                0,
+                2,
+            ),
+            ValueError,
+        )
+        self.check_shape(
+            (2, 4, 4),
+            (
+                2,
+                4,
+            ),
+            ValueError,
+        )
+        self.check_shape(
+            (2, 3, 2, 2),
+            (
+                2,
+                3,
+                2,
+            ),
+            ValueError,
+        )
 
 
-@testing.parameterize(*testing.product({
-    'a_shape': [(2, 3, 6), (3, 4, 4, 3)],
-    'axes': [None, (0, 2)],
-}))
+@testing.parameterize(
+    *testing.product(
+        {
+            "a_shape": [(2, 3, 6), (3, 4, 4, 3)],
+            "axes": [None, (0, 2)],
+        }
+    )
+)
 @testing.fix_random()
 class TestTensorSolve(unittest.TestCase):
 
-    @testing.for_dtypes('ifdFD')
+    @testing.for_dtypes("ifdFD")
     @testing.numpy_cupy_allclose(atol=0.02)
     def test_tensorsolve(self, xp, dtype):
         a_shape = self.a_shape
@@ -102,12 +132,16 @@ class TestTensorSolve(unittest.TestCase):
         return xp.linalg.tensorsolve(a, b, axes=self.axes)
 
 
-@testing.parameterize(*testing.product({
-    'order': ['C', 'F'],
-}))
+@testing.parameterize(
+    *testing.product(
+        {
+            "order": ["C", "F"],
+        }
+    )
+)
 class TestInv(unittest.TestCase):
 
-    @testing.for_dtypes('ifdFD')
+    @testing.for_dtypes("ifdFD")
     @_condition.retry(10)
     def check_x(self, a_shape, dtype):
         a_cpu = numpy.random.randint(0, 10, size=a_shape)
@@ -147,27 +181,27 @@ class TestInv(unittest.TestCase):
 
 class TestInvInvalid(unittest.TestCase):
 
-    @testing.for_dtypes('ifdFD')
+    @testing.for_dtypes("ifdFD")
     def test_inv(self, dtype):
         for xp in (numpy, cupy):
             a = xp.array([[1, 2], [2, 4]]).astype(dtype)
-            with cupyx.errstate(linalg='raise'):
+            with cupyx.errstate(linalg="raise"):
                 with pytest.raises(numpy.linalg.LinAlgError):
                     xp.linalg.inv(a)
 
-    @testing.for_dtypes('ifdFD')
+    @testing.for_dtypes("ifdFD")
     def test_batched_inv(self, dtype):
         for xp in (numpy, cupy):
             a = xp.array([[[1, 2], [2, 4]]]).astype(dtype)
             assert a.ndim >= 3  # CuPy internally uses a batched function.
-            with cupyx.errstate(linalg='raise'):
+            with cupyx.errstate(linalg="raise"):
                 with pytest.raises(numpy.linalg.LinAlgError):
                     xp.linalg.inv(a)
 
 
 class TestPinv(unittest.TestCase):
 
-    @testing.for_dtypes('ifdFD')
+    @testing.for_dtypes("ifdFD")
     @_condition.retry(10)
     def check_x(self, a_shape, rcond, dtype):
         a_gpu = testing.shaped_random(a_shape, dtype=dtype)
@@ -199,9 +233,7 @@ class TestPinv(unittest.TestCase):
 
     def test_pinv_batched_vector_rcond(self):
         self.check_x((2, 3, 4), rcond=[0.2, 0.8])
-        self.check_x((2, 3, 4, 5),
-                     rcond=[[0.2, 0.9, 0.1],
-                            [0.7, 0.2, 0.5]])
+        self.check_x((2, 3, 4, 5), rcond=[[0.2, 0.9, 0.1], [0.7, 0.2, 0.5]])
 
     def test_pinv_size_0(self):
         self.check_x((3, 0), rcond=1e-15)
@@ -213,22 +245,23 @@ class TestPinv(unittest.TestCase):
 
 class TestLstsq:
 
-    @testing.for_dtypes('ifdFD')
+    @testing.for_dtypes("ifdFD")
     @testing.numpy_cupy_allclose(atol=1e-3)
-    def check_lstsq_solution(self, a_shape, b_shape, seed, rcond, xp, dtype,
-                             singular=False):
+    def check_lstsq_solution(
+        self, a_shape, b_shape, seed, rcond, xp, dtype, singular=False
+    ):
         if singular:
             m, n = a_shape
             rank = min(m, n) - 1
             a = xp.matmul(
+                testing.shaped_random((m, rank), xp, dtype=dtype, scale=3, seed=seed),
                 testing.shaped_random(
-                    (m, rank), xp, dtype=dtype, scale=3, seed=seed),
-                testing.shaped_random(
-                    (rank, n), xp, dtype=dtype, scale=3, seed=seed+42),
+                    (rank, n), xp, dtype=dtype, scale=3, seed=seed + 42
+                ),
             )
         else:
             a = testing.shaped_random(a_shape, xp, dtype=dtype, seed=seed)
-        b = testing.shaped_random(b_shape, xp, dtype=dtype, seed=seed+37)
+        b = testing.shaped_random(b_shape, xp, dtype=dtype, seed=seed + 37)
         a_copy = a.copy()
         b_copy = b.copy()
         results = xp.linalg.lstsq(a, b, rcond)
@@ -253,25 +286,24 @@ class TestLstsq:
                 for k in range(2, 4):
                     seed = i + j + k
                     # check when b has shape (i, k)
-                    self.check_lstsq_solution((i, j), (i, k), seed,
-                                              rcond=-1)
-                    self.check_lstsq_solution((i, j), (i, k), seed,
-                                              rcond=None)
-                    self.check_lstsq_solution((i, j), (i, k), seed,
-                                              rcond=0.5)
-                    self.check_lstsq_solution((i, j), (i, k), seed,
-                                              rcond=1e-6, singular=True)
+                    self.check_lstsq_solution((i, j), (i, k), seed, rcond=-1)
+                    self.check_lstsq_solution((i, j), (i, k), seed, rcond=None)
+                    self.check_lstsq_solution((i, j), (i, k), seed, rcond=0.5)
+                    self.check_lstsq_solution(
+                        (i, j), (i, k), seed, rcond=1e-6, singular=True
+                    )
                 # check when b has shape (i, )
-                self.check_lstsq_solution((i, j), (i, ), seed+1, rcond=-1)
-                self.check_lstsq_solution((i, j), (i, ), seed+1, rcond=None)
-                self.check_lstsq_solution((i, j), (i, ), seed+1, rcond=0.5)
-                self.check_lstsq_solution((i, j), (i, ), seed+1, rcond=1e-6,
-                                          singular=True)
+                self.check_lstsq_solution((i, j), (i,), seed + 1, rcond=-1)
+                self.check_lstsq_solution((i, j), (i,), seed + 1, rcond=None)
+                self.check_lstsq_solution((i, j), (i,), seed + 1, rcond=0.5)
+                self.check_lstsq_solution(
+                    (i, j), (i,), seed + 1, rcond=1e-6, singular=True
+                )
 
     @pytest.mark.parametrize("rcond", [-1, None, 0.5])
     @pytest.mark.parametrize("k", [None, 0, 1, 4])
     @pytest.mark.parametrize(("i", "j"), [(0, 0), (3, 0), (0, 7)])
-    @testing.for_dtypes('ifdFD')
+    @testing.for_dtypes("ifdFD")
     @testing.numpy_cupy_allclose(rtol=1e-6)
     def test_lstsq_empty_matrix(self, xp, dtype, i, j, k, rcond):
         a = xp.empty((i, j), dtype)
@@ -281,11 +313,11 @@ class TestLstsq:
         return xp.linalg.lstsq(a, b, rcond)
 
     def test_invalid_shapes(self):
-        self.check_invalid_shapes((4, 3), (3, ))
+        self.check_invalid_shapes((4, 3), (3,))
         self.check_invalid_shapes((3, 3, 3), (2, 2))
         self.check_invalid_shapes((3, 3, 3), (3, 3))
         self.check_invalid_shapes((3, 3), (3, 3, 3))
-        self.check_invalid_shapes((2, 2), (10, ))
+        self.check_invalid_shapes((2, 2), (10,))
         self.check_invalid_shapes((3, 3), (2, 2))
         self.check_invalid_shapes((4, 3), (10, 3, 3))
 
@@ -301,7 +333,7 @@ class TestLstsq:
 
 class TestTensorInv(unittest.TestCase):
 
-    @testing.for_dtypes('ifdFD')
+    @testing.for_dtypes("ifdFD")
     @_condition.retry(10)
     def check_x(self, a_shape, ind, dtype):
         a_cpu = numpy.random.randint(0, 10, size=a_shape).astype(dtype)

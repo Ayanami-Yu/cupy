@@ -20,15 +20,15 @@ class ArrayConfig:
     index_map: dict[int, list[tuple[slice, ...]]]
 
     def __init__(
-        self, shape: tuple[int, ...],
-        index_map: dict[int, list[tuple[slice, ...]]]
+        self, shape: tuple[int, ...], index_map: dict[int, list[tuple[slice, ...]]]
     ) -> None:
         self.size = math.prod(shape)
         self.shape = shape
         self.index_map = index_map
 
     def instantiate(
-        self, mode: str = REPLICA,
+        self,
+        mode: str = REPLICA,
     ) -> tuple[numpy.ndarray, array.DistributedArray]:
         np_arr = numpy.arange(self.size).reshape(self.shape)
         d_arr = array.distributed_array(np_arr, self.index_map, mode)
@@ -41,7 +41,7 @@ def make_1d_config(
 ) -> ArrayConfig:
     index_map: dict[int, list[tuple[slice, ...]]] = {}
     for i in range(len(partitions) - 1):
-        idx = (slice(partitions[i], partitions[i+1]),)
+        idx = (slice(partitions[i], partitions[i + 1]),)
         for dev in devices[i]:
             index_map.setdefault(dev, []).append(idx)
 
@@ -65,14 +65,17 @@ class MatMulConfig:
     b: ArrayConfig
 
     def instantiate(
-        self, mode: str = REPLICA,
-    ) -> tuple[numpy.ndarray, array.DistributedArray,
-               numpy.ndarray, array.DistributedArray]:
+        self,
+        mode: str = REPLICA,
+    ) -> tuple[
+        numpy.ndarray, array.DistributedArray, numpy.ndarray, array.DistributedArray
+    ]:
         return self.a.instantiate(mode) + self.b.instantiate(mode)
 
 
 def combine_configs(
-    config_1: ArrayConfig, config_2: ArrayConfig,
+    config_1: ArrayConfig,
+    config_2: ArrayConfig,
 ) -> ArrayConfig:
     assert config_1.shape == config_2.shape
     shape = (3,) + config_1.shape
@@ -87,64 +90,51 @@ def combine_configs(
 
 
 config_1x2_2x2 = MatMulConfig(
-    make_2d_config([0, 10], [0, 14, 20],
-                   [[{0, 1}, {2, 3}]]),
-    make_2d_config([0, 14, 20], [0, 8, 12],
-                   [[{0}, {1}],
-                    [{2}, {3}]]))
+    make_2d_config([0, 10], [0, 14, 20], [[{0, 1}, {2, 3}]]),
+    make_2d_config([0, 14, 20], [0, 8, 12], [[{0}, {1}], [{2}, {3}]]),
+)
 
 
 config_2x2_2x2 = MatMulConfig(
-    make_2d_config([0, 6, 10], [0, 11, 20],
-                   [[{0, 2}, {1, 3}],
-                    [{2, 3}, {0, 1}]]),
-    make_2d_config([0, 11, 20], [0, 7, 12],
-                   [[{0, 2}, {2, 3}],
-                    [{0, 1}, {1, 3}]]))
+    make_2d_config([0, 6, 10], [0, 11, 20], [[{0, 2}, {1, 3}], [{2, 3}, {0, 1}]]),
+    make_2d_config([0, 11, 20], [0, 7, 12], [[{0, 2}, {2, 3}], [{0, 1}, {1, 3}]]),
+)
 
 
 config_1x4_4x1 = MatMulConfig(
-    make_2d_config([0, 10], [0, 3, 7, 12, 20],
-                   [[{0}, {1}, {2}, {3}]]),
-    make_2d_config([0, 3, 7, 12, 20], [0, 12],
-                   [[{0}],
-                    [{1}],
-                    [{2}],
-                    [{3}]]))
+    make_2d_config([0, 10], [0, 3, 7, 12, 20], [[{0}, {1}, {2}, {3}]]),
+    make_2d_config([0, 3, 7, 12, 20], [0, 12], [[{0}], [{1}], [{2}], [{3}]]),
+)
 
 
 config_2x3_3x2 = MatMulConfig(
-    make_2d_config([0, 2, 10], [0, 3, 7, 20],
-                   [[{0, 1}, {1, 3}, {0, 2}],
-                    [{0, 3}, {1, 2}, {2, 3}]]),
-    make_2d_config([0, 3, 7, 20], [0, 4, 12],
-                   [[{0}, {1, 3}],
-                    [{1, 2}, {1, 3}],
-                    [{0, 2}, {2, 3}]]))
+    make_2d_config(
+        [0, 2, 10], [0, 3, 7, 20], [[{0, 1}, {1, 3}, {0, 2}], [{0, 3}, {1, 2}, {2, 3}]]
+    ),
+    make_2d_config(
+        [0, 3, 7, 20], [0, 4, 12], [[{0}, {1, 3}], [{1, 2}, {1, 3}], [{0, 2}, {2, 3}]]
+    ),
+)
 
 
 configs_a = [
-    make_1d_config([0, 11, 20],
-                   [{0}, {1}]),
-    make_2d_config([0, 6, 20], [0, 11, 20],
-                   [[{0}, {1}],
-                    [{0}, {1}]])]
+    make_1d_config([0, 11, 20], [{0}, {1}]),
+    make_2d_config([0, 6, 20], [0, 11, 20], [[{0}, {1}], [{0}, {1}]]),
+]
 
 
 configs_b = [
-    make_1d_config([0, 11, 20],
-                   [{0}, {1}]),
-    make_2d_config([0, 11, 20], [0, 7, 20],
-                   [[{0}, {0}],
-                    [{1}, {1}]])]
+    make_1d_config([0, 11, 20], [{0}, {1}]),
+    make_2d_config([0, 11, 20], [0, 7, 20], [[{0}, {0}], [{1}, {1}]]),
+]
 
 
 @testing.multi_gpu(4)
 class TestDistributedMatMul:
     @pytest.mark.parametrize(
-        'config',
-        [config_1x2_2x2, config_2x2_2x2, config_1x4_4x1, config_2x3_3x2])
-    @pytest.mark.parametrize('mode', [REPLICA, SUM])
+        "config", [config_1x2_2x2, config_2x2_2x2, config_1x4_4x1, config_2x3_3x2]
+    )
+    @pytest.mark.parametrize("mode", [REPLICA, SUM])
     def test_matmul(self, config, mode):
         np_a, d_a, np_b, d_b = config.instantiate(mode)
         np_c = np_a @ np_b
@@ -154,7 +144,7 @@ class TestDistributedMatMul:
     def test_incompatible_blockings(self):
         wrong_config = MatMulConfig(config_1x2_2x2.a, config_2x3_3x2.b)
         np_a, d_a, np_b, d_b = wrong_config.instantiate()
-        with pytest.raises(RuntimeError, match=r'Inconsistent'):
+        with pytest.raises(RuntimeError, match=r"Inconsistent"):
             d_a @ d_b
 
     def test_high_dim(self):
@@ -168,8 +158,8 @@ class TestDistributedMatMul:
 
         testing.assert_array_equal(d_c.get(), np_c)
 
-    @pytest.mark.parametrize('config_a', configs_a)
-    @pytest.mark.parametrize('config_b', configs_b)
+    @pytest.mark.parametrize("config_a", configs_a)
+    @pytest.mark.parametrize("config_b", configs_b)
     def test_1d(self, config_a, config_b):
         np_a, d_a = config_a.instantiate()
         np_b, d_b = config_b.instantiate()
@@ -177,12 +167,10 @@ class TestDistributedMatMul:
         d_c = d_a @ d_b
         testing.assert_array_equal(d_c.get(), np_c, strict=True)
 
-    @pytest.mark.parametrize('config', [config_1x2_2x2])
-    @pytest.mark.parametrize('mode', [REPLICA, SUM])
+    @pytest.mark.parametrize("config", [config_1x2_2x2])
+    @pytest.mark.parametrize("mode", [REPLICA, SUM])
     def test_matmul_various_ops(self, config, mode):
-        config = MatMulConfig(
-            config.a,
-            combine_configs(config.b, config.b))
+        config = MatMulConfig(config.a, combine_configs(config.b, config.b))
         np_a, d_a, np_b, d_b = config.instantiate(mode)
 
         index_map_a = d_a.index_map
@@ -190,7 +178,8 @@ class TestDistributedMatMul:
 
         np_a2 = np_a + 1
         d_a2 = d_a.reshard(index_map_a) + array.distributed_array(
-            cupy.ones_like(d_a.get()), index_map_a)
+            cupy.ones_like(d_a.get()), index_map_a
+        )
 
         np_b2 = np_b.sum(axis=0)
         d_b2 = d_b.sum(axis=0)

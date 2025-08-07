@@ -35,28 +35,29 @@ def khatri_rao(a, b):
     _util._assert_2d(b)
 
     if a.shape[1] != b.shape[1]:
-        raise ValueError("The number of columns for both arrays "
-                         "should be equal.")
+        raise ValueError("The number of columns for both arrays " "should be equal.")
 
     c = a[..., :, cupy.newaxis, :] * b[..., cupy.newaxis, :, :]
     return c.reshape((-1,) + c.shape[2:])
 
 
 # ### expm ###
-b = [64764752532480000.,
-     32382376266240000.,
-     7771770303897600.,
-     1187353796428800.,
-     129060195264000.,
-     10559470521600.,
-     670442572800.,
-     33522128640.,
-     1323241920.,
-     40840800.,
-     960960.,
-     16380.,
-     182.,
-     1.,]
+b = [
+    64764752532480000.0,
+    32382376266240000.0,
+    7771770303897600.0,
+    1187353796428800.0,
+    129060195264000.0,
+    10559470521600.0,
+    670442572800.0,
+    33522128640.0,
+    1323241920.0,
+    40840800.0,
+    960960.0,
+    16380.0,
+    182.0,
+    1.0,
+]
 
 th13 = 5.37
 
@@ -94,12 +95,11 @@ def expm(a):
     n = a.shape[0]
 
     # follow scipy.linalg.expm dtype handling
-    a_dtype = a.dtype if cupy.issubdtype(
-        a.dtype, cupy.inexact) else cupy.float64
+    a_dtype = a.dtype if cupy.issubdtype(a.dtype, cupy.inexact) else cupy.float64
 
     # try reducing the norm
     mu = cupy.diag(a).sum() / n
-    A = a - cupy.eye(n, dtype=a_dtype)*mu
+    A = a - cupy.eye(n, dtype=a_dtype) * mu
 
     # scale factor
     nrmA = cupy.linalg.norm(A, ord=1).item()
@@ -132,8 +132,11 @@ def expm(a):
         x = x @ x
 
     # undo preprocessing
-    emu = cmath.exp(mu) if cupy.issubdtype(
-        mu.dtype, cupy.complexfloating) else math.exp(mu)
+    emu = (
+        cmath.exp(mu)
+        if cupy.issubdtype(mu.dtype, cupy.complexfloating)
+        else math.exp(mu)
+    )
     x *= emu
 
     return x
@@ -141,9 +144,9 @@ def expm(a):
 
 @cupy.fuse
 def _expm_inner(E, A2, A4, A6, b):
-    u1 = b[13]*A6 + b[11]*A4 + b[9]*A2
-    u2 = b[7]*A6 + b[5]*A4 + b[3]*A2 + b[1]*E
+    u1 = b[13] * A6 + b[11] * A4 + b[9] * A2
+    u2 = b[7] * A6 + b[5] * A4 + b[3] * A2 + b[1] * E
 
-    v1 = b[12]*A6 + b[10]*A4 + b[8]*A2
-    v2 = b[6]*A6 + b[4]*A4 + b[2]*A2 + b[0]*E
+    v1 = b[12] * A6 + b[10] * A4 + b[8] * A2
+    v2 = b[6] * A6 + b[4] * A4 + b[2] * A2 + b[0] * E
     return u1, u2, v1, v2

@@ -35,19 +35,19 @@ def label(input, structure=None, output=None):
     .. seealso:: :func:`scipy.ndimage.label`
     """
     if not isinstance(input, cupy.ndarray):
-        raise TypeError('input must be cupy.ndarray')
-    if input.dtype.char in 'FD':
-        raise TypeError('Complex type not supported')
+        raise TypeError("input must be cupy.ndarray")
+    if input.dtype.char in "FD":
+        raise TypeError("Complex type not supported")
     if structure is None:
         structure = _generate_binary_structure(input.ndim, 1)
     elif isinstance(structure, cupy.ndarray):
         structure = cupy.asnumpy(structure)
     structure = numpy.array(structure, dtype=bool)
     if structure.ndim != input.ndim:
-        raise RuntimeError('structure and input must have equal rank')
+        raise RuntimeError("structure and input must have equal rank")
     for i in structure.shape:
         if i != 3:
-            raise ValueError('structure dimensions must be equal to 3')
+            raise ValueError("structure dimensions must be equal to 3")
 
     if isinstance(output, cupy.ndarray):
         if output.shape != input.shape:
@@ -116,15 +116,18 @@ def _label(x, structure, y):
 
 def _kernel_init():
     return _core.ElementwiseKernel(
-        'X x', 'Y y', 'if (x == 0) { y = -1; } else { y = i; }',
-        'cupyx_scipy_ndimage_label_init')
+        "X x",
+        "Y y",
+        "if (x == 0) { y = -1; } else { y = i; }",
+        "cupyx_scipy_ndimage_label_init",
+    )
 
 
 def _kernel_connect():
     return _core.ElementwiseKernel(
-        'raw int32 shape, raw int32 dirs, int32 ndirs, int32 ndim',
-        'raw Y y',
-        '''
+        "raw int32 shape, raw int32 dirs, int32 ndirs, int32 ndim",
+        "raw Y y",
+        """
         if (y[i] < 0) continue;
         for (int dr = 0; dr < ndirs; dr++) {
             int j = i;
@@ -159,38 +162,44 @@ def _kernel_connect():
                 }
             }
         }
-        ''',
-        'cupyx_scipy_ndimage_label_connect')
+        """,
+        "cupyx_scipy_ndimage_label_connect",
+    )
 
 
 def _kernel_count():
     return _core.ElementwiseKernel(
-        '', 'raw Y y, raw int32 count',
-        '''
+        "",
+        "raw Y y, raw int32 count",
+        """
         if (y[i] < 0) continue;
         int j = i;
         while (j != y[j]) { j = y[j]; }
         if (j != i) y[i] = j;
         else atomicAdd(&count[0], 1);
-        ''',
-        'cupyx_scipy_ndimage_label_count')
+        """,
+        "cupyx_scipy_ndimage_label_count",
+    )
 
 
 def _kernel_labels():
     return _core.ElementwiseKernel(
-        '', 'raw Y y, raw int32 count, raw int32 labels',
-        '''
+        "",
+        "raw Y y, raw int32 count, raw int32 labels",
+        """
         if (y[i] != i) continue;
         int j = atomicAdd(&count[1], 1);
         labels[j] = i;
-        ''',
-        'cupyx_scipy_ndimage_label_labels')
+        """,
+        "cupyx_scipy_ndimage_label_labels",
+    )
 
 
 def _kernel_finalize():
     return _core.ElementwiseKernel(
-        'int32 maxlabel', 'raw int32 labels, raw Y y',
-        '''
+        "int32 maxlabel",
+        "raw int32 labels, raw Y y",
+        """
         if (y[i] < 0) {
             y[i] = 0;
             continue;
@@ -206,13 +215,14 @@ def _kernel_finalize():
             j = (j_min + j_max) / 2;
         }
         y[i] = j + 1;
-        ''',
-        'cupyx_scipy_ndimage_label_finalize')
+        """,
+        "cupyx_scipy_ndimage_label_finalize",
+    )
 
 
 _ndimage_variance_kernel = _core.ElementwiseKernel(
-    'T input, R labels, raw X index, uint64 size, raw float64 mean',
-    'raw float64 out',
+    "T input, R labels, raw X index, uint64 size, raw float64 mean",
+    "raw float64 out",
     """
     for (ptrdiff_t j = 0; j < size; j++) {
       if (labels == index[j]) {
@@ -221,12 +231,13 @@ _ndimage_variance_kernel = _core.ElementwiseKernel(
       }
     }
     """,
-    'cupyx_scipy_ndimage_variance')
+    "cupyx_scipy_ndimage_variance",
+)
 
 
 _ndimage_sum_kernel = _core.ElementwiseKernel(
-    'T input, R labels, raw X index, uint64 size',
-    'raw float64 out',
+    "T input, R labels, raw X index, uint64 size",
+    "raw float64 out",
     """
     for (ptrdiff_t j = 0; j < size; j++) {
       if (labels == index[j]) {
@@ -235,22 +246,21 @@ _ndimage_sum_kernel = _core.ElementwiseKernel(
       }
     }
     """,
-    'cupyx_scipy_ndimage_sum')
+    "cupyx_scipy_ndimage_sum",
+)
 
 
 def _ndimage_sum_kernel_2(input, labels, index, sum_val, batch_size=4):
     for i in range(0, index.size, batch_size):
-        matched = labels == index[i:i + batch_size].reshape(
-            (-1,) + (1,) * input.ndim)
+        matched = labels == index[i : i + batch_size].reshape((-1,) + (1,) * input.ndim)
         sum_axes = tuple(range(1, 1 + input.ndim))
-        sum_val[i:i + batch_size] = cupy.where(matched, input, 0).sum(
-            axis=sum_axes)
+        sum_val[i : i + batch_size] = cupy.where(matched, input, 0).sum(axis=sum_axes)
     return sum_val
 
 
 _ndimage_mean_kernel = _core.ElementwiseKernel(
-    'T input, R labels, raw X index, uint64 size',
-    'raw float64 out, raw uint64 count',
+    "T input, R labels, raw X index, uint64 size",
+    "raw float64 out, raw uint64 count",
     """
     for (ptrdiff_t j = 0; j < size; j++) {
       if (labels == index[j]) {
@@ -260,20 +270,18 @@ _ndimage_mean_kernel = _core.ElementwiseKernel(
       }
     }
     """,
-    'cupyx_scipy_ndimage_mean')
+    "cupyx_scipy_ndimage_mean",
+)
 
 
-def _ndimage_mean_kernel_2(input, labels, index, batch_size=4,
-                           return_count=False):
+def _ndimage_mean_kernel_2(input, labels, index, batch_size=4, return_count=False):
     sum_val = cupy.empty_like(index, dtype=cupy.float64)
     count = cupy.empty_like(index, dtype=cupy.uint64)
     for i in range(0, index.size, batch_size):
-        matched = labels == index[i:i + batch_size].reshape(
-            (-1,) + (1,) * input.ndim)
+        matched = labels == index[i : i + batch_size].reshape((-1,) + (1,) * input.ndim)
         mean_axes = tuple(range(1, 1 + input.ndim))
-        count[i:i + batch_size] = matched.sum(axis=mean_axes)
-        sum_val[i:i + batch_size] = cupy.where(matched, input, 0).sum(
-            axis=mean_axes)
+        count[i : i + batch_size] = matched.sum(axis=mean_axes)
+        sum_val[i : i + batch_size] = cupy.where(matched, input, 0).sum(axis=mean_axes)
     if return_count:
         return sum_val / count, count
     return sum_val / count
@@ -281,13 +289,11 @@ def _ndimage_mean_kernel_2(input, labels, index, batch_size=4,
 
 def _mean_driver(input, labels, index, return_count=False, use_kern=False):
     if use_kern:
-        return _ndimage_mean_kernel_2(input, labels, index,
-                                      return_count=return_count)
+        return _ndimage_mean_kernel_2(input, labels, index, return_count=return_count)
 
     out = cupy.zeros_like(index, cupy.float64)
     count = cupy.zeros_like(index, dtype=cupy.uint64)
-    sum, count = _ndimage_mean_kernel(input,
-                                      labels, index, index.size, out, count)
+    sum, count = _ndimage_mean_kernel(input, labels, index, index.size, out, count)
     if return_count:
         return sum / count, count
     return sum / count
@@ -311,23 +317,33 @@ def variance(input, labels=None, index=None):
     .. seealso:: :func:`scipy.ndimage.variance`
     """
     if not isinstance(input, cupy.ndarray):
-        raise TypeError('input must be cupy.ndarray')
+        raise TypeError("input must be cupy.ndarray")
 
     if input.dtype in (cupy.complex64, cupy.complex128):
-        raise TypeError("cupyx.scipy.ndimage.variance doesn't support %{}"
-                        "".format(input.dtype.type))
+        raise TypeError(
+            "cupyx.scipy.ndimage.variance doesn't support %{}"
+            "".format(input.dtype.type)
+        )
 
     use_kern = False
     # There are constraints on types because of atomicAdd() in CUDA.
-    if input.dtype not in [cupy.int32, cupy.float16, cupy.float32,
-                           cupy.float64, cupy.uint32, cupy.uint64,
-                           cupy.ulonglong]:
+    if input.dtype not in [
+        cupy.int32,
+        cupy.float16,
+        cupy.float32,
+        cupy.float64,
+        cupy.uint32,
+        cupy.uint64,
+        cupy.ulonglong,
+    ]:
         warnings.warn(
-            'Using the slower implementation because the provided '
-            f'type {input.dtype} is not supported by cupyx.scipy.ndimage.sum. '
-            'Consider using an array of type int32, float16, '
-            'float32, float64, uint32, uint64 as data types '
-            'for the fast implementation', _util.PerformanceWarning)
+            "Using the slower implementation because the provided "
+            f"type {input.dtype} is not supported by cupyx.scipy.ndimage.sum. "
+            "Consider using an array of type int32, float16, "
+            "float32, float64, uint32, uint64 as data types "
+            "for the fast implementation",
+            _util.PerformanceWarning,
+        )
         use_kern = True
 
     def calc_var_with_intermediate_float(input):
@@ -341,7 +357,7 @@ def variance(input, labels=None, index=None):
         return calc_var_with_intermediate_float(input)
 
     if not isinstance(labels, cupy.ndarray):
-        raise TypeError('label must be cupy.ndarray')
+        raise TypeError("label must be cupy.ndarray")
 
     input, labels = cupy.broadcast_arrays(input, labels)
 
@@ -353,20 +369,26 @@ def variance(input, labels=None, index=None):
 
     if not isinstance(index, cupy.ndarray):
         if not isinstance(index, int):
-            raise TypeError('index must be cupy.ndarray or a scalar int')
+            raise TypeError("index must be cupy.ndarray or a scalar int")
         else:
-            return (input[labels == index]).var().astype(cupy.float64,
-                                                         copy=False)
+            return (input[labels == index]).var().astype(cupy.float64, copy=False)
 
     mean_val, count = _mean_driver(input, labels, index, True, use_kern)
     if use_kern:
         new_axis = (..., *(cupy.newaxis for _ in range(input.ndim)))
-        return cupy.where(labels[None, ...] == index[new_axis],
-                          cupy.square(input - mean_val[new_axis]),
-                          0).sum(tuple(range(1, input.ndim + 1))) / count
+        return (
+            cupy.where(
+                labels[None, ...] == index[new_axis],
+                cupy.square(input - mean_val[new_axis]),
+                0,
+            ).sum(tuple(range(1, input.ndim + 1)))
+            / count
+        )
     out = cupy.zeros_like(index, dtype=cupy.float64)
-    return _ndimage_variance_kernel(input, labels, index, index.size, mean_val,
-                                    out) / count
+    return (
+        _ndimage_variance_kernel(input, labels, index, index.size, mean_val, out)
+        / count
+    )
 
 
 def sum_labels(input, labels=None, index=None):
@@ -387,29 +409,38 @@ def sum_labels(input, labels=None, index=None):
     .. seealso:: :func:`scipy.ndimage.sum_labels`
     """
     if not isinstance(input, cupy.ndarray):
-        raise TypeError('input must be cupy.ndarray')
+        raise TypeError("input must be cupy.ndarray")
 
     if input.dtype in (cupy.complex64, cupy.complex128):
-        raise TypeError("cupyx.scipy.ndimage.sum does not support %{}".format(
-            input.dtype.type))
+        raise TypeError(
+            "cupyx.scipy.ndimage.sum does not support %{}".format(input.dtype.type)
+        )
 
     use_kern = False
     # There is constraints on types because of atomicAdd() in CUDA.
-    if input.dtype not in [cupy.int32, cupy.float16, cupy.float32,
-                           cupy.float64, cupy.uint32, cupy.uint64,
-                           cupy.ulonglong]:
+    if input.dtype not in [
+        cupy.int32,
+        cupy.float16,
+        cupy.float32,
+        cupy.float64,
+        cupy.uint32,
+        cupy.uint64,
+        cupy.ulonglong,
+    ]:
         warnings.warn(
-            'Using the slower implementation as '
-            'cupyx.scipy.ndimage.sum supports int32, float16, '
-            'float32, float64, uint32, uint64 as data types'
-            'for the fast implmentation', _util.PerformanceWarning)
+            "Using the slower implementation as "
+            "cupyx.scipy.ndimage.sum supports int32, float16, "
+            "float32, float64, uint32, uint64 as data types"
+            "for the fast implmentation",
+            _util.PerformanceWarning,
+        )
         use_kern = True
 
     if labels is None:
         return input.sum()
 
     if not isinstance(labels, cupy.ndarray):
-        raise TypeError('label must be cupy.ndarray')
+        raise TypeError("label must be cupy.ndarray")
 
     input, labels = cupy.broadcast_arrays(input, labels)
 
@@ -418,7 +449,7 @@ def sum_labels(input, labels=None, index=None):
 
     if not isinstance(index, cupy.ndarray):
         if not isinstance(index, int):
-            raise TypeError('index must be cupy.ndarray or a scalar int')
+            raise TypeError("index must be cupy.ndarray or a scalar int")
         else:
             return (input[labels == index]).sum()
 
@@ -477,22 +508,31 @@ def mean(input, labels=None, index=None):
     .. seealso:: :func:`scipy.ndimage.mean`
     """
     if not isinstance(input, cupy.ndarray):
-        raise TypeError('input must be cupy.ndarray')
+        raise TypeError("input must be cupy.ndarray")
 
     if input.dtype in (cupy.complex64, cupy.complex128):
-        raise TypeError("cupyx.scipy.ndimage.mean does not support %{}".format(
-            input.dtype.type))
+        raise TypeError(
+            "cupyx.scipy.ndimage.mean does not support %{}".format(input.dtype.type)
+        )
 
     use_kern = False
     # There is constraints on types because of atomicAdd() in CUDA.
-    if input.dtype not in [cupy.int32, cupy.float16, cupy.float32,
-                           cupy.float64, cupy.uint32, cupy.uint64,
-                           cupy.ulonglong]:
+    if input.dtype not in [
+        cupy.int32,
+        cupy.float16,
+        cupy.float32,
+        cupy.float64,
+        cupy.uint32,
+        cupy.uint64,
+        cupy.ulonglong,
+    ]:
         warnings.warn(
-            'Using the slower implementation as '
-            'cupyx.scipy.ndimage.mean supports int32, float16, '
-            'float32, float64, uint32, uint64 as data types '
-            'for the fast implmentation', _util.PerformanceWarning)
+            "Using the slower implementation as "
+            "cupyx.scipy.ndimage.mean supports int32, float16, "
+            "float32, float64, uint32, uint64 as data types "
+            "for the fast implmentation",
+            _util.PerformanceWarning,
+        )
         use_kern = True
 
     def calc_mean_with_intermediate_float(input):
@@ -506,7 +546,7 @@ def mean(input, labels=None, index=None):
         return calc_mean_with_intermediate_float(input)
 
     if not isinstance(labels, cupy.ndarray):
-        raise TypeError('label must be cupy.ndarray')
+        raise TypeError("label must be cupy.ndarray")
 
     input, labels = cupy.broadcast_arrays(input, labels)
 
@@ -518,7 +558,7 @@ def mean(input, labels=None, index=None):
 
     if not isinstance(index, cupy.ndarray):
         if not isinstance(index, int):
-            raise TypeError('index must be cupy.ndarray or a scalar int')
+            raise TypeError("index must be cupy.ndarray or a scalar int")
         else:
             return (input[labels == index]).mean(dtype=cupy.float64)
 
@@ -548,9 +588,9 @@ def standard_deviation(input, labels=None, index=None):
 def _safely_castable_to_int(dt):
     """Test whether the NumPy data type `dt` can be safely cast to an int."""
     int_size = cupy.dtype(int).itemsize
-    safe = (
-        cupy.issubdtype(dt, cupy.signedinteger) and dt.itemsize <= int_size
-    ) or (cupy.issubdtype(dt, cupy.unsignedinteger) and dt.itemsize < int_size)
+    safe = (cupy.issubdtype(dt, cupy.signedinteger) and dt.itemsize <= int_size) or (
+        cupy.issubdtype(dt, cupy.unsignedinteger) and dt.itemsize < int_size
+    )
     return safe
 
 
@@ -562,8 +602,7 @@ def _get_values(arrays, func):
     dtype = arrays[0].dtype
     return cupy.concatenate(
         [
-            func(a, keepdims=True)
-            if a.size != 0 else cupy.asarray([0], dtype=dtype)
+            func(a, keepdims=True) if a.size != 0 else cupy.asarray([0], dtype=dtype)
             for a in arrays
         ]
     )
@@ -576,16 +615,27 @@ def _get_positions(arrays, position_arrays, arg_func):
     """
     return cupy.concatenate(
         [
-            pos[arg_func(a, keepdims=True)]
-            if a.size != 0 else cupy.asarray([0], dtype=int)
+            (
+                pos[arg_func(a, keepdims=True)]
+                if a.size != 0
+                else cupy.asarray([0], dtype=int)
+            )
             for pos, a in zip(position_arrays, arrays)
         ]
     )
 
 
-def _select_via_looping(input, labels, idxs, positions, find_min,
-                        find_min_positions, find_max, find_max_positions,
-                        find_median):
+def _select_via_looping(
+    input,
+    labels,
+    idxs,
+    positions,
+    find_min,
+    find_min_positions,
+    find_max,
+    find_max_positions,
+    find_median,
+):
     """Internal helper routine for _select.
 
     With relatively few labels it is faster to call this function rather than
@@ -617,9 +667,16 @@ def _select_via_looping(input, labels, idxs, positions, find_min,
     return result
 
 
-def _select(input, labels=None, index=None, find_min=False, find_max=False,
-            find_min_positions=False, find_max_positions=False,
-            find_median=False):
+def _select(
+    input,
+    labels=None,
+    index=None,
+    find_min=False,
+    find_max=False,
+    find_min_positions=False,
+    find_max_positions=False,
+    find_median=False,
+):
     """Return one or more of: min, max, min position, max position, median.
 
     If neither `labels` or `index` is provided, these are the global values
@@ -678,7 +735,7 @@ def _select(input, labels=None, index=None, find_min=False, find_max=False,
 
     # Remap labels to unique integers if necessary, or if the largest label is
     # larger than the number of values.
-    if (not safe_int or min_label < 0 or max_label > labels.size):
+    if not safe_int or min_label < 0 or max_label > labels.size:
         # Remap labels, and indexes
         unique_labels, labels = cupy.unique(labels, return_inverse=True)
         idxs = cupy.searchsorted(unique_labels, index)
@@ -698,8 +755,9 @@ def _select(input, labels=None, index=None, find_min=False, find_max=False,
     if find_positions:
         positions = positions.ravel()
 
-    using_cub = _core._accelerator.ACCELERATOR_CUB in \
-        cupy._core.get_routine_accelerators()
+    using_cub = (
+        _core._accelerator.ACCELERATOR_CUB in cupy._core.get_routine_accelerators()
+    )
 
     if using_cub:
         # Cutoff values below were determined empirically for relatively large
@@ -713,8 +771,15 @@ def _select(input, labels=None, index=None, find_min=False, find_max=False,
 
     if n_label_cutoff and len(idxs) <= n_label_cutoff:
         return _select_via_looping(
-            input, labels, idxs, positions, find_min, find_min_positions,
-            find_max, find_max_positions, find_median
+            input,
+            labels,
+            idxs,
+            positions,
+            find_min,
+            find_min_positions,
+            find_max,
+            find_max_positions,
+            find_median,
         )
 
     order = cupy.lexsort(cupy.stack((input.ravel(), labels.ravel())))
@@ -724,8 +789,7 @@ def _select(input, labels=None, index=None, find_min=False, find_max=False,
         positions = positions[order]
 
     # Determine indices corresponding to the min or max value for each label
-    label_change_index = cupy.searchsorted(labels,
-                                           cupy.arange(1, max_label + 2))
+    label_change_index = cupy.searchsorted(labels, cupy.arange(1, max_label + 2))
     if find_min or find_min_positions or find_median:
         # index corresponding to the minimum value at each label
         min_index = label_change_index[:-1]
@@ -766,10 +830,9 @@ def _select(input, labels=None, index=None, find_min=False, find_max=False,
         step = (hi - lo) // 2
         lo += step
         hi -= step
-        if input.dtype.kind in 'iub':
+        if input.dtype.kind in "iub":
             # fix for https://github.com/scipy/scipy/issues/12836
-            result += [(input[lo].astype(float) + input[hi].astype(float)) /
-                       2.0]
+            result += [(input[lo].astype(float) + input[hi].astype(float)) / 2.0]
         else:
             result += [(input[lo] + input[hi]) / 2.0]
 
@@ -1067,9 +1130,7 @@ def center_of_mass(input, labels=None, index=None):
 
     # have to transfer 0-dim array back to CPU?
     # may want to modify to avoid this
-    is_0dim_array = (
-        isinstance(results[0], cupy.ndarray) and results[0].ndim == 0
-    )
+    is_0dim_array = isinstance(results[0], cupy.ndarray) and results[0].ndim == 0
     if is_0dim_array:
         # tuple of 0-dimensional cupy arrays
         return tuple(res for res in results)
@@ -1118,7 +1179,7 @@ def labeled_comprehension(
 
     if labels is None:
         if index is not None:
-            raise ValueError('index without defined labels')
+            raise ValueError("index without defined labels")
         if not pass_positions:
             return func(input.ravel())
         else:
@@ -1128,8 +1189,8 @@ def labeled_comprehension(
         input, labels = cupy.broadcast_arrays(input, labels)
     except ValueError:
         raise ValueError(
-            'input and labels must have the same shape '
-            '(excepting dimensions with width 1)'
+            "input and labels must have the same shape "
+            "(excepting dimensions with width 1)"
         )
 
     if index is None:
@@ -1141,9 +1202,8 @@ def labeled_comprehension(
     index = cupy.atleast_1d(index)
     if cupy.any(index.astype(labels.dtype).astype(index.dtype) != index):
         raise ValueError(
-            'Cannot convert index values from <%s> to <%s> '
-            '(labels.dtype) without loss of precision'
-            % (index.dtype, labels.dtype)
+            "Cannot convert index values from <%s> to <%s> "
+            "(labels.dtype) without loss of precision" % (index.dtype, labels.dtype)
         )
 
     index = index.astype(labels.dtype)
@@ -1176,8 +1236,8 @@ def labeled_comprehension(
 
         # Find boundaries for each stretch of constant labels
         # This could be faster, but we already paid N log N to sort labels.
-        lo = cupy.searchsorted(labels, sorted_index, side='left')
-        hi = cupy.searchsorted(labels, sorted_index, side='right')
+        lo = cupy.searchsorted(labels, sorted_index, side="left")
+        hi = cupy.searchsorted(labels, sorted_index, side="right")
 
         for i, low, high in zip(range(nidx), lo, hi):
             if low == high:
@@ -1188,7 +1248,7 @@ def labeled_comprehension(
         temp = {i: default for i in range(index.size)}
     else:
         temp = cupy.empty(index.shape, out_dtype)
-        if default is None and temp.dtype.kind in 'fc':
+        if default is None and temp.dtype.kind in "fc":
             default = numpy.nan  # match NumPy floating-point None behavior
         temp[:] = default
 
@@ -1352,8 +1412,8 @@ def value_indices(arr, *, ignore_value=None, adaptive_index_dtype=False):
     dict_keys([1, 2, 3])
 
     """
-    if arr.dtype.kind not in 'iu':
-        raise ValueError('Parameter \'arr\' must be an integer array')
+    if arr.dtype.kind not in "iu":
+        raise ValueError("Parameter 'arr' must be an integer array")
     if adaptive_index_dtype:
         # determined the minimum signed integer type needed to store the
         # index range
@@ -1379,7 +1439,7 @@ def value_indices(arr, *, ignore_value=None, adaptive_index_dtype=False):
         elif value == ignore_value:
             offset += count
             continue
-        out[value] = tuple(c[offset:offset + count] for c in coords)
+        out[value] = tuple(c[offset : offset + count] for c in coords)
         offset += count
     return out
 
@@ -1442,9 +1502,7 @@ def get_bbox_coords_kernel(coord_dtype, ndim, pixels_per_thread=32):
     # every pixel in the window could have a separate label.)
     max_unique = pixels_per_thread
 
-    uint_t = (
-        "unsigned int" if coord_dtype.itemsize <= 4 else "unsigned long long"
-    )
+    uint_t = "unsigned int" if coord_dtype.itemsize <= 4 else "unsigned long long"
 
     # declare storage for local min/max of each label within the pixel window
     source = f"""
@@ -1456,9 +1514,7 @@ def get_bbox_coords_kernel(coord_dtype, ndim, pixels_per_thread=32):
     for (unsigned int ii = 0; ii < {ndim * max_unique}; ii++) {{
       bbox_min[ii] = image_size;
     }}\n"""
-    source += _unravel_loop_index_declarations(
-        "image", ndim, uint_t=uint_t
-    )
+    source += _unravel_loop_index_declarations("image", ndim, uint_t=uint_t)
 
     # declare inner loop operation
     inner_op = _unravel_loop_index(
@@ -1514,9 +1570,7 @@ def get_bbox_coords_kernel(coord_dtype, ndim, pixels_per_thread=32):
     outputs = f"raw {coord_dtype.name} bbox"
     name = f"cucim_bbox_{ndim}d_{coord_dtype.char}"
     name += f"_batch{pixels_per_thread}"
-    return cupy.ElementwiseKernel(
-        inputs, outputs, source, name=name
-    )
+    return cupy.ElementwiseKernel(inputs, outputs, source, name=name)
 
 
 def find_objects(input, max_label=0):
@@ -1551,10 +1605,9 @@ def find_objects(input, max_label=0):
     """
 
     image = input
-    if image.dtype.kind not in 'bui':
+    if image.dtype.kind not in "bui":
         raise TypeError(
-            f"Input dtype {image.dtype.name} cannot be interpreted as an "
-            "integer"
+            f"Input dtype {image.dtype.name} cannot be interpreted as an " "integer"
         )
     if max_label < 1:
         max_label = int(image.max())  # synchronize

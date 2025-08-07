@@ -68,14 +68,14 @@ class TestArrayUnaryOp(unittest.TestCase):
         assert a is not +a
         return +a
 
-    @testing.with_requires('numpy<1.25')
+    @testing.with_requires("numpy<1.25")
     def test_pos_boolarray(self):
         for xp in (numpy, cupy):
             a = xp.array(True, dtype=xp.bool_)
             with pytest.deprecated_call():
                 assert a is not +a
 
-    @testing.with_requires('numpy<1.16')
+    @testing.with_requires("numpy<1.16")
     def test_pos_array_full(self):
         self.check_array_op_full(operator.pos)
 
@@ -131,16 +131,15 @@ class TestArrayIntUnaryOp(unittest.TestCase):
         self.check_zerodim_op(operator.invert)
 
 
-@testing.parameterize(*testing.product({
-    'xp': [numpy, cupy],
-    'shape': [(3, 2), (), (3, 0, 2)]
-}))
+@testing.parameterize(
+    *testing.product({"xp": [numpy, cupy], "shape": [(3, 2), (), (3, 0, 2)]})
+)
 class TestBoolNeg(unittest.TestCase):
 
     def test_bool_neg(self):
         xp = self.xp
-        if xp is numpy and not testing.numpy_satisfies('>=1.13.0'):
-            raise unittest.SkipTest('NumPy<1.13.0')
+        if xp is numpy and not testing.numpy_satisfies(">=1.13.0"):
+            raise unittest.SkipTest("NumPy<1.13.0")
         shape = self.shape
         x = testing.shaped_random(shape, xp, dtype=numpy.bool_)
         with pytest.raises(TypeError):

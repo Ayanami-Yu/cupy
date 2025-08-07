@@ -12,27 +12,31 @@ from cupy.exceptions import AxisError
 
 class TestPackageRequirements:
     def test_installed(self):
-        assert testing.installed('cupy')
-        assert testing.installed('cupy>9', 'numpy>=1.12')
-        assert testing.installed('numpy>=1.10,<=3.0')
-        assert not testing.installed('numpy>=3.0')
-        assert not testing.installed('numpy>1.10,<1.9')
+        assert testing.installed("cupy")
+        assert testing.installed("cupy>9", "numpy>=1.12")
+        assert testing.installed("numpy>=1.10,<=3.0")
+        assert not testing.installed("numpy>=3.0")
+        assert not testing.installed("numpy>1.10,<1.9")
         # This is a dummy package name that is unlikely to be installed
-        assert not testing.installed('supercalifragilisticexpialidocious')
+        assert not testing.installed("supercalifragilisticexpialidocious")
 
     def test_numpy_satisfies(self):
-        assert testing.numpy_satisfies('>1.10')
-        assert not testing.numpy_satisfies('>=3.0')
+        assert testing.numpy_satisfies(">1.10")
+        assert not testing.numpy_satisfies(">=3.0")
 
-    @testing.with_requires('numpy>3.0')
+    @testing.with_requires("numpy>3.0")
     def test_with_requires(self):
         pytest.fail("this should not happen")
 
 
-@testing.parameterize(*testing.product({
-    'xp': [numpy, cupy],
-    'shape': [(3, 2), (), (3, 0, 2)],
-}))
+@testing.parameterize(
+    *testing.product(
+        {
+            "xp": [numpy, cupy],
+            "shape": [(3, 2), (), (3, 0, 2)],
+        }
+    )
+)
 class TestShapedRandom(unittest.TestCase):
 
     @testing.for_all_dtypes()
@@ -59,9 +63,13 @@ class TestShapedRandom(unittest.TestCase):
             assert self.xp.any(a.imag)
 
 
-@testing.parameterize(*testing.product({
-    'xp': [numpy, cupy],
-}))
+@testing.parameterize(
+    *testing.product(
+        {
+            "xp": [numpy, cupy],
+        }
+    )
+)
 class TestShapedRandomBool(unittest.TestCase):
 
     def test_bool(self):
@@ -69,12 +77,16 @@ class TestShapedRandomBool(unittest.TestCase):
         assert 4000 < self.xp.sum(a) < 6000
 
 
-@testing.parameterize(*testing.product({
-    'xp': [numpy, cupy],
-}))
+@testing.parameterize(
+    *testing.product(
+        {
+            "xp": [numpy, cupy],
+        }
+    )
+)
 class TestShapedLinspace(unittest.TestCase):
 
-    @testing.for_dtypes('bhilqefdFD')
+    @testing.for_dtypes("bhilqefdFD")
     def test_basic(self, dtype):
         a = testing.shaped_linspace(-3, 3, (20, 30), self.xp, dtype)
         e = numpy.linspace(-3, 3, 600).reshape(20, 30).astype(dtype)
@@ -83,7 +95,7 @@ class TestShapedLinspace(unittest.TestCase):
         assert a.dtype == dtype
         testing.assert_allclose(a, e)
 
-    @testing.for_dtypes('BHILQ')
+    @testing.for_dtypes("BHILQ")
     def test_unsigned(self, dtype):
         a = testing.shaped_linspace(-3, 3, (20, 30), self.xp, dtype)
         e = numpy.linspace(0, 3, 600).reshape(20, 30).astype(dtype)
@@ -92,7 +104,7 @@ class TestShapedLinspace(unittest.TestCase):
         assert a.dtype == dtype
         testing.assert_allclose(a, e)
 
-    @testing.for_dtypes('?')
+    @testing.for_dtypes("?")
     def test_bool(self, dtype):
         a = testing.shaped_linspace(-3, 3, (20, 30), self.xp, dtype)
         e = numpy.linspace(0, 1, 600).reshape(20, 30).astype(dtype)
@@ -102,37 +114,46 @@ class TestShapedLinspace(unittest.TestCase):
         testing.assert_allclose(a, e)
 
 
-@testing.parameterize(*testing.product({
-    'dtype': [
-        numpy.float16, numpy.float32, numpy.float64,
-        numpy.complex64, numpy.complex128,
-    ],
-    'xp': [numpy, cupy],
-    'x_s_shapes': [
-        ((0, 0), (0,)),
-        ((2, 2), (2,)),
-        ((2, 3), (2,)),
-        ((3, 2), (2,)),
-        # broadcast
-        ((2, 2), ()),
-    ],
-}))
+@testing.parameterize(
+    *testing.product(
+        {
+            "dtype": [
+                numpy.float16,
+                numpy.float32,
+                numpy.float64,
+                numpy.complex64,
+                numpy.complex128,
+            ],
+            "xp": [numpy, cupy],
+            "x_s_shapes": [
+                ((0, 0), (0,)),
+                ((2, 2), (2,)),
+                ((2, 3), (2,)),
+                ((3, 2), (2,)),
+                # broadcast
+                ((2, 2), ()),
+            ],
+        }
+    )
+)
 class TestGenerateMatrix(unittest.TestCase):
 
     def test_generate_matrix(self):
         dtype = self.dtype
         x_shape, s_shape = self.x_s_shapes
-        sv = self.xp.random.uniform(
-            0.5, 1.5, s_shape).astype(dtype().real.dtype)
+        sv = self.xp.random.uniform(0.5, 1.5, s_shape).astype(dtype().real.dtype)
         x = testing.generate_matrix(
-            x_shape, xp=self.xp, dtype=dtype, singular_values=sv)
+            x_shape, xp=self.xp, dtype=dtype, singular_values=sv
+        )
         assert x.shape == x_shape
 
         if 0 in x_shape:
             return
 
         s = self.xp.linalg.svd(
-            x.astype(numpy.complex128), full_matrices=False, compute_uv=False,
+            x.astype(numpy.complex128),
+            full_matrices=False,
+            compute_uv=False,
         )
         sv = self.xp.broadcast_to(sv, s.shape)
         sv_sorted = self.xp.sort(sv, axis=-1)[..., ::-1]
@@ -157,8 +178,7 @@ class TestGenerateMatrixInvalid(unittest.TestCase):
 
     def test_invalid_dtype(self):
         with self.assertRaises(TypeError):
-            testing.generate_matrix(
-                (2, 2), dtype=numpy.int32, singular_values=1)
+            testing.generate_matrix((2, 2), dtype=numpy.int32, singular_values=1)
 
     def test_negative_singular_values(self):
         with self.assertRaises(ValueError):
@@ -166,28 +186,25 @@ class TestGenerateMatrixInvalid(unittest.TestCase):
 
     def test_shape_mismatch(self):
         with self.assertRaises(ValueError):
-            testing.generate_matrix(
-                (2, 2), singular_values=numpy.ones(3))
+            testing.generate_matrix((2, 2), singular_values=numpy.ones(3))
 
     def test_shape_mismatch_2(self):
         with self.assertRaises(ValueError):
-            testing.generate_matrix(
-                (0, 2, 2), singular_values=numpy.ones(3))
+            testing.generate_matrix((0, 2, 2), singular_values=numpy.ones(3))
 
 
 class TestAssertFunctionIsCalled(unittest.TestCase):
 
     def test_patch_ndarray(self):
         orig = cupy.ndarray
-        with testing.AssertFunctionIsCalled('cupy.ndarray'):
+        with testing.AssertFunctionIsCalled("cupy.ndarray"):
             a = cupy.ndarray((2, 3), numpy.float32)
         assert cupy.ndarray is orig
         assert not isinstance(a, cupy.ndarray)
 
     def test_spy_ndarray(self):
         orig = cupy.ndarray
-        with testing.AssertFunctionIsCalled(
-                'cupy.ndarray', wraps=cupy.ndarray):
+        with testing.AssertFunctionIsCalled("cupy.ndarray", wraps=cupy.ndarray):
             a = cupy.ndarray((2, 3), numpy.float32)
         assert cupy.ndarray is orig
         assert isinstance(a, cupy.ndarray)
@@ -195,21 +212,21 @@ class TestAssertFunctionIsCalled(unittest.TestCase):
     def test_fail_not_called(self):
         orig = cupy.ndarray
         with pytest.raises(AssertionError):
-            with testing.AssertFunctionIsCalled('cupy.ndarray'):
+            with testing.AssertFunctionIsCalled("cupy.ndarray"):
                 pass
         assert cupy.ndarray is orig
 
     def test_fail_called_twice(self):
         orig = cupy.ndarray
         with pytest.raises(AssertionError):
-            with testing.AssertFunctionIsCalled('cupy.ndarray'):
+            with testing.AssertFunctionIsCalled("cupy.ndarray"):
                 cupy.ndarray((2, 3), numpy.float32)
                 cupy.ndarray((2, 3), numpy.float32)
         assert cupy.ndarray is orig
 
     def test_times_called(self):
         orig = cupy.ndarray
-        with testing.AssertFunctionIsCalled('cupy.ndarray', times_called=2):
+        with testing.AssertFunctionIsCalled("cupy.ndarray", times_called=2):
             cupy.ndarray((2, 3), numpy.float32)
             cupy.ndarray((2, 3), numpy.float32)
         assert cupy.ndarray is orig
@@ -217,7 +234,7 @@ class TestAssertFunctionIsCalled(unittest.TestCase):
     def test_inner_error(self):
         orig = cupy.ndarray
         with pytest.raises(AxisError):
-            with testing.AssertFunctionIsCalled('cupy.ndarray'):
+            with testing.AssertFunctionIsCalled("cupy.ndarray"):
                 cupy.ndarray((2, 3), numpy.float32)
-                raise AxisError('foo')
+                raise AxisError("foo")
         assert cupy.ndarray is orig

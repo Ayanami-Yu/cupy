@@ -27,17 +27,14 @@ class TestFormatting(unittest.TestCase):
 
     def test_format_float_positional_python_scalar(self):
         x = 1.0
-        assert cupy.format_float_positional(
-            x) == numpy.format_float_positional(x)
+        assert cupy.format_float_positional(x) == numpy.format_float_positional(x)
 
     def test_format_float_positional(self):
         a = testing.shaped_arange((), cupy)
         b = testing.shaped_arange((), numpy)
-        assert cupy.format_float_positional(
-            a) == numpy.format_float_positional(b)
+        assert cupy.format_float_positional(a) == numpy.format_float_positional(b)
 
     def test_format_float_scientific(self):
         a = testing.shaped_arange((), cupy)
         b = testing.shaped_arange((), numpy)
-        assert cupy.format_float_scientific(
-            a) == numpy.format_float_scientific(b)
+        assert cupy.format_float_scientific(a) == numpy.format_float_scientific(b)

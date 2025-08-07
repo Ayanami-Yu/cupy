@@ -5,6 +5,7 @@ import warnings
 import numpy
 import cupy
 import cupy.linalg as linalg
+
 # waiting implementation of the following modules in PR #4172
 # from cupyx.scipy.linalg import (cho_factor, cho_solve)
 from cupyx.scipy.sparse import linalg as splinalg
@@ -36,14 +37,17 @@ def _bmat(list_obj):
     for j in range(n_cols):
         final_shape[1] += list_obj[0][j].shape[1]
     # obtaining result's datatype
-    dtype = cupy.result_type(*[arr.dtype for
-                               list_iter in list_obj for arr in list_iter])
+    dtype = cupy.result_type(
+        *[arr.dtype for list_iter in list_obj for arr in list_iter]
+    )
     # checking order
-    F_order = all(arr.flags['F_CONTIGUOUS'] for list_iter
-                  in list_obj for arr in list_iter)
-    C_order = all(arr.flags['C_CONTIGUOUS'] for list_iter
-                  in list_obj for arr in list_iter)
-    order = 'F' if F_order and not C_order else 'C'
+    F_order = all(
+        arr.flags["F_CONTIGUOUS"] for list_iter in list_obj for arr in list_iter
+    )
+    C_order = all(
+        arr.flags["C_CONTIGUOUS"] for list_iter in list_obj for arr in list_iter
+    )
+    order = "F" if F_order and not C_order else "C"
     result = cupy.empty(tuple(final_shape), dtype=dtype, order=order)
 
     start_idx_row = 0
@@ -55,8 +59,9 @@ def _bmat(list_obj):
         start_idx_col = 0
         for j in range(n_cols):
             end_idx_col = start_idx_col + list_obj[i][j].shape[1]
-            result[start_idx_row:end_idx_row,
-                   start_idx_col: end_idx_col] = list_obj[i][j]
+            result[start_idx_row:end_idx_row, start_idx_col:end_idx_col] = list_obj[i][
+                j
+            ]
             start_idx_col = end_idx_col
         start_idx_row = end_idx_row
     return result
@@ -74,9 +79,11 @@ def _report_nonhermitian(M, name):
     tol *= max(1, float(linalg.norm(M, 1)))
     if nmd > tol:
         warnings.warn(
-            f'Matrix {name} of the type {M.dtype} is not Hermitian: '
-            f'condition: {nmd} < {tol} fails.',
-            UserWarning, stacklevel=4)
+            f"Matrix {name} of the type {M.dtype} is not Hermitian: "
+            f"condition: {nmd} < {tol} fails.",
+            UserWarning,
+            stacklevel=4,
+        )
 
 
 def _as2d(ar):
@@ -103,7 +110,7 @@ def _makeOperator(operatorInput, expectedShape):
         operator = splinalg.aslinearoperator(operatorInput)
 
     if operator.shape != expectedShape:
-        raise ValueError('operator has invalid shape')
+        raise ValueError("operator has invalid shape")
 
     return operator
 
@@ -119,8 +126,7 @@ def _applyConstraints(blockVectorV, YBY, blockVectorBY, blockVectorY):
 
 def _b_orthonormalize(B, blockVectorV, blockVectorBV=None, retInvR=False):
     """B-orthonormalize the given block vector using Cholesky."""
-    normalization = blockVectorV.max(
-        axis=0) + cupy.finfo(blockVectorV.dtype).eps
+    normalization = blockVectorV.max(axis=0) + cupy.finfo(blockVectorV.dtype).eps
     blockVectorV = blockVectorV / normalization
     if blockVectorBV is None:
         if B is not None:
@@ -156,7 +162,7 @@ def _get_indx(_lambda, num, largest):
     """Get `num` indices into `_lambda` depending on `largest` option."""
     ii = cupy.argsort(_lambda)
     if largest:
-        ii = ii[:-num - 1:-1]
+        ii = ii[: -num - 1 : -1]
     else:
         ii = ii[:num]
     return ii
@@ -182,11 +188,19 @@ def _eigh(A, B=None):
     return vals, eigVec
 
 
-def lobpcg(A, X,
-           B=None, M=None, Y=None,
-           tol=None, maxiter=None,
-           largest=True, verbosityLevel=0,
-           retLambdaHistory=False, retResidualNormsHistory=False):
+def lobpcg(
+    A,
+    X,
+    B=None,
+    M=None,
+    Y=None,
+    tol=None,
+    maxiter=None,
+    largest=True,
+    verbosityLevel=0,
+    retLambdaHistory=False,
+    retResidualNormsHistory=False,
+):
     """Locally Optimal Block Preconditioned Conjugate Gradient Method (LOBPCG)
 
     LOBPCG is a preconditioned eigensolver for large symmetric positive
@@ -262,7 +276,7 @@ def lobpcg(A, X,
         sizeY = 0
 
     if len(blockVectorX.shape) != 2:
-        raise ValueError('expected rank-2 array for argument X')
+        raise ValueError("expected rank-2 array for argument X")
 
     n, sizeX = blockVectorX.shape
 
@@ -297,8 +311,9 @@ def lobpcg(A, X,
         sizeX = min(sizeX, n)
 
         if blockVectorY is not None:
-            raise NotImplementedError('The dense eigensolver '
-                                      'does not support constraints.')
+            raise NotImplementedError(
+                "The dense eigensolver " "does not support constraints."
+            )
 
         A_dense = A(cupy.eye(n, dtype=A.dtype))
         B_dense = None if B is None else B(cupy.eye(n, dtype=B.dtype))
@@ -402,10 +417,10 @@ def lobpcg(A, X,
             break
 
         if verbosityLevel > 0:
-            print('iteration %d' % iterationNumber)
-            print(f'current block size: {currentBlockSize}')
-            print(f'eigenvalue(s):\n{_lambda}')
-            print(f'residual norm(s):\n{residualNorms}')
+            print("iteration %d" % iterationNumber)
+            print(f"current block size: {currentBlockSize}")
+            print(f"eigenvalue(s):\n{_lambda}")
+            print(f"residual norm(s):\n{residualNorms}")
         if verbosityLevel > 10:
             print(eigBlockVector)
 
@@ -423,21 +438,17 @@ def lobpcg(A, X,
 
         # Apply constraints to the preconditioned residuals.
         if blockVectorY is not None:
-            _applyConstraints(activeBlockVectorR,
-                              gramYBY, blockVectorBY, blockVectorY)
+            _applyConstraints(activeBlockVectorR, gramYBY, blockVectorBY, blockVectorY)
 
         # B-orthogonalize the preconditioned residuals to X.
         if B is not None:
-            activeBlockVectorR = activeBlockVectorR\
-                - cupy.matmul(blockVectorX,
-                              cupy
-                              .matmul(blockVectorBX.T.conj(),
-                                      activeBlockVectorR))
+            activeBlockVectorR = activeBlockVectorR - cupy.matmul(
+                blockVectorX, cupy.matmul(blockVectorBX.T.conj(), activeBlockVectorR)
+            )
         else:
-            activeBlockVectorR = activeBlockVectorR - \
-                cupy.matmul(blockVectorX,
-                            cupy.matmul(blockVectorX.T.conj(),
-                                        activeBlockVectorR))
+            activeBlockVectorR = activeBlockVectorR - cupy.matmul(
+                blockVectorX, cupy.matmul(blockVectorX.T.conj(), activeBlockVectorR)
+            )
 
         ##
         # B-orthonormalize the preconditioned residuals.
@@ -448,8 +459,9 @@ def lobpcg(A, X,
 
         if iterationNumber > 0:
             if B is not None:
-                aux = _b_orthonormalize(B, activeBlockVectorP,
-                                        activeBlockVectorBP, retInvR=True)
+                aux = _b_orthonormalize(
+                    B, activeBlockVectorP, activeBlockVectorBP, retInvR=True
+                )
                 activeBlockVectorP, activeBlockVectorBP, invR, normal = aux
             else:
                 aux = _b_orthonormalize(B, activeBlockVectorP, retInvR=True)
@@ -466,9 +478,9 @@ def lobpcg(A, X,
         # Perform the Rayleigh Ritz Procedure:
         # Compute symmetric Gram matrices:
 
-        if activeBlockVectorAR.dtype == 'float32':
+        if activeBlockVectorAR.dtype == "float32":
             myeps = 1
-        elif activeBlockVectorR.dtype == 'float32':
+        elif activeBlockVectorR.dtype == "float32":
             myeps = 1e-4
         else:
             myeps = 1e-8
@@ -495,47 +507,49 @@ def lobpcg(A, X,
             gramXAX = cupy.dot(blockVectorX.T.conj(), blockVectorAX)
             gramXAX = (gramXAX + gramXAX.T.conj()) / 2
             gramXBX = cupy.dot(blockVectorX.T.conj(), blockVectorBX)
-            gramRBR = cupy.dot(activeBlockVectorR.T.conj(),
-                               activeBlockVectorBR)
+            gramRBR = cupy.dot(activeBlockVectorR.T.conj(), activeBlockVectorBR)
             gramXBR = cupy.dot(blockVectorX.T.conj(), activeBlockVectorBR)
         else:
             gramXAX = cupy.diag(_lambda)
             gramXBX = ident0
             gramRBR = ident
-            gramXBR = cupy.zeros((int(sizeX), int(currentBlockSize)),
-                                 dtype=A.dtype)
+            gramXBR = cupy.zeros((int(sizeX), int(currentBlockSize)), dtype=A.dtype)
 
         def _handle_gramA_gramB_verbosity(gramA, gramB):
             if verbosityLevel > 0:
-                _report_nonhermitian(gramA, 'gramA')
-                _report_nonhermitian(gramB, 'gramB')
+                _report_nonhermitian(gramA, "gramA")
+                _report_nonhermitian(gramB, "gramB")
             if verbosityLevel > 10:
                 # Note: not documented, but leave it in here for now
-                numpy.savetxt('gramA.txt', cupy.asnumpy(gramA))
-                numpy.savetxt('gramB.txt', cupy.asnumpy(gramB))
+                numpy.savetxt("gramA.txt", cupy.asnumpy(gramA))
+                numpy.savetxt("gramB.txt", cupy.asnumpy(gramB))
 
         if not restart:
             gramXAP = cupy.dot(blockVectorX.T.conj(), activeBlockVectorAP)
-            gramRAP = cupy.dot(activeBlockVectorR.T.conj(),
-                               activeBlockVectorAP)
-            gramPAP = cupy.dot(activeBlockVectorP.T.conj(),
-                               activeBlockVectorAP)
+            gramRAP = cupy.dot(activeBlockVectorR.T.conj(), activeBlockVectorAP)
+            gramPAP = cupy.dot(activeBlockVectorP.T.conj(), activeBlockVectorAP)
             gramXBP = cupy.dot(blockVectorX.T.conj(), activeBlockVectorBP)
-            gramRBP = cupy.dot(activeBlockVectorR.T.conj(),
-                               activeBlockVectorBP)
+            gramRBP = cupy.dot(activeBlockVectorR.T.conj(), activeBlockVectorBP)
             if explicitGramFlag:
                 gramPAP = (gramPAP + gramPAP.T.conj()) / 2
-                gramPBP = cupy.dot(activeBlockVectorP.T.conj(),
-                                   activeBlockVectorBP)
+                gramPBP = cupy.dot(activeBlockVectorP.T.conj(), activeBlockVectorBP)
             else:
                 gramPBP = ident
 
-            gramA = _bmat([[gramXAX, gramXAR, gramXAP],
-                           [gramXAR.T.conj(), gramRAR, gramRAP],
-                           [gramXAP.T.conj(), gramRAP.T.conj(), gramPAP]])
-            gramB = _bmat([[gramXBX, gramXBR, gramXBP],
-                           [gramXBR.T.conj(), gramRBR, gramRBP],
-                           [gramXBP.T.conj(), gramRBP.T.conj(), gramPBP]])
+            gramA = _bmat(
+                [
+                    [gramXAX, gramXAR, gramXAP],
+                    [gramXAR.T.conj(), gramRAR, gramRAP],
+                    [gramXAP.T.conj(), gramRAP.T.conj(), gramPAP],
+                ]
+            )
+            gramB = _bmat(
+                [
+                    [gramXBX, gramXBR, gramXBP],
+                    [gramXBR.T.conj(), gramRBR, gramRBP],
+                    [gramXBP.T.conj(), gramRBP.T.conj(), gramPBP],
+                ]
+            )
 
             _handle_gramA_gramB_verbosity(gramA, gramB)
 
@@ -546,17 +560,15 @@ def lobpcg(A, X,
                 restart = True
 
         if restart:
-            gramA = _bmat([[gramXAX, gramXAR],
-                           [gramXAR.T.conj(), gramRAR]])
-            gramB = _bmat([[gramXBX, gramXBR],
-                           [gramXBR.T.conj(), gramRBR]])
+            gramA = _bmat([[gramXAX, gramXAR], [gramXAR.T.conj(), gramRAR]])
+            gramB = _bmat([[gramXBX, gramXBR], [gramXBR.T.conj(), gramRBR]])
 
             _handle_gramA_gramB_verbosity(gramA, gramB)
 
             try:
                 _lambda, eigBlockVector = _eigh(gramA, gramB)
             except numpy.linalg.LinAlgError:
-                raise ValueError('eigh has failed in lobpcg iterations')
+                raise ValueError("eigh has failed in lobpcg iterations")
 
         ii = _get_indx(_lambda, sizeX, largest)
         if verbosityLevel > 10:
@@ -569,7 +581,7 @@ def lobpcg(A, X,
         lambdaHistory.append(_lambda)
 
         if verbosityLevel > 10:
-            print('lambda:', _lambda)
+            print("lambda:", _lambda)
 
         if verbosityLevel > 10:
             print(eigBlockVector)
@@ -578,9 +590,8 @@ def lobpcg(A, X,
         if B is not None:
             if not restart:
                 eigBlockVectorX = eigBlockVector[:sizeX]
-                eigBlockVectorR = eigBlockVector[sizeX:sizeX +
-                                                 currentBlockSize]
-                eigBlockVectorP = eigBlockVector[sizeX + currentBlockSize:]
+                eigBlockVectorR = eigBlockVector[sizeX : sizeX + currentBlockSize]
+                eigBlockVectorP = eigBlockVector[sizeX + currentBlockSize :]
 
                 pp = cupy.dot(activeBlockVectorR, eigBlockVectorR)
                 pp += cupy.dot(activeBlockVectorP, eigBlockVectorP)
@@ -612,9 +623,8 @@ def lobpcg(A, X,
         else:
             if not restart:
                 eigBlockVectorX = eigBlockVector[:sizeX]
-                eigBlockVectorR = eigBlockVector[sizeX:sizeX +
-                                                 currentBlockSize]
-                eigBlockVectorP = eigBlockVector[sizeX + currentBlockSize:]
+                eigBlockVectorR = eigBlockVector[sizeX : sizeX + currentBlockSize]
+                eigBlockVectorP = eigBlockVector[sizeX + currentBlockSize :]
 
                 pp = cupy.dot(activeBlockVectorR, eigBlockVectorR)
                 pp += cupy.dot(activeBlockVectorP, eigBlockVectorP)
@@ -649,8 +659,8 @@ def lobpcg(A, X,
     residualNorms = cupy.sqrt(aux)
 
     if verbosityLevel > 0:
-        print(f'Final iterative eigenvalue(s):\n{_lambda}')
-        print(f'Final iterative residual norm(s):\n{residualNorms}')
+        print(f"Final iterative eigenvalue(s):\n{_lambda}")
+        print(f"Final iterative residual norm(s):\n{residualNorms}")
 
     # Future work:
     # Generalized eigen value solver like `scipy.linalg.eigh`
@@ -661,8 +671,8 @@ def lobpcg(A, X,
     # Computing the actual true residuals
 
     if verbosityLevel > 0:
-        print(f'Final postprocessing eigenvalue(s):\n{_lambda}')
-        print(f'Final residual norm(s):\n{residualNorms}')
+        print(f"Final postprocessing eigenvalue(s):\n{_lambda}")
+        print(f"Final residual norm(s):\n{residualNorms}")
 
     if retLambdaHistory:
         if retResidualNormsHistory:

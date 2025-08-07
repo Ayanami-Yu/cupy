@@ -128,7 +128,7 @@ def _find_contraction(positions, input_sets, output_set):
             idx_remain |= value
 
     new_result = idx_remain & idx_contract
-    idx_removed = (idx_contract - new_result)
+    idx_removed = idx_contract - new_result
     remaining.append(new_result)
 
     return (new_result, remaining, idx_removed, idx_contract)
@@ -173,7 +173,9 @@ def _optimal_path(input_sets, output_set, idx_dict, memory_limit):
         # Compute all unique pairs
         for curr in full_results:
             cost, positions, remaining = curr
-            for con in itertools.combinations(range(len(input_sets) - iteration), 2):  # NOQA
+            for con in itertools.combinations(
+                range(len(input_sets) - iteration), 2
+            ):  # NOQA
 
                 # Find the contraction
                 cont = _find_contraction(con, remaining, output_set)
@@ -185,8 +187,9 @@ def _optimal_path(input_sets, output_set, idx_dict, memory_limit):
                     continue
 
                 # Build (total_cost, positions, indices_remaining)
-                total_cost = cost + \
-                    _flop_count(idx_contract, idx_removed, len(con), idx_dict)
+                total_cost = cost + _flop_count(
+                    idx_contract, idx_removed, len(con), idx_dict
+                )
                 new_pos = positions + [con]
                 iter_results.append((total_cost, new_pos, new_input_sets))
 
@@ -207,7 +210,9 @@ def _optimal_path(input_sets, output_set, idx_dict, memory_limit):
     return path
 
 
-def _parse_possible_contraction(positions, input_sets, output_set, idx_dict, memory_limit, path_cost, naive_cost):  # NOQA
+def _parse_possible_contraction(
+    positions, input_sets, output_set, idx_dict, memory_limit, path_cost, naive_cost
+):  # NOQA
     """Copied from _parse_possible_contraction in numpy/core/einsumfunc.py
 
     Compute the cost (removed size + flops) and resultant indices for
@@ -251,8 +256,7 @@ def _parse_possible_contraction(positions, input_sets, output_set, idx_dict, mem
         return None
 
     # Build sort tuple
-    old_sizes = (_compute_size_by_dict(
-        input_sets[p], idx_dict) for p in positions)
+    old_sizes = (_compute_size_by_dict(input_sets[p], idx_dict) for p in positions)
     removed_size = sum(old_sizes) - new_size
 
     # NB: removed_size used to be just the size of any removed indices i.e.:
@@ -353,11 +357,9 @@ def _greedy_path(input_sets, output_set, idx_dict, memory_limit):
         return [(0, 1)]
 
     # Build up a naive cost
-    contract = _find_contraction(
-        range(len(input_sets)), input_sets, output_set)
+    contract = _find_contraction(range(len(input_sets)), input_sets, output_set)
     idx_result, new_input_sets, idx_removed, idx_contract = contract
-    naive_cost = _flop_count(idx_contract, idx_removed,
-                             len(input_sets), idx_dict)
+    naive_cost = _flop_count(idx_contract, idx_removed, len(input_sets), idx_dict)
 
     # Initially iterate over all pairs
     comb_iter = itertools.combinations(range(len(input_sets)), 2)
@@ -375,8 +377,15 @@ def _greedy_path(input_sets, output_set, idx_dict, memory_limit):
             if input_sets[positions[0]].isdisjoint(input_sets[positions[1]]):
                 continue
 
-            result = _parse_possible_contraction(positions, input_sets, output_set, idx_dict, memory_limit, path_cost,  # NOQA
-                                                 naive_cost)
+            result = _parse_possible_contraction(
+                positions,
+                input_sets,
+                output_set,
+                idx_dict,
+                memory_limit,
+                path_cost,  # NOQA
+                naive_cost,
+            )
             if result is not None:
                 known_contractions.append(result)
 
@@ -385,8 +394,15 @@ def _greedy_path(input_sets, output_set, idx_dict, memory_limit):
 
             # Then check the outer products
             for positions in itertools.combinations(range(len(input_sets)), 2):
-                result = _parse_possible_contraction(positions, input_sets, output_set, idx_dict, memory_limit,  # NOQA
-                                                     path_cost, naive_cost)
+                result = _parse_possible_contraction(
+                    positions,
+                    input_sets,
+                    output_set,
+                    idx_dict,
+                    memory_limit,  # NOQA
+                    path_cost,
+                    naive_cost,
+                )
                 if result is not None:
                     known_contractions.append(result)
 

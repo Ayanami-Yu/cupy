@@ -20,7 +20,7 @@ from cupy.exceptions import AxisError
 
 def wrap_take(array, *args, **kwargs):
     if get_array_module(array) == numpy:
-        kwargs['mode'] = 'wrap'
+        kwargs["mode"] = "wrap"
 
     return array.take(*args, **kwargs)
 
@@ -77,20 +77,19 @@ class TestNdarrayInit(unittest.TestCase):
 
     def test_strides_is_given_and_order_is_ignored(self):
         buf = cupy.ndarray(20, numpy.uint8)
-        a = cupy.ndarray(
-            (2, 3), numpy.float32, buf.data, strides=(8, 4), order='C')
+        a = cupy.ndarray((2, 3), numpy.float32, buf.data, strides=(8, 4), order="C")
         assert a.strides == (8, 4)
 
-    @testing.with_requires('numpy>=1.19')
+    @testing.with_requires("numpy>=1.19")
     def test_strides_is_given_but_order_is_invalid(self):
         for xp in (numpy, cupy):
             with pytest.raises(ValueError):
-                xp.ndarray((2, 3), numpy.float32, strides=(8, 4), order='!')
+                xp.ndarray((2, 3), numpy.float32, strides=(8, 4), order="!")
 
     def test_order(self):
         shape = (2, 3, 4)
-        a = _core.ndarray(shape, order='F')
-        a_cpu = numpy.ndarray(shape, order='F')
+        a = _core.ndarray(shape, order="F")
+        a_cpu = numpy.ndarray(shape, order="F")
         assert a.strides == a_cpu.strides
         assert a.flags.f_contiguous
         assert not a.flags.c_contiguous
@@ -117,14 +116,17 @@ class TestNdarrayInit(unittest.TestCase):
 
 
 @testing.parameterize(
-    *testing.product({
-        'shape': [(), (1,), (1, 2), (1, 2, 3)],
-        'order': ['C', 'F'],
-        'dtype': [
-            numpy.uint8,  # itemsize=1
-            numpy.uint16,  # itemsize=2
-        ],
-    }))
+    *testing.product(
+        {
+            "shape": [(), (1,), (1, 2), (1, 2, 3)],
+            "order": ["C", "F"],
+            "dtype": [
+                numpy.uint8,  # itemsize=1
+                numpy.uint16,  # itemsize=2
+            ],
+        }
+    )
+)
 class TestNdarrayInitStrides(unittest.TestCase):
 
     # Check the strides given shape, itemsize and order.
@@ -132,10 +134,7 @@ class TestNdarrayInitStrides(unittest.TestCase):
     @testing.numpy_cupy_equal()
     def test_strides(self, xp):
         arr = xp.ndarray(self.shape, dtype=self.dtype, order=self.order)
-        return (
-            arr.strides,
-            arr.flags.c_contiguous,
-            arr.flags.f_contiguous)
+        return (arr.strides, arr.flags.c_contiguous, arr.flags.f_contiguous)
 
 
 class TestNdarrayInitRaise(unittest.TestCase):
@@ -145,7 +144,7 @@ class TestNdarrayInitRaise(unittest.TestCase):
         with pytest.raises(ValueError):
             _core.array(arr)
 
-    @testing.with_requires('numpy>=2.0')
+    @testing.with_requires("numpy>=2.0")
     @testing.numpy_cupy_array_equal()
     def test_upper_limit_ndim(self, xp):
         shape = [1 for i in range(64)]
@@ -154,14 +153,15 @@ class TestNdarrayInitRaise(unittest.TestCase):
     def test_excessive_ndim(self):
         for xp in (numpy, cupy):
             with pytest.raises(ValueError):
-                xp.ndarray(
-                    shape=[1 for i in range(65)], dtype=xp.int8)
+                xp.ndarray(shape=[1 for i in range(65)], dtype=xp.int8)
 
 
 @testing.parameterize(
-    *testing.product({
-        'shape': [(), (0,), (1,), (0, 0, 2), (2, 3)],
-    })
+    *testing.product(
+        {
+            "shape": [(), (0,), (1,), (0, 0, 2), (2, 3)],
+        }
+    )
 )
 class TestNdarrayDeepCopy(unittest.TestCase):
 
@@ -187,7 +187,7 @@ class TestNdarrayDeepCopy(unittest.TestCase):
         assert arr2.device == arr.device
 
 
-_test_copy_multi_device_with_stream_src = r'''
+_test_copy_multi_device_with_stream_src = r"""
 extern "C" __global__
 void wait_and_write(long long *x) {
   clock_t start = clock();
@@ -202,13 +202,13 @@ void wait_and_write(long long *x) {
   x[0] = 1;
   x[1] = now;  // in case the compiler optimizing away the entire loop
 }
-'''
+"""
 
 
 class TestNdarrayCopy:
 
     @testing.multi_gpu(2)
-    @testing.for_orders('CFA')
+    @testing.for_orders("CFA")
     def test_copy_multi_device_non_contiguous(self, order):
         arr = _core.ndarray((20,))[::2]
         dev1 = cuda.Device(1)
@@ -222,19 +222,20 @@ class TestNdarrayCopy:
         arr = _core.ndarray((20,))[::2]
         with cuda.Device(1):
             with pytest.raises(NotImplementedError):
-                arr.copy('K')
+                arr.copy("K")
 
     # See cupy/cupy#5004
     @testing.multi_gpu(2)
     @pytest.mark.xfail(
         runtime.is_hip,
-        reason='ROCm may work differently in async D2D copy with streams')
+        reason="ROCm may work differently in async D2D copy with streams",
+    )
     def test_copy_multi_device_with_stream(self):
         # Kernel that takes long enough then finally writes values.
         src = _test_copy_multi_device_with_stream_src
         if runtime.is_hip and driver.get_build_version() >= 5_00_00000:
-            src = '#include <ctime>\n' + src
-        kern = cupy.RawKernel(src, 'wait_and_write')
+            src = "#include <ctime>\n" + src
+        kern = cupy.RawKernel(src, "wait_and_write")
 
         # Allocates a memory and launches the kernel on a device with its
         # stream.
@@ -250,8 +251,7 @@ class TestNdarrayCopy:
         with cuda.Device(1):
             with cuda.Stream():
                 b = a.copy()
-                testing.assert_array_equal(
-                    b, numpy.array([0, 0], dtype=numpy.uint64))
+                testing.assert_array_equal(b, numpy.array([0, 0], dtype=numpy.uint64))
 
 
 class TestNdarrayShape(unittest.TestCase):
@@ -277,83 +277,85 @@ class TestNdarrayShape(unittest.TestCase):
     def test_shape_need_copy(self):
         # from cupy/cupy#5470
         for xp in (numpy, cupy):
-            arr = xp.ndarray((2, 3), order='F')
+            arr = xp.ndarray((2, 3), order="F")
             with pytest.raises(AttributeError) as e:
                 arr.shape = (3, 2)
-            assert 'incompatible shape' in str(e.value).lower()
+            assert "incompatible shape" in str(e.value).lower()
 
 
-@pytest.mark.skipif(cupy.cuda.runtime.is_hip,
-                    reason='HIP does not support this')
+@pytest.mark.skipif(cupy.cuda.runtime.is_hip, reason="HIP does not support this")
 class TestNdarrayCudaInterface(unittest.TestCase):
 
     def test_cuda_array_interface(self):
         arr = cupy.zeros(shape=(2, 3), dtype=cupy.float64)
         iface = arr.__cuda_array_interface__
-        assert iface['version'] == 3
-        assert (set(iface.keys()) ==
-                set(['shape', 'typestr', 'data', 'version', 'descr',
-                     'stream', 'strides']))
-        assert iface['shape'] == (2, 3)
-        assert iface['typestr'] == '<f8'
-        assert isinstance(iface['data'], tuple)
-        assert len(iface['data']) == 2
-        assert iface['data'][0] == arr.data.ptr
-        assert not iface['data'][1]
-        assert iface['descr'] == [('', '<f8')]
-        assert iface['strides'] is None
-        assert iface['stream'] == stream_module.get_default_stream_ptr()
+        assert iface["version"] == 3
+        assert set(iface.keys()) == set(
+            ["shape", "typestr", "data", "version", "descr", "stream", "strides"]
+        )
+        assert iface["shape"] == (2, 3)
+        assert iface["typestr"] == "<f8"
+        assert isinstance(iface["data"], tuple)
+        assert len(iface["data"]) == 2
+        assert iface["data"][0] == arr.data.ptr
+        assert not iface["data"][1]
+        assert iface["descr"] == [("", "<f8")]
+        assert iface["strides"] is None
+        assert iface["stream"] == stream_module.get_default_stream_ptr()
 
     def test_cuda_array_interface_view(self):
         arr = cupy.zeros(shape=(10, 20), dtype=cupy.float64)
         view = arr[::2, ::5]
         iface = view.__cuda_array_interface__
-        assert iface['version'] == 3
-        assert (set(iface.keys()) ==
-                set(['shape', 'typestr', 'data', 'version', 'descr',
-                     'stream', 'strides']))
-        assert iface['shape'] == (5, 4)
-        assert iface['typestr'] == '<f8'
-        assert isinstance(iface['data'], tuple)
-        assert len(iface['data']) == 2
-        assert iface['data'][0] == arr.data.ptr
-        assert not iface['data'][1]
-        assert iface['strides'] == (320, 40)
-        assert iface['descr'] == [('', '<f8')]
-        assert iface['stream'] == stream_module.get_default_stream_ptr()
+        assert iface["version"] == 3
+        assert set(iface.keys()) == set(
+            ["shape", "typestr", "data", "version", "descr", "stream", "strides"]
+        )
+        assert iface["shape"] == (5, 4)
+        assert iface["typestr"] == "<f8"
+        assert isinstance(iface["data"], tuple)
+        assert len(iface["data"]) == 2
+        assert iface["data"][0] == arr.data.ptr
+        assert not iface["data"][1]
+        assert iface["strides"] == (320, 40)
+        assert iface["descr"] == [("", "<f8")]
+        assert iface["stream"] == stream_module.get_default_stream_ptr()
 
     def test_cuda_array_interface_zero_size(self):
         arr = cupy.zeros(shape=(10,), dtype=cupy.float64)
         view = arr[0:3:-1]
         iface = view.__cuda_array_interface__
-        assert iface['version'] == 3
-        assert (set(iface.keys()) ==
-                set(['shape', 'typestr', 'data', 'version', 'descr',
-                     'stream', 'strides']))
-        assert iface['shape'] == (0,)
-        assert iface['typestr'] == '<f8'
-        assert isinstance(iface['data'], tuple)
-        assert len(iface['data']) == 2
-        assert iface['data'][0] == 0
-        assert not iface['data'][1]
-        assert iface['strides'] is None
-        assert iface['descr'] == [('', '<f8')]
-        assert iface['stream'] == stream_module.get_default_stream_ptr()
+        assert iface["version"] == 3
+        assert set(iface.keys()) == set(
+            ["shape", "typestr", "data", "version", "descr", "stream", "strides"]
+        )
+        assert iface["shape"] == (0,)
+        assert iface["typestr"] == "<f8"
+        assert isinstance(iface["data"], tuple)
+        assert len(iface["data"]) == 2
+        assert iface["data"][0] == 0
+        assert not iface["data"][1]
+        assert iface["strides"] is None
+        assert iface["descr"] == [("", "<f8")]
+        assert iface["stream"] == stream_module.get_default_stream_ptr()
 
 
-@testing.parameterize(*testing.product({
-    'stream': ('null', 'new', 'ptds'),
-    'ver': (2, 3),
-}))
-@pytest.mark.skipif(cupy.cuda.runtime.is_hip,
-                    reason='HIP does not support this')
+@testing.parameterize(
+    *testing.product(
+        {
+            "stream": ("null", "new", "ptds"),
+            "ver": (2, 3),
+        }
+    )
+)
+@pytest.mark.skipif(cupy.cuda.runtime.is_hip, reason="HIP does not support this")
 class TestNdarrayCudaInterfaceStream(unittest.TestCase):
     def setUp(self):
-        if self.stream == 'null':
+        if self.stream == "null":
             self.stream = cuda.Stream.null
-        elif self.stream == 'new':
+        elif self.stream == "new":
             self.stream = cuda.Stream()
-        elif self.stream == 'ptds':
+        elif self.stream == "ptds":
             self.stream = cuda.Stream.ptds
 
         self.old_ver = _util.CUDA_ARRAY_INTERFACE_EXPORT_VERSION
@@ -368,47 +370,48 @@ class TestNdarrayCudaInterfaceStream(unittest.TestCase):
         stream = self.stream
         with stream:
             iface = arr.__cuda_array_interface__
-        assert iface['version'] == self.ver
-        attrs = ['shape', 'typestr', 'data', 'version', 'descr', 'strides']
+        assert iface["version"] == self.ver
+        attrs = ["shape", "typestr", "data", "version", "descr", "strides"]
         if self.ver == 3:
-            attrs.append('stream')
+            attrs.append("stream")
         assert set(iface.keys()) == set(attrs)
-        assert iface['shape'] == (10,)
-        assert iface['typestr'] == '<f8'
-        assert isinstance(iface['data'], tuple)
-        assert len(iface['data']) == 2
-        assert iface['data'] == (arr.data.ptr, False)
-        assert iface['descr'] == [('', '<f8')]
-        assert iface['strides'] is None
+        assert iface["shape"] == (10,)
+        assert iface["typestr"] == "<f8"
+        assert isinstance(iface["data"], tuple)
+        assert len(iface["data"]) == 2
+        assert iface["data"] == (arr.data.ptr, False)
+        assert iface["descr"] == [("", "<f8")]
+        assert iface["strides"] is None
         if self.ver == 3:
             if stream.ptr == 0:
                 ptr = stream_module.get_default_stream_ptr()
-                assert iface['stream'] == ptr
+                assert iface["stream"] == ptr
             else:
-                assert iface['stream'] == stream.ptr
+                assert iface["stream"] == stream.ptr
 
 
-@pytest.mark.skipif(not cupy.cuda.runtime.is_hip,
-                    reason='This is supported on CUDA')
+@pytest.mark.skipif(not cupy.cuda.runtime.is_hip, reason="This is supported on CUDA")
 class TestNdarrayCudaInterfaceNoneCUDA(unittest.TestCase):
 
     def setUp(self):
         self.arr = cupy.zeros(shape=(2, 3), dtype=cupy.float64)
 
     def test_cuda_array_interface_hasattr(self):
-        assert not hasattr(self.arr, '__cuda_array_interface__')
+        assert not hasattr(self.arr, "__cuda_array_interface__")
 
     def test_cuda_array_interface_getattr(self):
         with pytest.raises(AttributeError) as e:
-            getattr(self.arr, '__cuda_array_interface__')
-        assert 'HIP' in str(e.value)
+            getattr(self.arr, "__cuda_array_interface__")
+        assert "HIP" in str(e.value)
 
 
 @testing.parameterize(
-    *testing.product({
-        'indices_shape': [(2,), (2, 3)],
-        'axis': [None, 0, 1, 2, -1, -2],
-    })
+    *testing.product(
+        {
+            "indices_shape": [(2,), (2, 3)],
+            "axis": [None, 0, 1, 2, -1, -2],
+        }
+    )
 )
 class TestNdarrayTake(unittest.TestCase):
 
@@ -427,10 +430,12 @@ class TestNdarrayTake(unittest.TestCase):
 
 
 @testing.parameterize(
-    *testing.product({
-        'indices': [2, [0, 1], -1, [-1, -2]],
-        'axis': [None, 0, 1, -1, -2],
-    })
+    *testing.product(
+        {
+            "indices": [2, [0, 1], -1, [-1, -2]],
+            "axis": [None, 0, 1, -1, -2],
+        }
+    )
 )
 class TestNdarrayTakeWithInt(unittest.TestCase):
 
@@ -444,10 +449,12 @@ class TestNdarrayTakeWithInt(unittest.TestCase):
 
 
 @testing.parameterize(
-    *testing.product({
-        'indices': [2, [0, 1], -1, [-1, -2]],
-        'axis': [None, 0, 1, -1, -2],
-    })
+    *testing.product(
+        {
+            "indices": [2, [0, 1], -1, [-1, -2]],
+            "axis": [None, 0, 1, -1, -2],
+        }
+    )
 )
 class TestNdarrayTakeWithIntWithOutParam(unittest.TestCase):
 
@@ -465,10 +472,12 @@ class TestNdarrayTakeWithIntWithOutParam(unittest.TestCase):
 
 
 @testing.parameterize(
-    *testing.product({
-        'indices': [0, -1, [0], [0, -1]],
-        'axis': [None, 0, -1],
-    })
+    *testing.product(
+        {
+            "indices": [0, -1, [0], [0, -1]],
+            "axis": [None, 0, -1],
+        }
+    )
 )
 class TestScalaNdarrayTakeWithIntWithOutParam(unittest.TestCase):
 
@@ -486,8 +495,8 @@ class TestScalaNdarrayTakeWithIntWithOutParam(unittest.TestCase):
 
 
 @testing.parameterize(
-    {'shape': (3, 4, 5), 'indices': (2,), 'axis': 3},
-    {'shape': (), 'indices': (0,), 'axis': 2}
+    {"shape": (3, 4, 5), "indices": (2,), "axis": 3},
+    {"shape": (), "indices": (0,), "axis": 2},
 )
 class TestNdarrayTakeErrorAxisOverRun(unittest.TestCase):
 
@@ -504,8 +513,8 @@ class TestNdarrayTakeErrorAxisOverRun(unittest.TestCase):
 
 
 @testing.parameterize(
-    {'shape': (3, 4, 5), 'indices': (2, 3), 'out_shape': (2, 4)},
-    {'shape': (), 'indices': (), 'out_shape': (1,)}
+    {"shape": (3, 4, 5), "indices": (2, 3), "out_shape": (2, 4)},
+    {"shape": (), "indices": (), "out_shape": (1,)},
 )
 class TestNdarrayTakeErrorShapeMismatch(unittest.TestCase):
 
@@ -519,8 +528,8 @@ class TestNdarrayTakeErrorShapeMismatch(unittest.TestCase):
 
 
 @testing.parameterize(
-    {'shape': (3, 4, 5), 'indices': (2, 3), 'out_shape': (2, 3)},
-    {'shape': (), 'indices': (), 'out_shape': ()}
+    {"shape": (3, 4, 5), "indices": (2, 3), "out_shape": (2, 3)},
+    {"shape": (), "indices": (), "out_shape": ()},
 )
 class TestNdarrayTakeErrorTypeMismatch(unittest.TestCase):
 
@@ -534,9 +543,9 @@ class TestNdarrayTakeErrorTypeMismatch(unittest.TestCase):
 
 
 @testing.parameterize(
-    {'shape': (0,), 'indices': (0,), 'axis': None},
-    {'shape': (0,), 'indices': (0, 1), 'axis': None},
-    {'shape': (3, 0), 'indices': (2,), 'axis': 0},
+    {"shape": (0,), "indices": (0,), "axis": None},
+    {"shape": (0,), "indices": (0, 1), "axis": None},
+    {"shape": (3, 0), "indices": (2,), "axis": 0},
 )
 class TestZeroSizedNdarrayTake(unittest.TestCase):
 
@@ -548,8 +557,8 @@ class TestZeroSizedNdarrayTake(unittest.TestCase):
 
 
 @testing.parameterize(
-    {'shape': (0,), 'indices': (1,)},
-    {'shape': (0,), 'indices': (1, 1)},
+    {"shape": (0,), "indices": (1,)},
+    {"shape": (0,), "indices": (1, 1)},
 )
 class TestZeroSizedNdarrayTakeIndexError(unittest.TestCase):
 
@@ -635,7 +644,7 @@ class TestPythonInterface(unittest.TestCase):
     @testing.numpy_cupy_equal()
     def test_format(self, xp):
         x = xp.array(1.12345)
-        return format(x, '.2f')
+        return format(x, ".2f")
 
 
 class TestNdarrayImplicitConversion(unittest.TestCase):
@@ -656,13 +665,13 @@ class C(cupy.ndarray):
     def __array_finalize__(self, obj):
         if obj is None:
             return
-        self.info = getattr(obj, 'info', None)
+        self.info = getattr(obj, "info", None)
 
 
 class TestNdarraySubclass:
 
     def test_explicit_constructor_call(self):
-        a = C([0, 1, 2, 3], info='information')
+        a = C([0, 1, 2, 3], info="information")
         assert type(a) is C
         assert issubclass(type(a), cupy.ndarray)
-        assert a.info == 'information'
+        assert a.info == "information"

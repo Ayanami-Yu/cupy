@@ -15,7 +15,7 @@ from cupy.cuda import device
 from cupy.cuda import runtime
 from cupy.fft import config
 
-from .test_fft import (multi_gpu_config, _skip_multi_gpu_bug)
+from .test_fft import multi_gpu_config, _skip_multi_gpu_bug
 
 
 def intercept_stdout(func):
@@ -159,7 +159,7 @@ class TestPlanCache(unittest.TestCase):
         # Testing in the current thread: in setUp() we ensure all caches
         # are initialized
         stdout = intercept_stdout(config.show_plan_cache_info)
-        assert 'uninitialized' not in stdout
+        assert "uninitialized" not in stdout
 
         def thread_show_plan_cache_info(queue):
             # allow output from another thread to be accessed by the
@@ -171,12 +171,11 @@ class TestPlanCache(unittest.TestCase):
         # When starting a new thread, the cache is uninitialized there
         # (for both devices)
         q = queue.Queue()
-        thread = threading.Thread(target=thread_show_plan_cache_info,
-                                  args=(q,))
+        thread = threading.Thread(target=thread_show_plan_cache_info, args=(q,))
         thread.start()
         thread.join()
         stdout = q.get()
-        assert stdout.count('uninitialized') == n_devices
+        assert stdout.count("uninitialized") == n_devices
 
         def thread_init_caches(gpus, queue):
             cupy.cuda.Device().use()
@@ -184,20 +183,30 @@ class TestPlanCache(unittest.TestCase):
             thread_show_plan_cache_info(queue)
 
         # Now let's try initializing device 0 on another thread
-        thread = threading.Thread(target=thread_init_caches,
-                                  args=([0], q,))
+        thread = threading.Thread(
+            target=thread_init_caches,
+            args=(
+                [0],
+                q,
+            ),
+        )
         thread.start()
         thread.join()
         stdout = q.get()
-        assert stdout.count('uninitialized') == n_devices - 1
+        assert stdout.count("uninitialized") == n_devices - 1
 
         # ...and this time both devices
-        thread = threading.Thread(target=thread_init_caches,
-                                  args=([0, 1], q,))
+        thread = threading.Thread(
+            target=thread_init_caches,
+            args=(
+                [0, 1],
+                q,
+            ),
+        )
         thread.start()
         thread.join()
         stdout = q.get()
-        assert stdout.count('uninitialized') == n_devices - 2
+        assert stdout.count("uninitialized") == n_devices - 2
 
     @testing.multi_gpu(2)
     def test_LRU_cache6(self):
@@ -234,8 +243,7 @@ class TestPlanCache(unittest.TestCase):
         assert cache1.get_curr_size() == 0 <= cache1.get_size()
 
     @testing.multi_gpu(2)
-    @pytest.mark.skipif(runtime.is_hip,
-                        reason="hipFFT doesn't support multi-GPU")
+    @pytest.mark.skipif(runtime.is_hip, reason="hipFFT doesn't support multi-GPU")
     def test_LRU_cache7(self):
         # test accessing a multi-GPU plan
         cache0 = self.caches[0]
@@ -355,7 +363,7 @@ class TestPlanCache(unittest.TestCase):
         curr_size = 0
         size = 2
         curr_memsize = 0
-        memsize = '(unlimited)'  # default
+        memsize = "(unlimited)"  # default
 
         a = testing.shaped_random((16, 16), cupy, cupy.float32)
         cupy.fft.fft2(a)
@@ -364,8 +372,8 @@ class TestPlanCache(unittest.TestCase):
         curr_size += 1
         curr_memsize += node1.plan.work_area.mem.size
         stdout = intercept_stdout(cache.show_info)
-        assert '{} / {} (counts)'.format(curr_size, size) in stdout
-        assert '{} / {} (bytes)'.format(curr_memsize, memsize) in stdout
+        assert "{} / {} (counts)".format(curr_size, size) in stdout
+        assert "{} / {} (bytes)".format(curr_memsize, memsize) in stdout
         assert str(node1) in stdout
 
         a = testing.shaped_random((1024,), cupy, cupy.complex64)
@@ -375,9 +383,9 @@ class TestPlanCache(unittest.TestCase):
         curr_size += 1
         curr_memsize += node2.plan.work_area.mem.size
         stdout = intercept_stdout(cache.show_info)
-        assert '{} / {} (counts)'.format(curr_size, size) in stdout
-        assert '{} / {} (bytes)'.format(curr_memsize, memsize) in stdout
-        assert str(node2) + '\n' + str(node1) in stdout
+        assert "{} / {} (counts)".format(curr_size, size) in stdout
+        assert "{} / {} (bytes)".format(curr_memsize, memsize) in stdout
+        assert str(node2) + "\n" + str(node1) in stdout
 
         # test deletion
         key = node2.key
@@ -386,14 +394,13 @@ class TestPlanCache(unittest.TestCase):
         curr_size -= 1
         curr_memsize -= node2.plan.work_area.mem.size
         stdout = intercept_stdout(cache.show_info)
-        assert '{} / {} (counts)'.format(curr_size, size) in stdout
-        assert '{} / {} (bytes)'.format(curr_memsize, memsize) in stdout
+        assert "{} / {} (counts)".format(curr_size, size) in stdout
+        assert "{} / {} (bytes)".format(curr_memsize, memsize) in stdout
         assert str(node2) not in stdout
 
     @multi_gpu_config(gpu_configs=[[0, 1], [1, 0]])
     @testing.multi_gpu(2)
-    @pytest.mark.skipif(runtime.is_hip,
-                        reason="hipFFT doesn't support multi-GPU")
+    @pytest.mark.skipif(runtime.is_hip, reason="hipFFT doesn't support multi-GPU")
     def test_LRU_cache11(self):
         # test if collectively deleting a multi-GPU plan works
         _skip_multi_gpu_bug((128,), self.gpus)
@@ -426,8 +433,7 @@ class TestPlanCache(unittest.TestCase):
 
     @multi_gpu_config(gpu_configs=[[0, 1], [1, 0]])
     @testing.multi_gpu(2)
-    @pytest.mark.skipif(runtime.is_hip,
-                        reason="hipFFT doesn't support multi-GPU")
+    @pytest.mark.skipif(runtime.is_hip, reason="hipFFT doesn't support multi-GPU")
     def test_LRU_cache12(self):
         # test if an error is raise when one of the caches is unable
         # to fit it a multi-GPU plan
@@ -445,13 +451,14 @@ class TestPlanCache(unittest.TestCase):
         with pytest.raises(RuntimeError) as e:
             c = testing.shaped_random((128,), cupy, cupy.complex64)
             cupy.fft.fft(c)
-        assert 'plan memsize is too large for device 1' in str(e.value)
+        assert "plan memsize is too large for device 1" in str(e.value)
         assert cache0.get_curr_size() == 0 <= cache0.get_size()
         assert cache1.get_curr_size() == 0 <= cache1.get_size()
 
     @unittest.skipIf(runtime.is_hip, "rocFFT has different plan sizes")
-    @unittest.skipIf(runtime.runtimeGetVersion() >= 11080,
-                     "CUDA 11.8 has different plan size")
+    @unittest.skipIf(
+        runtime.runtimeGetVersion() >= 11080, "CUDA 11.8 has different plan size"
+    )
     def test_LRU_cache13(self):
         # test if plan insertion respect the memory size limit
         cache = config.get_plan_cache()
@@ -478,7 +485,7 @@ class TestPlanCache(unittest.TestCase):
         a = testing.shaped_random((128,), cupy, cupy.complex128)
         with pytest.raises(RuntimeError) as e:
             cupy.fft.ifft(a)
-        assert 'memsize is too large' in str(e.value)
+        assert "memsize is too large" in str(e.value)
         # the cache remains intact
         assert cache.get_curr_size() == 1 <= cache.get_size()
         assert cache.get_curr_memsize() == 1024 == cache.get_memsize()

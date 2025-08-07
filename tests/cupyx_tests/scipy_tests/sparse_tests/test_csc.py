@@ -5,8 +5,10 @@ import sys
 
 import numpy
 import pytest
+
 try:
     import scipy.sparse
+
     scipy_available = True
 except ImportError:
     scipy_available = False
@@ -21,8 +23,8 @@ from cupyx.scipy import sparse
 
 def _make(xp, sp, dtype):
     data = xp.array([0, 1, 3, 2], dtype)
-    indices = xp.array([0, 0, 2, 1], 'i')
-    indptr = xp.array([0, 1, 2, 3, 4], 'i')
+    indices = xp.array([0, 0, 2, 1], "i")
+    indptr = xp.array([0, 1, 2, 3, 4], "i")
     # 0, 1, 0, 0
     # 0, 0, 0, 2
     # 0, 0, 3, 0
@@ -33,8 +35,8 @@ def _make_complex(xp, sp, dtype):
     data = xp.array([0, 1, 2, 3], dtype)
     if dtype in [numpy.complex64, numpy.complex128]:
         data = data - 1j
-    indices = xp.array([0, 1, 3, 2], 'i')
-    indptr = xp.array([0, 2, 3, 4], 'i')
+    indices = xp.array([0, 1, 3, 2], "i")
+    indptr = xp.array([0, 2, 3, 4], "i")
     # 0, 1 - 1j, 0, 0
     # 0, 0, 0, 2 - 1j
     # 0, 0, 3 - 1j, 0
@@ -43,8 +45,8 @@ def _make_complex(xp, sp, dtype):
 
 def _make2(xp, sp, dtype):
     data = xp.array([2, 1, 3, 4], dtype)
-    indices = xp.array([1, 0, 1, 2], 'i')
-    indptr = xp.array([0, 0, 1, 4, 4], 'i')
+    indices = xp.array([1, 0, 1, 2], "i")
+    indptr = xp.array([0, 0, 1, 4, 4], "i")
     # 0, 0, 1, 0
     # 0, 2, 3, 0
     # 0, 0, 4, 0
@@ -53,8 +55,8 @@ def _make2(xp, sp, dtype):
 
 def _make3(xp, sp, dtype):
     data = xp.array([1, 4, 3, 2, 5], dtype)
-    indices = xp.array([0, 3, 1, 1, 3], 'i')
-    indptr = xp.array([0, 2, 3, 5], 'i')
+    indices = xp.array([0, 3, 1, 1, 3], "i")
+    indptr = xp.array([0, 2, 3, 5], "i")
     # 1, 0, 0
     # 0, 3, 2
     # 0, 0, 0
@@ -64,15 +66,15 @@ def _make3(xp, sp, dtype):
 
 def _make_unordered(xp, sp, dtype):
     data = xp.array([1, 2, 3, 4], dtype)
-    indices = xp.array([1, 0, 1, 2], 'i')
-    indptr = xp.array([0, 0, 0, 2, 4], 'i')
+    indices = xp.array([1, 0, 1, 2], "i")
+    indptr = xp.array([0, 0, 0, 2, 4], "i")
     return sp.csc_matrix((data, indices, indptr), shape=(3, 4))
 
 
 def _make_duplicate(xp, sp, dtype):
     data = xp.array([1, 4, 3, 0, 2, 5], dtype)
-    indices = xp.array([0, 1, 0, 2, 1, 1], 'i')
-    indptr = xp.array([0, 3, 4, 6, 6], 'i')
+    indices = xp.array([0, 1, 0, 2, 1, 1], "i")
+    indptr = xp.array([0, 3, 4, 6, 6], "i")
     # 4, 0, 0, 0
     # 4, 0, 7, 0
     # 0, 0, 0, 0
@@ -81,8 +83,8 @@ def _make_duplicate(xp, sp, dtype):
 
 def _make_empty(xp, sp, dtype):
     data = xp.array([], dtype)
-    indices = xp.array([], 'i')
-    indptr = xp.array([0, 0, 0, 0, 0], 'i')
+    indices = xp.array([], "i")
+    indptr = xp.array([0, 0, 0, 0, 0], "i")
     return sp.csc_matrix((data, indices, indptr), shape=(3, 4))
 
 
@@ -90,9 +92,13 @@ def _make_shape(xp, sp, dtype):
     return sp.csc_matrix((3, 4))
 
 
-@testing.parameterize(*testing.product({
-    'dtype': [numpy.float32, numpy.float64, numpy.complex64, numpy.complex128],
-}))
+@testing.parameterize(
+    *testing.product(
+        {
+            "dtype": [numpy.float32, numpy.float64, numpy.complex64, numpy.complex128],
+        }
+    )
+)
 class TestCscMatrix:
 
     @pytest.fixture(autouse=True)
@@ -104,18 +110,17 @@ class TestCscMatrix:
 
     def test_data(self):
         assert self.m.data.dtype == self.dtype
-        testing.assert_array_equal(
-            self.m.data, cupy.array([0, 1, 3, 2], self.dtype))
+        testing.assert_array_equal(self.m.data, cupy.array([0, 1, 3, 2], self.dtype))
 
     def test_indices(self):
         assert self.m.indices.dtype == numpy.int32
-        testing.assert_array_equal(
-            self.m.indices, cupy.array([0, 0, 2, 1], self.dtype))
+        testing.assert_array_equal(self.m.indices, cupy.array([0, 0, 2, 1], self.dtype))
 
     def test_indptr(self):
         assert self.m.indptr.dtype == numpy.int32
         testing.assert_array_equal(
-            self.m.indptr, cupy.array([0, 1, 2, 3, 4], self.dtype))
+            self.m.indptr, cupy.array([0, 1, 2, 3, 4], self.dtype)
+        )
 
     def test_init_copy(self):
         n = sparse.csc_matrix(self.m)
@@ -132,7 +137,7 @@ class TestCscMatrix:
         cupy.testing.assert_array_equal(n.indptr, self.m.indptr)
         assert n.shape == self.m.shape
 
-    @testing.with_requires('scipy')
+    @testing.with_requires("scipy")
     def test_init_copy_scipy_sparse(self):
         m = _make(numpy, scipy.sparse, self.dtype)
         n = sparse.csc_matrix(m)
@@ -144,7 +149,7 @@ class TestCscMatrix:
         cupy.testing.assert_array_equal(n.indptr, m.indptr)
         assert n.shape == m.shape
 
-    @testing.with_requires('scipy')
+    @testing.with_requires("scipy")
     def test_init_copy_other_scipy_sparse(self):
         m = _make(numpy, scipy.sparse, self.dtype)
         n = sparse.csc_matrix(m.tocsr())
@@ -157,9 +162,7 @@ class TestCscMatrix:
         assert n.shape == m.shape
 
     def test_init_dense(self):
-        m = cupy.array([[0, 1, 0, 2],
-                        [0, 0, 0, 0],
-                        [0, 0, 0, 3]], dtype=self.dtype)
+        m = cupy.array([[0, 1, 0, 2], [0, 0, 0, 0], [0, 0, 0, 3]], dtype=self.dtype)
         n = sparse.csc_matrix(m)
         assert n.nnz == 3
         assert n.shape == (3, 4)
@@ -167,11 +170,9 @@ class TestCscMatrix:
         cupy.testing.assert_array_equal(n.indices, [0, 0, 2])
         cupy.testing.assert_array_equal(n.indptr, [0, 0, 1, 1, 3])
 
-    @pytest.mark.xfail(runtime.is_hip, reason='hipSPARSE handles nnz=0 badly')
+    @pytest.mark.xfail(runtime.is_hip, reason="hipSPARSE handles nnz=0 badly")
     def test_init_dense_empty(self):
-        m = cupy.array([[0, 0, 0, 0],
-                        [0, 0, 0, 0],
-                        [0, 0, 0, 0]], dtype=self.dtype)
+        m = cupy.array([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]], dtype=self.dtype)
         n = sparse.csc_matrix(m)
         assert n.nnz == 0
         assert n.shape == (3, 4)
@@ -205,7 +206,7 @@ class TestCscMatrix:
         cupy.testing.assert_array_equal(n.indptr, self.m.indptr)
         assert n.shape == self.m.shape
 
-    @testing.with_requires('scipy>=1.15')
+    @testing.with_requires("scipy>=1.15")
     def test_init_dense_invalid_ndim(self):
         for xp, sp in ((numpy, scipy.sparse), (cupy, sparse)):
             with pytest.raises(ValueError):
@@ -237,46 +238,38 @@ class TestCscMatrix:
         n = _make_complex(cupy, sparse, self.dtype)
         cupy.testing.assert_array_equal(n.conj().data, n.data.conj())
 
-    @testing.with_requires('scipy')
+    @testing.with_requires("scipy")
     def test_get(self):
         m = self.m.get()
         assert isinstance(m, scipy.sparse.csc_matrix)
-        expect = [
-            [0, 1, 0, 0],
-            [0, 0, 0, 2],
-            [0, 0, 3, 0]
-        ]
+        expect = [[0, 1, 0, 0], [0, 0, 0, 2], [0, 0, 3, 0]]
         numpy.testing.assert_allclose(m.toarray(), expect)
 
-    @testing.with_requires('scipy>=1.14')
+    @testing.with_requires("scipy>=1.14")
     def test_str(self):
         dtype_name = numpy.dtype(self.dtype).name
-        if numpy.dtype(self.dtype).kind == 'f':
-            expect = f'''<Compressed Sparse Column sparse matrix of dtype '{dtype_name}'
+        if numpy.dtype(self.dtype).kind == "f":
+            expect = f"""<Compressed Sparse Column sparse matrix of dtype '{dtype_name}'
 \twith 4 stored elements and shape (3, 4)>
   Coords\tValues
   (0, 0)\t0.0
   (0, 1)\t1.0
   (2, 2)\t3.0
-  (1, 3)\t2.0'''  # NOQA
-        elif numpy.dtype(self.dtype).kind == 'c':
-            expect = f'''<Compressed Sparse Column sparse matrix of dtype '{dtype_name}'
+  (1, 3)\t2.0"""  # NOQA
+        elif numpy.dtype(self.dtype).kind == "c":
+            expect = f"""<Compressed Sparse Column sparse matrix of dtype '{dtype_name}'
 \twith 4 stored elements and shape (3, 4)>
   Coords\tValues
   (0, 0)\t0j
   (0, 1)\t(1+0j)
   (2, 2)\t(3+0j)
-  (1, 3)\t(2+0j)'''  # NOQA
+  (1, 3)\t(2+0j)"""  # NOQA
 
         assert str(self.m) == expect
 
     def test_toarray(self):
         m = self.m.toarray()
-        expect = [
-            [0, 1, 0, 0],
-            [0, 0, 0, 2],
-            [0, 0, 3, 0]
-        ]
+        expect = [[0, 1, 0, 0], [0, 0, 0, 2], [0, 0, 3, 0]]
         assert m.flags.c_contiguous
         cupy.testing.assert_allclose(m, expect)
 
@@ -298,15 +291,19 @@ class TestCscMatrix:
         cupy.testing.assert_allclose(m, expect)
 
     def test_reshape_2(self):
-        m = self.m.reshape((1, 12), order='F').toarray()
+        m = self.m.reshape((1, 12), order="F").toarray()
         expect = [[1, 0, 0, 0, 0, 2, 0, 0, 0, 0, 3, 0]]
         cupy.testing.assert_allclose(m, expect)
 
 
-@testing.parameterize(*testing.product({
-    'dtype': [numpy.float32, numpy.float64, numpy.complex64, numpy.complex128],
-}))
-@testing.with_requires('scipy')
+@testing.parameterize(
+    *testing.product(
+        {
+            "dtype": [numpy.float32, numpy.float64, numpy.complex64, numpy.complex128],
+        }
+    )
+)
+@testing.with_requires("scipy")
 class TestCscMatrixInit:
 
     @pytest.fixture(autouse=True)
@@ -317,25 +314,25 @@ class TestCscMatrixInit:
         return xp.array([1, 2, 3, 4], self.dtype)
 
     def indices(self, xp):
-        return xp.array([0, 0, 2, 1], 'i')
+        return xp.array([0, 0, 2, 1], "i")
 
     def indptr(self, xp):
-        return xp.array([0, 1, 2, 3, 4], 'i')
+        return xp.array([0, 1, 2, 3, 4], "i")
 
-    @testing.numpy_cupy_equal(sp_name='sp')
+    @testing.numpy_cupy_equal(sp_name="sp")
     def test_shape_none(self, xp, sp):
         x = sp.csc_matrix(
-            (self.data(xp), self.indices(xp), self.indptr(xp)), shape=None)
+            (self.data(xp), self.indices(xp), self.indptr(xp)), shape=None
+        )
         assert x.shape == (3, 4)
 
-    @testing.numpy_cupy_equal(sp_name='sp')
+    @testing.numpy_cupy_equal(sp_name="sp")
     def test_dtype(self, xp, sp):
-        data = self.data(xp).real.astype('i')
-        x = sp.csc_matrix(
-            (data, self.indices(xp), self.indptr(xp)), dtype=self.dtype)
+        data = self.data(xp).real.astype("i")
+        x = sp.csc_matrix((data, self.indices(xp), self.indptr(xp)), dtype=self.dtype)
         assert x.dtype == self.dtype
 
-    @testing.numpy_cupy_equal(sp_name='sp')
+    @testing.numpy_cupy_equal(sp_name="sp")
     def test_copy_true(self, xp, sp):
         data = self.data(xp)
         indices = self.indices(xp)
@@ -346,15 +343,15 @@ class TestCscMatrixInit:
         assert indices is not x.indices
         assert indptr is not x.indptr
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_init_with_shape(self, xp, sp):
         s = sp.csc_matrix(self.shape)
         assert s.shape == self.shape
-        assert s.dtype == 'd'
+        assert s.dtype == "d"
         assert s.size == 0
         return s
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_init_with_shape_and_dtype(self, xp, sp):
         s = sp.csc_matrix(self.shape, dtype=self.dtype)
         assert s.shape == self.shape
@@ -362,11 +359,12 @@ class TestCscMatrixInit:
         assert s.size == 0
         return s
 
-    @testing.numpy_cupy_allclose(sp_name='sp', atol=1e-5)
+    @testing.numpy_cupy_allclose(sp_name="sp", atol=1e-5)
     def test_intlike_shape(self, xp, sp):
-        s = sp.csc_matrix((self.data(xp), self.indices(xp), self.indptr(xp)),
-                          shape=(xp.array(self.shape[0]),
-                                 xp.int32(self.shape[1])))
+        s = sp.csc_matrix(
+            (self.data(xp), self.indices(xp), self.indptr(xp)),
+            shape=(xp.array(self.shape[0]), xp.int32(self.shape[1])),
+        )
         assert isinstance(s.shape[0], int)
         assert isinstance(s.shape[1], int)
         return s
@@ -375,101 +373,115 @@ class TestCscMatrixInit:
         for xp, sp in ((numpy, scipy.sparse), (cupy, sparse)):
             with pytest.raises(ValueError):
                 sp.csc_matrix(
-                    (self.data(xp), self.indices(xp), self.indptr(xp)),
-                    shape=(2,))
+                    (self.data(xp), self.indices(xp), self.indptr(xp)), shape=(2,)
+                )
 
     def test_data_invalid(self):
         for xp, sp in ((numpy, scipy.sparse), (cupy, sparse)):
             with pytest.raises(ValueError):
                 sp.csc_matrix(
-                    ('invalid', self.indices(xp), self.indptr(xp)),
-                    shape=self.shape)
+                    ("invalid", self.indices(xp), self.indptr(xp)), shape=self.shape
+                )
 
     def test_data_invalid_ndim(self):
         for xp, sp in ((numpy, scipy.sparse), (cupy, sparse)):
             with pytest.raises(ValueError):
                 sp.csc_matrix(
-                    (self.data(xp)[None], self.indices(xp),
-                     self.indptr(xp)),
-                    shape=self.shape)
+                    (self.data(xp)[None], self.indices(xp), self.indptr(xp)),
+                    shape=self.shape,
+                )
 
     def test_indices_invalid(self):
         for xp, sp in ((numpy, scipy.sparse), (cupy, sparse)):
             with pytest.raises(ValueError):
                 sp.csc_matrix(
-                    (self.data(xp), 'invalid', self.indptr(xp)),
-                    shape=self.shape)
+                    (self.data(xp), "invalid", self.indptr(xp)), shape=self.shape
+                )
 
     def test_indices_invalid_ndim(self):
         for xp, sp in ((numpy, scipy.sparse), (cupy, sparse)):
             with pytest.raises(ValueError):
                 sp.csc_matrix(
                     (self.data(xp), self.indices(xp)[None], self.indptr(xp)),
-                    shape=self.shape)
+                    shape=self.shape,
+                )
 
     def test_indptr_invalid(self):
         for xp, sp in ((numpy, scipy.sparse), (cupy, sparse)):
             with pytest.raises(ValueError):
                 sp.csc_matrix(
-                    (self.data(xp), self.indices(xp), 'invalid'),
-                    shape=self.shape)
+                    (self.data(xp), self.indices(xp), "invalid"), shape=self.shape
+                )
 
     def test_indptr_invalid_ndim(self):
         for xp, sp in ((numpy, scipy.sparse), (cupy, sparse)):
             with pytest.raises(ValueError):
                 sp.csc_matrix(
                     (self.data(xp), self.indices(xp), self.indptr(xp)[None]),
-                    shape=self.shape)
+                    shape=self.shape,
+                )
 
     def test_data_indices_different_length(self):
         for xp, sp in ((numpy, scipy.sparse), (cupy, sparse)):
             data = xp.arange(5, dtype=self.dtype)
             with pytest.raises(ValueError):
                 sp.csc_matrix(
-                    (data, self.indices(xp), self.indptr(xp)),
-                    shape=self.shape)
+                    (data, self.indices(xp), self.indptr(xp)), shape=self.shape
+                )
 
     def test_indptr_invalid_length(self):
         for xp, sp in ((numpy, scipy.sparse), (cupy, sparse)):
-            indptr = xp.array([0, 1], 'i')
+            indptr = xp.array([0, 1], "i")
             with pytest.raises(ValueError):
                 sp.csc_matrix(
-                    (self.data(xp), self.indices(xp), indptr),
-                    shape=self.shape)
+                    (self.data(xp), self.indices(xp), indptr), shape=self.shape
+                )
 
     def test_unsupported_dtype(self):
         with pytest.raises(ValueError):
             sparse.csc_matrix(
                 (self.data(cupy), self.indices(cupy), self.indptr(cupy)),
-                shape=self.shape, dtype='i')
+                shape=self.shape,
+                dtype="i",
+            )
 
-    @testing.numpy_cupy_equal(sp_name='sp')
+    @testing.numpy_cupy_equal(sp_name="sp")
     def test_conj(self, xp, sp):
         n = _make_complex(xp, sp, self.dtype)
         cupy.testing.assert_array_equal(n.conj().data, n.data.conj())
 
 
-@testing.parameterize(*testing.product({
-    'make_method': [
-        '_make', '_make_unordered', '_make_empty', '_make_duplicate',
-        '_make_shape'],
-    'dtype': [numpy.float32, numpy.float64, numpy.complex64, numpy.complex128],
-}))
-@testing.with_requires('scipy')
+@testing.parameterize(
+    *testing.product(
+        {
+            "make_method": [
+                "_make",
+                "_make_unordered",
+                "_make_empty",
+                "_make_duplicate",
+                "_make_shape",
+            ],
+            "dtype": [numpy.float32, numpy.float64, numpy.complex64, numpy.complex128],
+        }
+    )
+)
+@testing.with_requires("scipy")
 class TestCscMatrixScipyComparison:
 
     @pytest.fixture(autouse=True)
     def setUp(self):
-        if (sys.platform == 'win32' and
-                cupyx.cusparse.getVersion() == 11301 and
-                self.dtype == cupy.complex128):
-            pytest.xfail('Known to fail on CUDA 11.2 for Windows')
+        if (
+            sys.platform == "win32"
+            and cupyx.cusparse.getVersion() == 11301
+            and self.dtype == cupy.complex128
+        ):
+            pytest.xfail("Known to fail on CUDA 11.2 for Windows")
         if runtime.is_hip:
-            if self.make_method in ('_make_empty', '_make_shape'):
+            if self.make_method in ("_make_empty", "_make_shape"):
                 # xcsr2coo, xcsrgemm2Nnz, csrmm2, nnz_compress, ... could raise
                 # HIPSPARSE_STATUS_INVALID_VALUE, maybe because we have a zero
                 # matrix (nnz=0)?
-                pytest.xfail('may be buggy')
+                pytest.xfail("may be buggy")
 
     @property
     def make(self):
@@ -481,12 +493,12 @@ class TestCscMatrixScipyComparison:
             with pytest.raises(TypeError):
                 len(m)
 
-    @testing.numpy_cupy_array_equal(sp_name='sp')
+    @testing.numpy_cupy_array_equal(sp_name="sp")
     def test_asfptype(self, xp, sp):
         m = self.make(xp, sp, self.dtype)
         return m.asfptype()
 
-    @testing.numpy_cupy_allclose(sp_name='sp', contiguous_check=False)
+    @testing.numpy_cupy_allclose(sp_name="sp", contiguous_check=False)
     def test_toarray(self, xp, sp):
         m = self.make(xp, sp, self.dtype)
         a = m.toarray()
@@ -494,51 +506,51 @@ class TestCscMatrixScipyComparison:
             assert a.flags.c_contiguous
         return a
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_toarray_c_order(self, xp, sp):
         m = self.make(xp, sp, self.dtype)
-        a = m.toarray(order='C')
+        a = m.toarray(order="C")
         assert a.flags.c_contiguous
         return a
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_toarray_f_order(self, xp, sp):
         m = self.make(xp, sp, self.dtype)
-        a = m.toarray(order='F')
+        a = m.toarray(order="F")
         assert a.flags.f_contiguous
         return a
 
-    @testing.with_requires('numpy>=1.19')
+    @testing.with_requires("numpy>=1.19")
     def test_toarray_unknown_order(self):
         for xp, sp in ((numpy, scipy.sparse), (cupy, sparse)):
             m = self.make(xp, sp, self.dtype)
             with pytest.raises(ValueError):
-                m.toarray(order='#')
+                m.toarray(order="#")
 
-    @testing.with_requires('scipy<1.14')
-    @testing.numpy_cupy_allclose(sp_name='sp', contiguous_check=False)
+    @testing.with_requires("scipy<1.14")
+    @testing.numpy_cupy_allclose(sp_name="sp", contiguous_check=False)
     def test_A(self, xp, sp):
         m = self.make(xp, sp, self.dtype)
         return m.A
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_tocoo(self, xp, sp):
         m = self.make(xp, sp, self.dtype)
         return m.tocoo()
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_tocoo_copy(self, xp, sp):
         m = self.make(xp, sp, self.dtype)
         n = m.tocoo(copy=True)
         assert m.data is not n.data
         return n
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_tocsc(self, xp, sp):
         m = self.make(xp, sp, self.dtype)
         return m.tocsc()
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_tocsc_copy(self, xp, sp):
         m = self.make(xp, sp, self.dtype)
         n = m.tocsc(copy=True)
@@ -547,12 +559,12 @@ class TestCscMatrixScipyComparison:
         assert m.indptr is not n.indptr
         return n
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_tocsr(self, xp, sp):
         m = self.make(xp, sp, self.dtype)
         return m.tocsr()
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_tocsr_copy(self, xp, sp):
         m = self.make(xp, sp, self.dtype)
         n = m.tocsr(copy=True)
@@ -562,28 +574,32 @@ class TestCscMatrixScipyComparison:
         return n
 
     # dot
-    @testing.with_requires('scipy!=1.8.0')
-    @testing.numpy_cupy_allclose(sp_name='sp', _check_sparse_format=False)
+    @testing.with_requires("scipy!=1.8.0")
+    @testing.numpy_cupy_allclose(sp_name="sp", _check_sparse_format=False)
     def test_dot_scalar(self, xp, sp):
         m = _make(xp, sp, self.dtype)
         return m.dot(2.0)
 
-    @testing.with_requires('scipy!=1.8.0')
-    @testing.numpy_cupy_allclose(sp_name='sp', _check_sparse_format=False)
+    @testing.with_requires("scipy!=1.8.0")
+    @testing.numpy_cupy_allclose(sp_name="sp", _check_sparse_format=False)
     def test_dot_numpy_scalar(self, xp, sp):
         m = _make(xp, sp, self.dtype)
         return m.dot(numpy.dtype(self.dtype).type(2.0))
 
-    @pytest.mark.skipif(runtime.is_hip and driver.get_build_version() < 400,
-                        reason='no working implementation')
-    @testing.numpy_cupy_allclose(sp_name='sp', _check_sparse_format=False)
+    @pytest.mark.skipif(
+        runtime.is_hip and driver.get_build_version() < 400,
+        reason="no working implementation",
+    )
+    @testing.numpy_cupy_allclose(sp_name="sp", _check_sparse_format=False)
     def test_dot_csr(self, xp, sp):
         m = self.make(xp, sp, self.dtype)
         x = _make3(xp, sp, self.dtype)
         return m.dot(x)
 
-    @pytest.mark.skipif(runtime.is_hip and driver.get_build_version() < 400,
-                        reason='no working implementation')
+    @pytest.mark.skipif(
+        runtime.is_hip and driver.get_build_version() < 400,
+        reason="no working implementation",
+    )
     def test_dot_csr_invalid_shape(self):
         for xp, sp in ((numpy, scipy.sparse), (cupy, sparse)):
             m = self.make(xp, sp, self.dtype)
@@ -591,23 +607,27 @@ class TestCscMatrixScipyComparison:
             with pytest.raises(ValueError):
                 m.dot(x)
 
-    @pytest.mark.skipif(runtime.is_hip and driver.get_build_version() < 400,
-                        reason='no working implementation')
-    @testing.numpy_cupy_allclose(sp_name='sp', _check_sparse_format=False)
+    @pytest.mark.skipif(
+        runtime.is_hip and driver.get_build_version() < 400,
+        reason="no working implementation",
+    )
+    @testing.numpy_cupy_allclose(sp_name="sp", _check_sparse_format=False)
     def test_dot_csc(self, xp, sp):
         m = self.make(xp, sp, self.dtype)
         x = _make3(xp, sp, self.dtype).tocsc()
         return m.dot(x)
 
-    @pytest.mark.skipif(runtime.is_hip and driver.get_build_version() < 400,
-                        reason='no working implementation')
-    @testing.numpy_cupy_allclose(sp_name='sp', _check_sparse_format=False)
+    @pytest.mark.skipif(
+        runtime.is_hip and driver.get_build_version() < 400,
+        reason="no working implementation",
+    )
+    @testing.numpy_cupy_allclose(sp_name="sp", _check_sparse_format=False)
     def test_dot_sparse(self, xp, sp):
         m = self.make(xp, sp, self.dtype)
         x = _make3(xp, sp, self.dtype).tocoo()
         return m.dot(x)
 
-    @testing.with_requires('scipy>=1.8.0rc1')
+    @testing.with_requires("scipy>=1.8.0rc1")
     def test_dot_zero_dim(self):
         for xp, sp in ((numpy, scipy.sparse), (cupy, sparse)):
             m = self.make(xp, sp, self.dtype)
@@ -615,15 +635,15 @@ class TestCscMatrixScipyComparison:
             with pytest.raises(ValueError):
                 m.dot(x)
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_dot_dense_vector(self, xp, sp):
         if runtime.is_hip:
             HIP_version = driver.get_build_version()
             if HIP_version < 400:
-                pytest.skip('no working implementation')
+                pytest.skip("no working implementation")
             elif HIP_version < 5_00_00000:
                 # I got HIPSPARSE_STATUS_INTERNAL_ERROR...
-                pytest.xfail('spmv is buggy (trans=True)')
+                pytest.xfail("spmv is buggy (trans=True)")
 
         m = self.make(xp, sp, self.dtype)
         x = xp.arange(4).astype(self.dtype)
@@ -633,10 +653,10 @@ class TestCscMatrixScipyComparison:
         if runtime.is_hip:
             HIP_version = driver.get_build_version()
             if HIP_version < 400:
-                pytest.skip('no working implementation')
+                pytest.skip("no working implementation")
             elif HIP_version < 5_00_00000:
                 # I got HIPSPARSE_STATUS_INTERNAL_ERROR...
-                pytest.xfail('spmv is buggy (trans=True)')
+                pytest.xfail("spmv is buggy (trans=True)")
 
         for xp, sp in ((numpy, scipy.sparse), (cupy, sparse)):
             m = self.make(xp, sp, self.dtype)
@@ -644,22 +664,23 @@ class TestCscMatrixScipyComparison:
             with pytest.raises(ValueError):
                 m.dot(x)
 
-    @testing.numpy_cupy_allclose(sp_name='sp', contiguous_check=False)
+    @testing.numpy_cupy_allclose(sp_name="sp", contiguous_check=False)
     def test_dot_dense_matrix(self, xp, sp):
         if runtime.is_hip:
             if driver.get_build_version() < 400:
-                pytest.skip('no working implementation')
+                pytest.skip("no working implementation")
             # no idea what's wrong...
-            elif self.make_method in (
-                    '_make', '_make_unordered', '_make_duplicate'):
-                pytest.xfail('spMM raises HIPSPARSE_STATUS_INVALID_VALUE')
+            elif self.make_method in ("_make", "_make_unordered", "_make_duplicate"):
+                pytest.xfail("spMM raises HIPSPARSE_STATUS_INVALID_VALUE")
 
         m = self.make(xp, sp, self.dtype)
         x = xp.arange(8).reshape(4, 2).astype(self.dtype)
         return m.dot(x)
 
-    @pytest.mark.skipif(runtime.is_hip and driver.get_build_version() <= 400,
-                        reason='no working implementation')
+    @pytest.mark.skipif(
+        runtime.is_hip and driver.get_build_version() <= 400,
+        reason="no working implementation",
+    )
     def test_dot_dense_matrix_invalid_shape(self):
         for xp, sp in ((numpy, scipy.sparse), (cupy, sparse)):
             m = self.make(xp, sp, self.dtype)
@@ -681,7 +702,7 @@ class TestCscMatrixScipyComparison:
                 m.dot(None)
 
     # __add__
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_add_zero(self, xp, sp):
         m = self.make(xp, sp, self.dtype)
         return m + 0
@@ -692,26 +713,26 @@ class TestCscMatrixScipyComparison:
             with pytest.raises(NotImplementedError):
                 m + 1
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_add_csr(self, xp, sp):
         m = self.make(xp, sp, self.dtype)
         n = _make2(xp, sp, self.dtype)
         return m + n
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_add_coo(self, xp, sp):
         m = self.make(xp, sp, self.dtype)
         n = _make2(xp, sp, self.dtype).tocoo()
         return m + n
 
-    @testing.numpy_cupy_allclose(sp_name='sp', contiguous_check=False)
+    @testing.numpy_cupy_allclose(sp_name="sp", contiguous_check=False)
     def test_add_dense(self, xp, sp):
         m = self.make(xp, sp, self.dtype)
         n = xp.arange(12).reshape(3, 4)
         return m + n
 
     # __radd__
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_radd_zero(self, xp, sp):
         m = self.make(xp, sp, self.dtype)
         return 0 + m
@@ -722,14 +743,14 @@ class TestCscMatrixScipyComparison:
             with pytest.raises(NotImplementedError):
                 1 + m
 
-    @testing.numpy_cupy_allclose(sp_name='sp', contiguous_check=False)
+    @testing.numpy_cupy_allclose(sp_name="sp", contiguous_check=False)
     def test_radd_dense(self, xp, sp):
         m = self.make(xp, sp, self.dtype)
         n = xp.arange(12).reshape(3, 4)
         return n + m
 
     # __sub__
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_sub_zero(self, xp, sp):
         m = self.make(xp, sp, self.dtype)
         return m - 0
@@ -740,26 +761,26 @@ class TestCscMatrixScipyComparison:
             with pytest.raises(NotImplementedError):
                 m - 1
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_sub_csr(self, xp, sp):
         m = self.make(xp, sp, self.dtype)
         n = _make2(xp, sp, self.dtype)
         return m - n
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_sub_coo(self, xp, sp):
         m = self.make(xp, sp, self.dtype)
         n = _make2(xp, sp, self.dtype).tocoo()
         return m - n
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_sub_dense(self, xp, sp):
         m = self.make(xp, sp, self.dtype)
         n = xp.arange(12).reshape(3, 4)
         return m - n
 
     # __rsub__
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_rsub_zero(self, xp, sp):
         m = self.make(xp, sp, self.dtype)
         return 0 - m
@@ -770,76 +791,81 @@ class TestCscMatrixScipyComparison:
             with pytest.raises(NotImplementedError):
                 1 - m
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_rsub_dense(self, xp, sp):
         m = self.make(xp, sp, self.dtype)
         n = xp.arange(12).reshape(3, 4)
         return n - m
 
     # __mul__
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_mul_scalar(self, xp, sp):
         m = self.make(xp, sp, self.dtype)
         return m * 2.0
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_mul_numpy_scalar(self, xp, sp):
         m = self.make(xp, sp, self.dtype)
         return m * numpy.dtype(self.dtype).type(2.0)
 
-    @pytest.mark.skipif(runtime.is_hip and driver.get_build_version() < 400,
-                        reason='no working implementation')
-    @testing.numpy_cupy_allclose(sp_name='sp', _check_sparse_format=False)
+    @pytest.mark.skipif(
+        runtime.is_hip and driver.get_build_version() < 400,
+        reason="no working implementation",
+    )
+    @testing.numpy_cupy_allclose(sp_name="sp", _check_sparse_format=False)
     def test_mul_csr(self, xp, sp):
         m = self.make(xp, sp, self.dtype)
         x = _make3(xp, sp, self.dtype)
         return m * x
 
-    @pytest.mark.skipif(runtime.is_hip and driver.get_build_version() < 400,
-                        reason='no working implementation')
-    @testing.numpy_cupy_allclose(sp_name='sp', _check_sparse_format=False)
+    @pytest.mark.skipif(
+        runtime.is_hip and driver.get_build_version() < 400,
+        reason="no working implementation",
+    )
+    @testing.numpy_cupy_allclose(sp_name="sp", _check_sparse_format=False)
     def test_mul_csc(self, xp, sp):
         m = self.make(xp, sp, self.dtype)
         x = _make3(xp, sp, self.dtype).tocsc()
         return m * x
 
-    @pytest.mark.skipif(runtime.is_hip and driver.get_build_version() < 400,
-                        reason='no working implementation')
-    @testing.numpy_cupy_allclose(sp_name='sp', _check_sparse_format=False)
+    @pytest.mark.skipif(
+        runtime.is_hip and driver.get_build_version() < 400,
+        reason="no working implementation",
+    )
+    @testing.numpy_cupy_allclose(sp_name="sp", _check_sparse_format=False)
     def test_mul_sparse(self, xp, sp):
         m = self.make(xp, sp, self.dtype)
         x = _make3(xp, sp, self.dtype).tocoo()
         return m * x
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_mul_zero_dim(self, xp, sp):
         m = self.make(xp, sp, self.dtype)
         x = xp.array(2, dtype=self.dtype)
         return m * x
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_mul_dense_vector(self, xp, sp):
         if runtime.is_hip:
             HIP_version = driver.get_build_version()
             if HIP_version < 400:
-                pytest.skip('no working implementation')
+                pytest.skip("no working implementation")
             elif HIP_version < 5_00_00000:
                 # I got HIPSPARSE_STATUS_INTERNAL_ERROR...
-                pytest.xfail('spmv is buggy (trans=True)')
+                pytest.xfail("spmv is buggy (trans=True)")
 
         m = self.make(xp, sp, self.dtype)
         x = xp.arange(4).astype(self.dtype)
         return m * x
 
-    @testing.numpy_cupy_allclose(sp_name='sp', contiguous_check=False)
+    @testing.numpy_cupy_allclose(sp_name="sp", contiguous_check=False)
     def test_mul_dense_matrix(self, xp, sp):
         if runtime.is_hip:
             if driver.get_build_version() < 400:
-                pytest.skip('no working implementation')
+                pytest.skip("no working implementation")
             # no idea what's wrong...
-            elif self.make_method in (
-                    '_make', '_make_unordered', '_make_duplicate'):
-                pytest.xfail('spMM raises HIPSPARSE_STATUS_INVALID_VALUE')
+            elif self.make_method in ("_make", "_make_unordered", "_make_duplicate"):
+                pytest.xfail("spMM raises HIPSPARSE_STATUS_INVALID_VALUE")
 
         m = self.make(xp, sp, self.dtype)
         x = xp.arange(8).reshape(4, 2).astype(self.dtype)
@@ -859,47 +885,53 @@ class TestCscMatrixScipyComparison:
                 m * None
 
     # __rmul__
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_rmul_scalar(self, xp, sp):
         m = self.make(xp, sp, self.dtype)
         return 2.0 * m
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_rmul_numpy_scalar(self, xp, sp):
         m = self.make(xp, sp, self.dtype)
         return numpy.dtype(self.dtype).type(2.0) * m
 
-    @pytest.mark.skipif(runtime.is_hip and driver.get_build_version() < 400,
-                        reason='no working implementation')
-    @testing.numpy_cupy_allclose(sp_name='sp', _check_sparse_format=False)
+    @pytest.mark.skipif(
+        runtime.is_hip and driver.get_build_version() < 400,
+        reason="no working implementation",
+    )
+    @testing.numpy_cupy_allclose(sp_name="sp", _check_sparse_format=False)
     def test_rmul_csr(self, xp, sp):
         m = self.make(xp, sp, self.dtype)
         x = _make3(xp, sp, self.dtype)
         return x * m
 
-    @pytest.mark.skipif(runtime.is_hip and driver.get_build_version() < 400,
-                        reason='no working implementation')
-    @testing.numpy_cupy_allclose(sp_name='sp', _check_sparse_format=False)
+    @pytest.mark.skipif(
+        runtime.is_hip and driver.get_build_version() < 400,
+        reason="no working implementation",
+    )
+    @testing.numpy_cupy_allclose(sp_name="sp", _check_sparse_format=False)
     def test_rmul_csc(self, xp, sp):
         m = self.make(xp, sp, self.dtype)
         x = _make3(xp, sp, self.dtype).tocsc()
         return x * m
 
-    @pytest.mark.skipif(runtime.is_hip and driver.get_build_version() < 400,
-                        reason='no working implementation')
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @pytest.mark.skipif(
+        runtime.is_hip and driver.get_build_version() < 400,
+        reason="no working implementation",
+    )
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_rmul_sparse(self, xp, sp):
         m = self.make(xp, sp, self.dtype)
         x = _make3(xp, sp, self.dtype).tocoo()
         return x * m
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_rmul_zero_dim(self, xp, sp):
         m = self.make(xp, sp, self.dtype)
         x = xp.array(2, dtype=self.dtype)
         return x * m
 
-    @testing.numpy_cupy_allclose(sp_name='sp', contiguous_check=False)
+    @testing.numpy_cupy_allclose(sp_name="sp", contiguous_check=False)
     def test_rmul_dense_matrix(self, xp, sp):
         m = self.make(xp, sp, self.dtype)
         x = xp.arange(12).reshape(4, 3).astype(self.dtype)
@@ -913,11 +945,10 @@ class TestCscMatrixScipyComparison:
                 x * m
 
     def test_rmul_unsupported(self):
-        if (
-            numpy.lib.NumpyVersion(scipy.__version__) >= '1.8.0rc1' and
-            self.make_method not in ['_make_empty', '_make_shape']
-        ):
-            pytest.xfail('See scipy/15210')
+        if numpy.lib.NumpyVersion(
+            scipy.__version__
+        ) >= "1.8.0rc1" and self.make_method not in ["_make_empty", "_make_shape"]:
+            pytest.xfail("See scipy/15210")
         for xp, sp in ((numpy, scipy.sparse), (cupy, sparse)):
             m = self.make(xp, sp, self.dtype)
             # TODO(unno): When a sparse matrix has no element, scipy.sparse
@@ -956,20 +987,21 @@ class TestCscMatrixScipyComparison:
             with pytest.raises(ValueError):
                 x @ m
 
-    @testing.numpy_cupy_equal(sp_name='sp')
+    @testing.numpy_cupy_equal(sp_name="sp")
     def test_has_canonical_format(self, xp, sp):
         m = self.make(xp, sp, self.dtype)
         return m.has_canonical_format
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_has_canonical_format2(self, xp, sp):
         # this test is adopted from SciPy's
-        M = sp.csc_matrix((xp.array([2], dtype=self.dtype),
-                           xp.array([0]), xp.array([0, 1])))
+        M = sp.csc_matrix(
+            (xp.array([2], dtype=self.dtype), xp.array([0]), xp.array([0, 1]))
+        )
         assert M.has_canonical_format is True
         return M
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_has_canonical_format3(self, xp, sp):
         # this test is adopted from SciPy's
         indices = xp.array([0, 0])  # contains duplicate
@@ -985,7 +1017,7 @@ class TestCscMatrixScipyComparison:
         assert 1 == len(M.indices)
         return M
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_has_canonical_format4(self, xp, sp):
         # this test is adopted from SciPy's
         indices = xp.array([0, 0])  # contains duplicate
@@ -1003,21 +1035,21 @@ class TestCscMatrixScipyComparison:
         assert 2 == len(M.indices)  # unaffected content
         return M
 
-    @testing.with_requires('scipy>1.6.0')
-    @testing.numpy_cupy_equal(sp_name='sp')
+    @testing.with_requires("scipy>1.6.0")
+    @testing.numpy_cupy_equal(sp_name="sp")
     def test_has_sorted_indices(self, xp, sp):
         m = self.make(xp, sp, self.dtype)
         return m.has_sorted_indices
 
     # TODO(asi1024): Remove test after the fixed version is released.
     # https://github.com/scipy/scipy/pull/13426
-    @testing.with_requires('scipy<=1.6.0')
-    @testing.numpy_cupy_equal(sp_name='sp')
+    @testing.with_requires("scipy<=1.6.0")
+    @testing.numpy_cupy_equal(sp_name="sp")
     def test_has_sorted_indices_for_old_scipy(self, xp, sp):
         m = self.make(xp, sp, self.dtype)
         return bool(m.has_sorted_indices)
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_has_sorted_indices2(self, xp, sp):
         # this test is adopted from SciPy's
         sorted_inds = xp.array([0, 1])
@@ -1027,7 +1059,7 @@ class TestCscMatrixScipyComparison:
         assert M.has_sorted_indices
         return M
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_has_sorted_indices3(self, xp, sp):
         # this test is adopted from SciPy's
         sorted_inds = xp.array([0, 1])
@@ -1043,7 +1075,7 @@ class TestCscMatrixScipyComparison:
         assert (M.indices == sorted_inds).all()
         return M
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_has_sorted_indices4(self, xp, sp):
         # this test is adopted from SciPy's
         unsorted_inds = xp.array([1, 0])
@@ -1061,14 +1093,14 @@ class TestCscMatrixScipyComparison:
         assert (M.indices == unsorted_inds).all()
         return M
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_sort_indices(self, xp, sp):
         m = self.make(xp, sp, self.dtype)
         m.sort_indices()
         assert m.has_sorted_indices
         return m
 
-    @testing.numpy_cupy_allclose(sp_name='sp', contiguous_check=False)
+    @testing.numpy_cupy_allclose(sp_name="sp", contiguous_check=False)
     def test_sort_indices2(self, xp, sp):
         # 1. this test is adopted from SciPy's.
         # 2. we don't check the contiguity flag because SciPy and CuPy handle
@@ -1081,15 +1113,15 @@ class TestCscMatrixScipyComparison:
         assert (asp.indices == xp.array([1, 2, 7, 4, 5])).all()
         return asp.todense()
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_sorted_indices(self, xp, sp):
         m = self.make(xp, sp, self.dtype)
         m = m.sorted_indices()
         assert m.has_sorted_indices
         return m
 
-    @testing.with_requires('scipy>=1.16')
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.with_requires("scipy>=1.16")
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_sum_tuple_axis(self, xp, sp):
         m = self.make(xp, sp, self.dtype)
         return m.sum(axis=(0, 1))
@@ -1100,14 +1132,14 @@ class TestCscMatrixScipyComparison:
             with pytest.raises(ValueError):
                 m.sum(axis=3)
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_sum_duplicates(self, xp, sp):
         m = self.make(xp, sp, self.dtype)
         m.sum_duplicates()
         assert m.has_canonical_format
         return m
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_transpose(self, xp, sp):
         m = self.make(xp, sp, self.dtype)
         return m.transpose()
@@ -1118,28 +1150,33 @@ class TestCscMatrixScipyComparison:
             with pytest.raises(ValueError):
                 m.transpose(axes=0)
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_eliminate_zeros(self, xp, sp):
         m = self.make(xp, sp, self.dtype)
         m.eliminate_zeros()
         return m
 
-    @testing.numpy_cupy_equal(sp_name='sp')
+    @testing.numpy_cupy_equal(sp_name="sp")
     @pytest.mark.skipif(
         not runtime.is_hip and cupy.cuda.runtime.runtimeGetVersion() < 8000,
-        reason='CUDA <8 cannot keep number of non-zero entries ')
+        reason="CUDA <8 cannot keep number of non-zero entries ",
+    )
     def test_eliminate_zeros_nnz(self, xp, sp):
         m = self.make(xp, sp, self.dtype)
         m.eliminate_zeros()
         return m.nnz
 
 
-@testing.parameterize(*testing.product({
-    'dtype': [numpy.float32, numpy.float64],
-    'ret_dtype': [None, numpy.float32, numpy.float64],
-    'axis': [None, 0, 1, -1, -2],
-}))
-@testing.with_requires('scipy')
+@testing.parameterize(
+    *testing.product(
+        {
+            "dtype": [numpy.float32, numpy.float64],
+            "ret_dtype": [None, numpy.float32, numpy.float64],
+            "axis": [None, 0, 1, -1, -2],
+        }
+    )
+)
+@testing.with_requires("scipy")
 class TestCscMatrixSum:
 
     @pytest.fixture(autouse=True)
@@ -1147,17 +1184,17 @@ class TestCscMatrixSum:
         if runtime.is_hip and self.axis in (None, -1, 1):
             HIP_version = driver.get_build_version()
             if HIP_version < 400:
-                pytest.skip('no working implementation')
+                pytest.skip("no working implementation")
             elif HIP_version < 5_00_00000:
                 # I got HIPSPARSE_STATUS_INTERNAL_ERROR...
-                pytest.xfail('spmv is buggy (trans=True)')
+                pytest.xfail("spmv is buggy (trans=True)")
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_sum(self, xp, sp):
         m = _make(xp, sp, self.dtype)
         return m.sum(axis=self.axis, dtype=self.ret_dtype)
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_sum_with_out(self, xp, sp):
         m = _make(xp, sp, self.dtype)
         if self.axis is None:
@@ -1174,27 +1211,35 @@ class TestCscMatrixSum:
         return m.sum(axis=self.axis, dtype=self.ret_dtype, out=out)
 
 
-@testing.parameterize(*testing.product({
-    'dtype': [numpy.float32, numpy.float64, numpy.complex64, numpy.complex128],
-}))
-@testing.with_requires('scipy')
+@testing.parameterize(
+    *testing.product(
+        {
+            "dtype": [numpy.float32, numpy.float64, numpy.complex64, numpy.complex128],
+        }
+    )
+)
+@testing.with_requires("scipy")
 class TestCscMatrixScipyCompressed:
 
-    @testing.numpy_cupy_equal(sp_name='sp')
+    @testing.numpy_cupy_equal(sp_name="sp")
     def test_get_shape(self, xp, sp):
         return _make(xp, sp, self.dtype).get_shape()
 
-    @testing.numpy_cupy_equal(sp_name='sp')
+    @testing.numpy_cupy_equal(sp_name="sp")
     def test_getnnz(self, xp, sp):
         return _make(xp, sp, self.dtype).getnnz()
 
 
-@testing.parameterize(*testing.product({
-    # TODO(takagi): Test dtypes
-    'axis': [None, -2, -1, 0, 1],
-    'dense': [False, True],  # means a sparse matrix but all elements filled
-}))
-@testing.with_requires('scipy>=0.19.0')
+@testing.parameterize(
+    *testing.product(
+        {
+            # TODO(takagi): Test dtypes
+            "axis": [None, -2, -1, 0, 1],
+            "dense": [False, True],  # means a sparse matrix but all elements filled
+        }
+    )
+)
+@testing.with_requires("scipy>=0.19.0")
 class TestCscMatrixScipyCompressedMinMax:
 
     def _make_data_min(self, xp, sp, dense=False):
@@ -1248,12 +1293,12 @@ class TestCscMatrixScipyCompressedMinMax:
     def _make_data_max_explicit(self, xp, sp, axis):
         return -self._make_data_min_explicit(xp, sp, axis=axis)
 
-    @testing.numpy_cupy_array_equal(sp_name='sp')
+    @testing.numpy_cupy_array_equal(sp_name="sp")
     def test_min(self, xp, sp):
         data = self._make_data_min(xp, sp, dense=self.dense)
         return data.min(axis=self.axis)
 
-    @testing.numpy_cupy_array_equal(sp_name='sp')
+    @testing.numpy_cupy_array_equal(sp_name="sp")
     def test_min_explicit(self, xp, sp):
         data = self._make_data_min_explicit(xp, sp, axis=self.axis)
         if xp is cupy:
@@ -1261,12 +1306,12 @@ class TestCscMatrixScipyCompressedMinMax:
         else:
             return data.min(axis=self.axis)
 
-    @testing.numpy_cupy_array_equal(sp_name='sp')
+    @testing.numpy_cupy_array_equal(sp_name="sp")
     def test_max(self, xp, sp):
         data = self._make_data_max(xp, sp, dense=self.dense)
         return data.max(axis=self.axis)
 
-    @testing.numpy_cupy_array_equal(sp_name='sp')
+    @testing.numpy_cupy_array_equal(sp_name="sp")
     def test_max_explicit(self, xp, sp):
         data = self._make_data_max_explicit(xp, sp, axis=self.axis)
         if xp is cupy:
@@ -1274,7 +1319,7 @@ class TestCscMatrixScipyCompressedMinMax:
         else:
             return data.max(axis=self.axis)
 
-    @testing.numpy_cupy_array_equal(sp_name='sp', type_check=False)
+    @testing.numpy_cupy_array_equal(sp_name="sp", type_check=False)
     def test_argmin(self, xp, sp):
         data = self._make_data_min(xp, sp, dense=self.dense)
         # Due to a SciPy bug, the argmin output is different from the expected
@@ -1283,7 +1328,7 @@ class TestCscMatrixScipyCompressedMinMax:
             pytest.skip()
         return xp.array(data.argmin(axis=self.axis))
 
-    @testing.numpy_cupy_array_equal(sp_name='sp', type_check=False)
+    @testing.numpy_cupy_array_equal(sp_name="sp", type_check=False)
     def test_argmax(self, xp, sp):
         data = self._make_data_max(xp, sp, dense=self.dense)
         # Due to a SciPy bug, the argmin output is different from the expected
@@ -1293,123 +1338,145 @@ class TestCscMatrixScipyCompressedMinMax:
         return xp.array(data.argmax(axis=self.axis))
 
 
-@testing.parameterize(*testing.product({
-    'dtype': [numpy.float32, numpy.float64, numpy.complex64, numpy.complex128],
-}))
-@testing.with_requires('scipy')
+@testing.parameterize(
+    *testing.product(
+        {
+            "dtype": [numpy.float32, numpy.float64, numpy.complex64, numpy.complex128],
+        }
+    )
+)
+@testing.with_requires("scipy")
 class TestCscMatrixData:
 
-    @testing.numpy_cupy_equal(sp_name='sp')
+    @testing.numpy_cupy_equal(sp_name="sp")
     def test_dtype(self, xp, sp):
         return _make(xp, sp, self.dtype).dtype
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_abs(self, xp, sp):
         m = _make(xp, sp, self.dtype)
         return abs(m)
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_neg(self, xp, sp):
         m = _make(xp, sp, self.dtype)
-        return (-m)
+        return -m
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_astype(self, xp, sp):
         m = _make(xp, sp, self.dtype)
-        if numpy.dtype(self.dtype).kind == 'c':
-            t = 'D'
+        if numpy.dtype(self.dtype).kind == "c":
+            t = "D"
         else:
-            t = 'd'
+            t = "d"
         return m.astype(t)
 
-    @testing.numpy_cupy_equal(sp_name='sp')
+    @testing.numpy_cupy_equal(sp_name="sp")
     def test_count_nonzero(self, xp, sp):
         m = _make(xp, sp, self.dtype)
         return m.count_nonzero()
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_power(self, xp, sp):
         m = _make(xp, sp, self.dtype)
         return m.power(2)
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_power_with_dtype(self, xp, sp):
         m = _make(xp, sp, self.dtype)
-        if numpy.dtype(self.dtype).kind == 'c':
-            t = 'D'
+        if numpy.dtype(self.dtype).kind == "c":
+            t = "D"
         else:
-            t = 'd'
+            t = "d"
         return m.power(2, t)
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_mean_axis_None(self, xp, sp):
         if runtime.is_hip:
             HIP_version = driver.get_build_version()
             if HIP_version < 400:
-                pytest.skip('no working implementation')
+                pytest.skip("no working implementation")
             elif HIP_version < 5_00_00000:
                 # I got HIPSPARSE_STATUS_INTERNAL_ERROR...
-                pytest.xfail('spmv is buggy (trans=True)')
+                pytest.xfail("spmv is buggy (trans=True)")
 
         m = _make(xp, sp, self.dtype)
         return m.mean(axis=None)
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_mean_axis_0(self, xp, sp):
         m = _make(xp, sp, self.dtype)
         return m.mean(axis=0)
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_mean_axis_1(self, xp, sp):
         if runtime.is_hip:
             HIP_version = driver.get_build_version()
             if HIP_version < 400:
-                pytest.skip('no working implementation')
+                pytest.skip("no working implementation")
             elif HIP_version < 5_00_00000:
                 # I got HIPSPARSE_STATUS_INTERNAL_ERROR...
-                pytest.xfail('spmv is buggy (trans=True)')
+                pytest.xfail("spmv is buggy (trans=True)")
 
         m = _make(xp, sp, self.dtype)
         return m.mean(axis=1)
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_mean_axis_negative_1(self, xp, sp):
         if runtime.is_hip:
             HIP_version = driver.get_build_version()
             if HIP_version < 400:
-                pytest.skip('no working implementation')
+                pytest.skip("no working implementation")
             elif HIP_version < 5_00_00000:
                 # I got HIPSPARSE_STATUS_INTERNAL_ERROR...
-                pytest.xfail('spmv is buggy (trans=True)')
+                pytest.xfail("spmv is buggy (trans=True)")
 
         m = _make(xp, sp, self.dtype)
         return m.mean(axis=-1)
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_mean_axis_negative_2(self, xp, sp):
         m = _make(xp, sp, self.dtype)
         return m.mean(axis=-2)
 
 
-@testing.parameterize(*testing.product({
-    'dtype': [numpy.float32, numpy.float64, numpy.complex64, numpy.complex128],
-    'ufunc': [
-        'arcsin', 'arcsinh', 'arctan', 'arctanh', 'ceil', 'deg2rad', 'expm1',
-        'floor', 'log1p', 'rad2deg', 'rint', 'sign', 'sin', 'sinh', 'sqrt',
-        'tan', 'tanh', 'trunc',
-    ],
-}))
-@testing.with_requires('scipy')
+@testing.parameterize(
+    *testing.product(
+        {
+            "dtype": [numpy.float32, numpy.float64, numpy.complex64, numpy.complex128],
+            "ufunc": [
+                "arcsin",
+                "arcsinh",
+                "arctan",
+                "arctanh",
+                "ceil",
+                "deg2rad",
+                "expm1",
+                "floor",
+                "log1p",
+                "rad2deg",
+                "rint",
+                "sign",
+                "sin",
+                "sinh",
+                "sqrt",
+                "tan",
+                "tanh",
+                "trunc",
+            ],
+        }
+    )
+)
+@testing.with_requires("scipy")
 class TestUfunc:
 
-    @testing.numpy_cupy_allclose(sp_name='sp', atol=1e-5)
+    @testing.numpy_cupy_allclose(sp_name="sp", atol=1e-5)
     def test_ufun(self, xp, sp):
         x = _make(xp, sp, self.dtype)
         x.data *= 0.1
         func = getattr(x, self.ufunc)
-        complex_unsupported = {'ceil', 'deg2rad', 'floor', 'rad2deg', 'trunc'}
-        if (numpy.dtype(self.dtype).kind == 'c' and
-                self.ufunc in complex_unsupported):
+        complex_unsupported = {"ceil", "deg2rad", "floor", "rad2deg", "trunc"}
+        if numpy.dtype(self.dtype).kind == "c" and self.ufunc in complex_unsupported:
             with pytest.raises(TypeError):
                 func()
             return xp.array(0)
@@ -1421,36 +1488,40 @@ class TestIsspmatrixCsc:
 
     def test_csr(self):
         x = sparse.csr_matrix(
-            (cupy.array([], 'f'),
-             cupy.array([], 'i'),
-             cupy.array([0], 'i')),
-            shape=(0, 0), dtype='f')
+            (cupy.array([], "f"), cupy.array([], "i"), cupy.array([0], "i")),
+            shape=(0, 0),
+            dtype="f",
+        )
         assert not sparse.isspmatrix_csc(x)
 
     def test_csc(self):
         x = sparse.csc_matrix(
-            (cupy.array([], 'f'),
-             cupy.array([], 'i'),
-             cupy.array([0], 'i')),
-            shape=(0, 0), dtype='f')
+            (cupy.array([], "f"), cupy.array([], "i"), cupy.array([0], "i")),
+            shape=(0, 0),
+            dtype="f",
+        )
         assert sparse.isspmatrix_csc(x)
 
 
-@testing.parameterize(*testing.product({
-    'dtype': [numpy.float32, numpy.float64, numpy.complex64, numpy.complex128],
-}))
-@testing.with_requires('scipy>=1.4.0')
+@testing.parameterize(
+    *testing.product(
+        {
+            "dtype": [numpy.float32, numpy.float64, numpy.complex64, numpy.complex128],
+        }
+    )
+)
+@testing.with_requires("scipy>=1.4.0")
 class TestCsrMatrixGetitem:
 
-    @testing.numpy_cupy_equal(sp_name='sp')
+    @testing.numpy_cupy_equal(sp_name="sp")
     def test_getitem_int_int(self, xp, sp):
         assert _make(xp, sp, self.dtype)[0, 1] == 1
 
-    @testing.numpy_cupy_equal(sp_name='sp')
+    @testing.numpy_cupy_equal(sp_name="sp")
     def test_getitem_int_int_not_found(self, xp, sp):
         assert _make(xp, sp, self.dtype)[1, 1] == 0
 
-    @testing.numpy_cupy_equal(sp_name='sp')
+    @testing.numpy_cupy_equal(sp_name="sp")
     def test_getitem_int_int_negative(self, xp, sp):
         assert _make(xp, sp, self.dtype)[-1, -2] == 3
 
@@ -1474,11 +1545,11 @@ class TestCsrMatrixGetitem:
             with pytest.raises(IndexError):
                 _make(xp, sp, self.dtype)[0, 4]
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_getitem_int(self, xp, sp):
         return _make(xp, sp, self.dtype)[:, 1]
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_getitem_negative_int(self, xp, sp):
         return _make(xp, sp, self.dtype)[:, -1]
 
@@ -1492,27 +1563,27 @@ class TestCsrMatrixGetitem:
             with pytest.raises(IndexError):
                 _make(xp, sp, self.dtype)[:, 4]
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_getitem_slice(self, xp, sp):
         return _make(xp, sp, self.dtype)[:, 1:3]
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_getitem_slice_negative(self, xp, sp):
         return _make(xp, sp, self.dtype)[:, -2:-1]
 
     # SciPy prior to 1.4 has bugs where either an IndexError is raised or a
     # segfault occurs instead of returning an empty slice.
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_getitem_slice_start_larger_than_stop(self, xp, sp):
         return _make(xp, sp, self.dtype)[:, 3:2]
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_getitem_rowslice_all(self, xp, sp):
         # This test is adapted from Scipy's CSC tests
         return _make(xp, sp, self.dtype)[slice(None, None, None)]
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
-    @testing.with_requires('scipy>=1.9.3')
+    @testing.numpy_cupy_allclose(sp_name="sp")
+    @testing.with_requires("scipy>=1.9.3")
     def test_getitem_rowslice_negative_stop(self, xp, sp):
         # This test is adapted from Scipy's CSC tests
         return _make(xp, sp, self.dtype)[slice(1, -2, 2)]
@@ -1526,7 +1597,7 @@ class TestCsrMatrixGetitem:
         Xcsc = sparse.csc_matrix(X)
 
         for i in range(N):
-            arr_row = X[i:i + 1, :]
+            arr_row = X[i : i + 1, :]
             csc_row = Xcsc.getrow(i)
 
             assert sparse.isspmatrix_csr(csc_row)
@@ -1540,31 +1611,35 @@ class TestCsrMatrixGetitem:
         Xcsc = sparse.csc_matrix(X)
 
         for i in range(N):
-            arr_col = X[:, i:i + 1]
+            arr_col = X[:, i : i + 1]
             csc_col = Xcsc.getcol(i)
 
             assert sparse.isspmatrix_csc(csc_col)
             assert (arr_col == csc_col.toarray()).all()
 
 
-@testing.parameterize(*testing.product({
-    'dtype': [numpy.float32, numpy.float64, numpy.complex64, numpy.complex128],
-}))
-@testing.with_requires('scipy>=1.4.0')
+@testing.parameterize(
+    *testing.product(
+        {
+            "dtype": [numpy.float32, numpy.float64, numpy.complex64, numpy.complex128],
+        }
+    )
+)
+@testing.with_requires("scipy>=1.4.0")
 class TestCsrMatrixGetitem2:
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_getitem_slice_start_too_small(self, xp, sp):
         return _make(xp, sp, self.dtype)[:, -5:None]
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_getitem_slice_start_too_large(self, xp, sp):
         return _make(xp, sp, self.dtype)[:, 5:None]
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_getitem_slice_stop_too_small(self, xp, sp):
         return _make(xp, sp, self.dtype)[:, None:-5]
 
-    @testing.numpy_cupy_allclose(sp_name='sp')
+    @testing.numpy_cupy_allclose(sp_name="sp")
     def test_getitem_slice_stop_too_large(self, xp, sp):
         return _make(xp, sp, self.dtype)[:, None:5]

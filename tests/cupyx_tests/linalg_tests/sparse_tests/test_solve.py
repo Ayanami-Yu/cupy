@@ -4,6 +4,7 @@ import unittest
 
 import numpy
 import pytest
+
 try:
     import scipy.linalg
     import scipy.sparse
@@ -20,20 +21,25 @@ import cupyx
 import cupyx.scipy.sparse as sp
 
 
-@testing.parameterize(*testing.product({
-    'dtype': [numpy.float32, numpy.float64],
-}))
-@unittest.skipUnless(scipy_available, 'requires scipy')
+@testing.parameterize(
+    *testing.product(
+        {
+            "dtype": [numpy.float32, numpy.float64],
+        }
+    )
+)
+@unittest.skipUnless(scipy_available, "requires scipy")
 class TestLschol(unittest.TestCase):
 
     def setUp(self):
         rvs = scipy.stats.randint(0, 15).rvs
         self.A = scipy.sparse.random(
-            50, 50, density=0.2, data_rvs=rvs, dtype=self.dtype)
+            50, 50, density=0.2, data_rvs=rvs, dtype=self.dtype
+        )
         self.b = numpy.random.randint(5, size=50)
         # symmetric and positive definite
-        self.A = self.A.T*self.A + 10*scipy.sparse.eye(50)
-        self.b = self.A.T*self.b
+        self.A = self.A.T * self.A + 10 * scipy.sparse.eye(50)
+        self.b = self.A.T * self.b
         # initial scipy results by dense cholesky method.
         L = scipy.linalg.cho_factor(self.A.todense())
         self.x = scipy.linalg.cho_solve(L, self.b)

@@ -119,7 +119,7 @@ Still TODO in this module are:
 import sys
 
 if sys.version_info < (3, 8):
-    raise RuntimeError('cupy.array_api requires Python 3.8+')
+    raise RuntimeError("cupy.array_api requires Python 3.8+")
 
 
 import warnings
@@ -365,7 +365,16 @@ from ._manipulation_functions import (
     stack,
 )
 
-__all__ += ["concat", "expand_dims", "flip", "permute_dims", "reshape", "roll", "squeeze", "stack"]
+__all__ += [
+    "concat",
+    "expand_dims",
+    "flip",
+    "permute_dims",
+    "reshape",
+    "roll",
+    "squeeze",
+    "stack",
+]
 
 from ._searching_functions import argmax, argmin, nonzero, where
 

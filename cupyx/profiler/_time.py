@@ -10,7 +10,7 @@ from cupy_backends.cuda.api import runtime
 
 
 class _PerfCaseResult:
-    """ An obscure object encompassing timing results recorded by
+    """An obscure object encompassing timing results recorded by
     :func:`~cupyx.profiler.benchmark`. Simple statistics can be obtained by
     converting an instance of this class to a string.
 
@@ -29,7 +29,7 @@ class _PerfCaseResult:
         self._devices = devices
 
     def __repr__(self) -> str:
-        """ Returns a string representation of the object.
+        """Returns a string representation of the object.
 
         Returns:
             str: A string representation of the object.
@@ -62,29 +62,38 @@ class _PerfCaseResult:
         assert t.size > 0
         t_us = t * 1e6
 
-        s = '    {}: {:9.03f} us'.format(device_name, t_us.mean())
+        s = "    {}: {:9.03f} us".format(device_name, t_us.mean())
         if t.size > 1:
-            s += '   +/- {:6.03f} (min: {:9.03f} / max: {:9.03f}) us'.format(
-                t_us.std(), t_us.min(), t_us.max())
+            s += "   +/- {:6.03f} (min: {:9.03f} / max: {:9.03f}) us".format(
+                t_us.std(), t_us.min(), t_us.max()
+            )
         return s
 
     def to_str(self, show_gpu=False):
-        results = [self._to_str_per_item('CPU', self._ts[0])]
+        results = [self._to_str_per_item("CPU", self._ts[0])]
         if show_gpu:
             for i, d in enumerate(self._devices):
                 results.append(
-                    self._to_str_per_item('GPU-{}'.format(d),
-                                          self._ts[1 + i]))
-        return '{:<20s}:{}'.format(self.name, ' '.join(results))
+                    self._to_str_per_item("GPU-{}".format(d), self._ts[1 + i])
+                )
+        return "{:<20s}:{}".format(self.name, " ".join(results))
 
     def __str__(self):
         return self.to_str(show_gpu=True)
 
 
 def benchmark(
-        func, args=(), kwargs={}, n_repeat=10000, *,
-        name=None, n_warmup=10, max_duration=_math.inf, devices=None):
-    """ Timing utility for measuring time spent by both CPU and GPU.
+    func,
+    args=(),
+    kwargs={},
+    n_repeat=10000,
+    *,
+    name=None,
+    n_warmup=10,
+    max_duration=_math.inf,
+    devices=None,
+):
+    """Timing utility for measuring time spent by both CPU and GPU.
 
     This function is a very convenient helper for setting up a timing test. The
     GPU time is properly recorded by synchronizing internal streams. As a
@@ -136,28 +145,26 @@ def benchmark(
         devices = (_cupy.cuda.get_device_id(),)
 
     if not callable(func):
-        raise ValueError('`func` should be a callable object.')
+        raise ValueError("`func` should be a callable object.")
     if not isinstance(args, tuple):
-        raise ValueError('`args` should be of tuple type.')
+        raise ValueError("`args` should be of tuple type.")
     if not isinstance(kwargs, dict):
-        raise ValueError('`kwargs` should be of dict type.')
+        raise ValueError("`kwargs` should be of dict type.")
     if not isinstance(n_repeat, int):
-        raise ValueError('`n_repeat` should be an integer.')
+        raise ValueError("`n_repeat` should be an integer.")
     if not isinstance(name, str):
-        raise ValueError('`name` should be a string.')
+        raise ValueError("`name` should be a string.")
     if not isinstance(n_warmup, int):
-        raise ValueError('`n_warmup` should be an integer.')
+        raise ValueError("`n_warmup` should be an integer.")
     if not _numpy.isreal(max_duration):
-        raise ValueError('`max_duration` should be given in seconds')
+        raise ValueError("`max_duration` should be given in seconds")
     if not isinstance(devices, tuple):
-        raise ValueError('`devices` should be of tuple type')
+        raise ValueError("`devices` should be of tuple type")
 
-    return _repeat(
-        func, args, kwargs, n_repeat, name, n_warmup, max_duration, devices)
+    return _repeat(func, args, kwargs, n_repeat, name, n_warmup, max_duration, devices)
 
 
-def _repeat(
-        func, args, kwargs, n_repeat, name, n_warmup, max_duration, devices):
+def _repeat(func, args, kwargs, n_repeat, name, n_warmup, max_duration, devices):
 
     events_1 = []
     events_2 = []

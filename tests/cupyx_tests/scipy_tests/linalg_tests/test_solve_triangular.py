@@ -11,22 +11,27 @@ import pytest
 
 try:
     import scipy.linalg
+
     _scipy_available = True
 except ImportError:
     _scipy_available = False
 
 
-@testing.parameterize(*testing.product({
-    'trans': [0, 1, 2, 'N', 'T', 'C'],
-    'lower': [True, False],
-    'unit_diagonal': [True, False],
-    'overwrite_b': [True, False],
-    'check_finite': [True, False],
-}))
-@testing.with_requires('scipy')
+@testing.parameterize(
+    *testing.product(
+        {
+            "trans": [0, 1, 2, "N", "T", "C"],
+            "lower": [True, False],
+            "unit_diagonal": [True, False],
+            "overwrite_b": [True, False],
+            "check_finite": [True, False],
+        }
+    )
+)
+@testing.with_requires("scipy")
 class TestSolveTriangular(unittest.TestCase):
 
-    @testing.for_dtypes('fdFD')
+    @testing.for_dtypes("fdFD")
     def check_x(self, a_shape, b_shape, dtype):
         a_cpu = numpy.random.randint(1, 10, size=a_shape).astype(dtype)
         b_cpu = numpy.random.randint(1, 10, size=b_shape).astype(dtype)
@@ -42,13 +47,23 @@ class TestSolveTriangular(unittest.TestCase):
         a_gpu_copy = a_gpu.copy()
         b_gpu_copy = b_gpu.copy()
         result_cpu = scipy.linalg.solve_triangular(
-            a_cpu, b_cpu, trans=self.trans, lower=self.lower,
-            unit_diagonal=self.unit_diagonal, overwrite_b=self.overwrite_b,
-            check_finite=self.check_finite)
+            a_cpu,
+            b_cpu,
+            trans=self.trans,
+            lower=self.lower,
+            unit_diagonal=self.unit_diagonal,
+            overwrite_b=self.overwrite_b,
+            check_finite=self.check_finite,
+        )
         result_gpu = cupyx.scipy.linalg.solve_triangular(
-            a_gpu, b_gpu, trans=self.trans, lower=self.lower,
-            unit_diagonal=self.unit_diagonal, overwrite_b=self.overwrite_b,
-            check_finite=self.check_finite)
+            a_gpu,
+            b_gpu,
+            trans=self.trans,
+            lower=self.lower,
+            unit_diagonal=self.unit_diagonal,
+            overwrite_b=self.overwrite_b,
+            check_finite=self.check_finite,
+        )
         assert result_cpu.dtype == result_gpu.dtype
         cupy.testing.assert_allclose(result_cpu, result_gpu, atol=1e-3)
         cupy.testing.assert_array_equal(a_gpu_copy, a_gpu)
@@ -75,10 +90,14 @@ class TestSolveTriangular(unittest.TestCase):
             b = xp.random.rand(*b_shape)
             with pytest.raises(ValueError):
                 sp.linalg.solve_triangular(
-                    a, b, trans=self.trans, lower=self.lower,
+                    a,
+                    b,
+                    trans=self.trans,
+                    lower=self.lower,
                     unit_diagonal=self.unit_diagonal,
                     overwrite_b=self.overwrite_b,
-                    check_finite=self.check_finite)
+                    check_finite=self.check_finite,
+                )
 
     def test_invalid_shape(self):
         self.check_shape((2, 3), (4,))
@@ -95,10 +114,14 @@ class TestSolveTriangular(unittest.TestCase):
             b[(0,) * b.ndim] = numpy.inf
             with pytest.raises(ValueError):
                 sp.linalg.solve_triangular(
-                    a, b, trans=self.trans, lower=self.lower,
+                    a,
+                    b,
+                    trans=self.trans,
+                    lower=self.lower,
                     unit_diagonal=self.unit_diagonal,
                     overwrite_b=self.overwrite_b,
-                    check_finite=self.check_finite)
+                    check_finite=self.check_finite,
+                )
 
     def test_infinite(self):
         if self.check_finite:
@@ -106,7 +129,7 @@ class TestSolveTriangular(unittest.TestCase):
             self.check_infinite((5, 5), (5, 2))
             self.check_infinite((5, 5), (5, 5))
 
-    @testing.for_dtypes('fdFD')
+    @testing.for_dtypes("fdFD")
     def check_batched(self, a_shape, b_shape, dtype):
         a_cpu = numpy.random.randint(1, 10, size=a_shape).astype(dtype)
         b_cpu = numpy.random.randint(1, 10, size=b_shape).astype(dtype)
@@ -128,15 +151,25 @@ class TestSolveTriangular(unittest.TestCase):
         result_cpu = []
         for i in range(a_cpu.shape[0]):
             result_cpu_single = scipy.linalg.solve_triangular(
-                a_cpu[i], b_cpu[i], trans=self.trans, lower=self.lower,
-                unit_diagonal=self.unit_diagonal, overwrite_b=self.overwrite_b,
-                check_finite=self.check_finite)
+                a_cpu[i],
+                b_cpu[i],
+                trans=self.trans,
+                lower=self.lower,
+                unit_diagonal=self.unit_diagonal,
+                overwrite_b=self.overwrite_b,
+                check_finite=self.check_finite,
+            )
             result_cpu.append(result_cpu_single)
         result_cpu = numpy.array(result_cpu)
         result_gpu = cupyx.scipy.linalg.solve_triangular(
-            a_gpu, b_gpu, trans=self.trans, lower=self.lower,
-            unit_diagonal=self.unit_diagonal, overwrite_b=self.overwrite_b,
-            check_finite=self.check_finite)
+            a_gpu,
+            b_gpu,
+            trans=self.trans,
+            lower=self.lower,
+            unit_diagonal=self.unit_diagonal,
+            overwrite_b=self.overwrite_b,
+            check_finite=self.check_finite,
+        )
         assert result_cpu.dtype == result_gpu.dtype
         cupy.testing.assert_allclose(result_cpu, result_gpu, atol=1e-3)
         cupy.testing.assert_array_equal(a_gpu_copy, a_gpu)

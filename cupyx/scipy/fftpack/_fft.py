@@ -4,14 +4,19 @@ from numpy import prod
 
 import cupy
 from cupy.fft import config
-from cupy.fft._fft import (_convert_fft_type, _default_fft_func, _fft,
-                           _get_cufft_plan_nd, _get_fftn_out_size,
-                           _output_dtype)
+from cupy.fft._fft import (
+    _convert_fft_type,
+    _default_fft_func,
+    _fft,
+    _get_cufft_plan_nd,
+    _get_fftn_out_size,
+    _output_dtype,
+)
 from cupy.fft._cache import get_plan_cache
 
 
-def get_fft_plan(a, shape=None, axes=None, value_type='C2C'):
-    """ Generate a CUDA FFT plan for transforming up to three axes.
+def get_fft_plan(a, shape=None, axes=None, value_type="C2C"):
+    """Generate a CUDA FFT plan for transforming up to three axes.
 
     Args:
         a (cupy.ndarray): Array to be transform, assumed to be either C- or
@@ -68,18 +73,18 @@ def get_fft_plan(a, shape=None, axes=None, value_type='C2C'):
 
     # check input array
     if a.flags.c_contiguous:
-        order = 'C'
+        order = "C"
     elif a.flags.f_contiguous:
-        order = 'F'
+        order = "F"
     else:
-        raise ValueError('Input array a must be contiguous')
+        raise ValueError("Input array a must be contiguous")
 
     if isinstance(shape, int):
         shape = (shape,)
     if isinstance(axes, int):
         axes = (axes,)
     if (shape is not None) and (axes is not None) and len(shape) != len(axes):
-        raise ValueError('Shape and axes have different lengths.')
+        raise ValueError("Shape and axes have different lengths.")
 
     # check axes
     # n=1: 1d (need axis1D); n>1: Nd
@@ -93,11 +98,13 @@ def get_fft_plan(a, shape=None, axes=None, value_type='C2C'):
         if n == 1:
             axis1D = axes[0]
             if axis1D >= a.ndim or axis1D < -a.ndim:
-                err = 'The chosen axis ({}) exceeds the number of '\
-                      'dimensions of a ({})'.format(axis1D, a.ndim)
+                err = (
+                    "The chosen axis ({}) exceeds the number of "
+                    "dimensions of a ({})".format(axis1D, a.ndim)
+                )
                 raise ValueError(err)
         elif n > 3:
-            raise ValueError('Only up to three axes is supported')
+            raise ValueError("Only up to three axes is supported")
 
     # Note that "shape" here refers to the shape along transformed axes, not
     # the shape of the output array, and we need to convert it to the latter.
@@ -108,7 +115,7 @@ def get_fft_plan(a, shape=None, axes=None, value_type='C2C'):
     if transformed_shape is not None:
         for s, axis in zip(transformed_shape, axes):
             if s is not None:
-                if axis == axes[-1] and value_type == 'C2R':
+                if axis == axes[-1] and value_type == "C2R":
                     s = s // 2 + 1
                 shape[axis] = s
     shape = tuple(shape)
@@ -117,27 +124,25 @@ def get_fft_plan(a, shape=None, axes=None, value_type='C2C'):
     out_dtype = _output_dtype(a.dtype, value_type)
     fft_type = _convert_fft_type(out_dtype, value_type)
     # TODO(leofang): figure out if we really have to skip F-order?
-    if n > 1 and value_type != 'C2C' and a.flags.f_contiguous:
-        raise ValueError('C2R/R2C PlanNd for F-order arrays is not supported')
+    if n > 1 and value_type != "C2C" and a.flags.f_contiguous:
+        raise ValueError("C2R/R2C PlanNd for F-order arrays is not supported")
 
     # generate plan
     # (load from cache if it exists, otherwise create one but don't cache it)
     if n > 1:  # ND transform
-        if cupy.cuda.runtime.is_hip and value_type == 'C2R':
+        if cupy.cuda.runtime.is_hip and value_type == "C2R":
             raise RuntimeError("hipFFT's C2R PlanNd is buggy and unsupported")
-        out_size = _get_fftn_out_size(
-            shape, transformed_shape, axes[-1], value_type)
+        out_size = _get_fftn_out_size(shape, transformed_shape, axes[-1], value_type)
         # _get_cufft_plan_nd interacts with plan cache and callback
         plan = _get_cufft_plan_nd(
-            shape, fft_type, axes=axes, order=order, out_size=out_size,
-            to_cache=False)
+            shape, fft_type, axes=axes, order=order, out_size=out_size, to_cache=False
+        )
     else:  # 1D transform
         # prepare plan arguments
-        if value_type != 'C2R':
+        if value_type != "C2R":
             out_size = shape[axis1D]
         else:
-            out_size = _get_fftn_out_size(
-                shape, transformed_shape, axis1D, value_type)
+            out_size = _get_fftn_out_size(shape, transformed_shape, axis1D, value_type)
         batch = prod(shape) // shape[axis1D]
         devices = None if not config.use_multi_gpus else config._devices
 
@@ -149,9 +154,12 @@ def get_fft_plan(a, shape=None, axes=None, value_type='C2C'):
             # still generated from the same external Python module
             load_aux = mgr.cb_load_aux_arr
             store_aux = mgr.cb_store_aux_arr
-            keys += (mgr.cb_load, mgr.cb_store,
-                     0 if load_aux is None else load_aux.data.ptr,
-                     0 if store_aux is None else store_aux.data.ptr)
+            keys += (
+                mgr.cb_load,
+                mgr.cb_store,
+                0 if load_aux is None else load_aux.data.ptr,
+                0 if store_aux is None else store_aux.data.ptr,
+            )
         cache = get_plan_cache()
         cached_plan = cache.get(keys)
         if cached_plan is not None:
@@ -161,9 +169,10 @@ def get_fft_plan(a, shape=None, axes=None, value_type='C2C'):
         else:  # has callback
             # TODO(leofang): support multi-GPU callback (devices is ignored)
             if devices:
-                raise NotImplementedError('multi-GPU cuFFT callbacks are not '
-                                          'yet supported')
-            plan = mgr.create_plan(('Plan1d', keys[:-3]))
+                raise NotImplementedError(
+                    "multi-GPU cuFFT callbacks are not " "yet supported"
+                )
+            plan = mgr.create_plan(("Plan1d", keys[:-3]))
             mgr.set_callbacks(plan)
 
     return plan
@@ -199,8 +208,10 @@ def fft(x, n=None, axis=-1, overwrite_x=False, plan=None):
     .. seealso:: :func:`scipy.fftpack.fft`
     """
     from cupy.cuda import cufft
-    return _fft(x, (n,), (axis,), None, cufft.CUFFT_FORWARD,
-                overwrite_x=overwrite_x, plan=plan)
+
+    return _fft(
+        x, (n,), (axis,), None, cufft.CUFFT_FORWARD, overwrite_x=overwrite_x, plan=plan
+    )
 
 
 def ifft(x, n=None, axis=-1, overwrite_x=False, plan=None):
@@ -233,8 +244,10 @@ def ifft(x, n=None, axis=-1, overwrite_x=False, plan=None):
     .. seealso:: :func:`scipy.fftpack.ifft`
     """
     from cupy.cuda import cufft
-    return _fft(x, (n,), (axis,), None, cufft.CUFFT_INVERSE,
-                overwrite_x=overwrite_x, plan=plan)
+
+    return _fft(
+        x, (n,), (axis,), None, cufft.CUFFT_INVERSE, overwrite_x=overwrite_x, plan=plan
+    )
 
 
 def fft2(x, shape=None, axes=(-2, -1), overwrite_x=False, plan=None):
@@ -271,8 +284,9 @@ def fft2(x, shape=None, axes=(-2, -1), overwrite_x=False, plan=None):
     from cupy.cuda import cufft
 
     func = _default_fft_func(x, shape, axes, plan)
-    return func(x, shape, axes, None, cufft.CUFFT_FORWARD,
-                overwrite_x=overwrite_x, plan=plan)
+    return func(
+        x, shape, axes, None, cufft.CUFFT_FORWARD, overwrite_x=overwrite_x, plan=plan
+    )
 
 
 def ifft2(x, shape=None, axes=(-2, -1), overwrite_x=False, plan=None):
@@ -309,8 +323,9 @@ def ifft2(x, shape=None, axes=(-2, -1), overwrite_x=False, plan=None):
     from cupy.cuda import cufft
 
     func = _default_fft_func(x, shape, axes, plan)
-    return func(x, shape, axes, None, cufft.CUFFT_INVERSE,
-                overwrite_x=overwrite_x, plan=plan)
+    return func(
+        x, shape, axes, None, cufft.CUFFT_INVERSE, overwrite_x=overwrite_x, plan=plan
+    )
 
 
 def fftn(x, shape=None, axes=None, overwrite_x=False, plan=None):
@@ -347,8 +362,9 @@ def fftn(x, shape=None, axes=None, overwrite_x=False, plan=None):
     from cupy.cuda import cufft
 
     func = _default_fft_func(x, shape, axes, plan)
-    return func(x, shape, axes, None, cufft.CUFFT_FORWARD,
-                overwrite_x=overwrite_x, plan=plan)
+    return func(
+        x, shape, axes, None, cufft.CUFFT_FORWARD, overwrite_x=overwrite_x, plan=plan
+    )
 
 
 def ifftn(x, shape=None, axes=None, overwrite_x=False, plan=None):
@@ -385,8 +401,9 @@ def ifftn(x, shape=None, axes=None, overwrite_x=False, plan=None):
     from cupy.cuda import cufft
 
     func = _default_fft_func(x, shape, axes, plan)
-    return func(x, shape, axes, None, cufft.CUFFT_INVERSE,
-                overwrite_x=overwrite_x, plan=plan)
+    return func(
+        x, shape, axes, None, cufft.CUFFT_INVERSE, overwrite_x=overwrite_x, plan=plan
+    )
 
 
 def rfft(x, n=None, axis=-1, overwrite_x=False, plan=None):
@@ -434,8 +451,16 @@ def rfft(x, n=None, axis=-1, overwrite_x=False, plan=None):
 
     shape = list(x.shape)
     shape[axis] = n
-    f = _fft(x, (n,), (axis,), None, cufft.CUFFT_FORWARD, 'R2C',
-             overwrite_x=overwrite_x, plan=plan)
+    f = _fft(
+        x,
+        (n,),
+        (axis,),
+        None,
+        cufft.CUFFT_FORWARD,
+        "R2C",
+        overwrite_x=overwrite_x,
+        plan=plan,
+    )
     z = cupy.empty(shape, f.real.dtype)
 
     slice_z = [slice(None)] * x.ndim
@@ -506,5 +531,6 @@ def irfft(x, n=None, axis=-1, overwrite_x=False):
     slice_z[axis] = slice(1, (m + 1) // 2)
     z[tuple(slice_z)].imag = x[tuple(slice_x)]
 
-    return _fft(z, (n,), (axis,), None, cufft.CUFFT_INVERSE, 'C2R',
-                overwrite_x=overwrite_x)
+    return _fft(
+        z, (n,), (axis,), None, cufft.CUFFT_INVERSE, "C2R", overwrite_x=overwrite_x
+    )

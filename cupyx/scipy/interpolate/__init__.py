@@ -8,19 +8,22 @@ from cupyx.scipy.interpolate._polyint import krogh_interpolate  # NOQA
 from cupyx.scipy.interpolate._polyint import interp1d  # NOQA
 from cupyx.scipy.interpolate._interpolate import PPoly, BPoly, NdPPoly  # NOQA
 from cupyx.scipy.interpolate._cubic import (  # NOQA
-    CubicHermiteSpline, PchipInterpolator, pchip_interpolate,  # NOQA
-    Akima1DInterpolator, CubicSpline)  # NOQA
+    CubicHermiteSpline,
+    PchipInterpolator,
+    pchip_interpolate,  # NOQA
+    Akima1DInterpolator,
+    CubicSpline,
+)  # NOQA
 
 # Multivariate interpolation
 from cupyx.scipy.interpolate._interpnd import LinearNDInterpolator  # NOQA
-from cupyx.scipy.interpolate._interpnd import (  # NOQA
-    CloughTocher2DInterpolator)  # NOQA
+from cupyx.scipy.interpolate._interpnd import CloughTocher2DInterpolator  # NOQA  # NOQA
 from cupyx.scipy.interpolate._ndgriddata import NearestNDInterpolator  # NOQA
 
 # 1-D Splines
 from cupyx.scipy.interpolate._bspline import BSpline, splantider, splder  # NOQA
 from cupyx.scipy.interpolate._bspline2 import make_interp_spline  # NOQA
-from cupyx.scipy.interpolate._bspline2 import make_lsq_spline    # NOQA
+from cupyx.scipy.interpolate._bspline2 import make_lsq_spline  # NOQA
 
 # Multivariate interpolation
 from cupyx.scipy.interpolate._ndbspline import NdBSpline  # NOQA
@@ -34,6 +37,6 @@ from cupyx.scipy.interpolate._rgi import interpn  # NOQA
 pchip = PchipInterpolator  # NOQA
 
 # FITPACK smoothing splines
-from cupyx.scipy.interpolate._fitpack_repro import UnivariateSpline   # NOQA
-from cupyx.scipy.interpolate._fitpack_repro import InterpolatedUnivariateSpline   # NOQA
-from cupyx.scipy.interpolate._fitpack_repro import LSQUnivariateSpline   # NOQA
+from cupyx.scipy.interpolate._fitpack_repro import UnivariateSpline  # NOQA
+from cupyx.scipy.interpolate._fitpack_repro import InterpolatedUnivariateSpline  # NOQA
+from cupyx.scipy.interpolate._fitpack_repro import LSQUnivariateSpline  # NOQA

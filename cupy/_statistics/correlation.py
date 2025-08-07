@@ -32,8 +32,9 @@ def corrcoef(a, y=None, rowvar=True, bias=None, ddof=None, *, dtype=None):
 
     """
     if bias is not None or ddof is not None:
-        warnings.warn('bias and ddof have no effect and are deprecated',
-                      DeprecationWarning)
+        warnings.warn(
+            "bias and ddof have no effect and are deprecated", DeprecationWarning
+        )
 
     out = cov(a, y, rowvar, dtype=dtype)
     try:
@@ -52,7 +53,7 @@ def corrcoef(a, y=None, rowvar=True, bias=None, ddof=None, *, dtype=None):
     return out
 
 
-def correlate(a, v, mode='valid'):
+def correlate(a, v, mode="valid"):
     """Returns the cross-correlation of two 1-dimensional sequences.
 
     Args:
@@ -67,23 +68,32 @@ def correlate(a, v, mode='valid'):
 
     """
     if a.size == 0 or v.size == 0:
-        raise ValueError('Array arguments cannot be empty')
+        raise ValueError("Array arguments cannot be empty")
     if a.ndim != 1 or v.ndim != 1:
-        raise ValueError('object too deep for desired array')
+        raise ValueError("object too deep for desired array")
     # choose_conv_method does not choose from the values in
     # the input array, so no need to apply conj.
     method = cupy._math.misc._choose_conv_method(a, v, mode)
-    if method == 'direct':
+    if method == "direct":
         out = cupy._math.misc._dot_convolve(a, v.conj()[::-1], mode)
-    elif method == 'fft':
+    elif method == "fft":
         out = cupy._math.misc._fft_convolve(a, v.conj()[::-1], mode)
     else:
-        raise ValueError('Unsupported method')
+        raise ValueError("Unsupported method")
     return out
 
 
-def cov(a, y=None, rowvar=True, bias=False, ddof=None,
-        fweights=None, aweights=None, *, dtype=None):
+def cov(
+    a,
+    y=None,
+    rowvar=True,
+    bias=False,
+    ddof=None,
+    fweights=None,
+    aweights=None,
+    *,
+    dtype=None,
+):
     """Returns the covariance matrix of an array.
 
     This function currently does not support ``fweights`` and ``aweights``
@@ -123,20 +133,19 @@ def cov(a, y=None, rowvar=True, bias=False, ddof=None,
 
     """
     if ddof is not None and ddof != int(ddof):
-        raise ValueError('ddof must be integer')
+        raise ValueError("ddof must be integer")
 
     if a.ndim > 2:
-        raise ValueError('Input must be <= 2-d')
+        raise ValueError("Input must be <= 2-d")
 
     if dtype is None:
         if y is None:
             dtype = numpy.promote_types(a.dtype, numpy.float64)
         else:
             if y.ndim > 2:
-                raise ValueError('y must be <= 2-d')
+                raise ValueError("y must be <= 2-d")
             dtype = functools.reduce(
-                numpy.promote_types,
-                (a.dtype, y.dtype, numpy.float64)
+                numpy.promote_types, (a.dtype, y.dtype, numpy.float64)
             )
 
     X = cupy.array(a, ndmin=2, dtype=dtype)
@@ -156,31 +165,24 @@ def cov(a, y=None, rowvar=True, bias=False, ddof=None,
     w = None
     if fweights is not None:
         if not isinstance(fweights, cupy.ndarray):
-            raise TypeError(
-                "fweights must be a cupy.ndarray")
-        if fweights.dtype.char not in 'bBhHiIlLqQ':
-            raise TypeError(
-                "fweights must be integer")
+            raise TypeError("fweights must be a cupy.ndarray")
+        if fweights.dtype.char not in "bBhHiIlLqQ":
+            raise TypeError("fweights must be integer")
         fweights = fweights.astype(dtype=float)
         if fweights.ndim > 1:
-            raise RuntimeError(
-                "cannot handle multidimensional fweights")
+            raise RuntimeError("cannot handle multidimensional fweights")
         if fweights.shape[0] != X.shape[1]:
-            raise RuntimeError(
-                "incompatible numbers of samples and fweights")
+            raise RuntimeError("incompatible numbers of samples and fweights")
         w = fweights
 
     if aweights is not None:
         if not isinstance(aweights, cupy.ndarray):
-            raise TypeError(
-                "aweights must be a cupy.ndarray")
+            raise TypeError("aweights must be a cupy.ndarray")
         aweights = aweights.astype(dtype=float)
         if aweights.ndim > 1:
-            raise RuntimeError(
-                "cannot handle multidimensional aweights")
+            raise RuntimeError("cannot handle multidimensional aweights")
         if aweights.shape[0] != X.shape[1]:
-            raise RuntimeError(
-                "incompatible numbers of samples and aweights")
+            raise RuntimeError("incompatible numbers of samples and aweights")
         if w is None:
             w = aweights
         else:
@@ -197,11 +199,10 @@ def cov(a, y=None, rowvar=True, bias=False, ddof=None,
     elif aweights is None:
         fact = w_sum - ddof
     else:
-        fact = w_sum - ddof * sum(w*aweights) / w_sum
+        fact = w_sum - ddof * sum(w * aweights) / w_sum
 
     if fact <= 0:
-        warnings.warn('Degrees of freedom <= 0 for slice',
-                      RuntimeWarning, stacklevel=2)
+        warnings.warn("Degrees of freedom <= 0 for slice", RuntimeWarning, stacklevel=2)
         fact = 0.0
 
     X -= X.mean(axis=1)[:, None]

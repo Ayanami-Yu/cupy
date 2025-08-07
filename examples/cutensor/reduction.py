@@ -11,10 +11,10 @@ import cupyx.time
 
 dtype = numpy.float32
 
-mode_a = ('m', 'h', 'k', 'v')
-mode_c = ('m', 'v')
+mode_a = ("m", "h", "k", "v")
+mode_c = ("m", "v")
 
-extent = {'m': 196, 'h': 256, 'k': 64, 'v': 64}
+extent = {"m": 196, "h": 256, "k": 64, "v": 64}
 
 a = cupy.random.random([extent[i] for i in mode_a])
 c = cupy.random.random([extent[i] for i in mode_c])
@@ -25,9 +25,8 @@ alpha = 1.0
 beta = 0.1
 
 perf = cupyx.time.repeat(
-    cutensor.reduction,
-    (alpha, a, mode_a, beta, c, mode_c),
-    n_warmup=1, n_repeat=5)
+    cutensor.reduction, (alpha, a, mode_a, beta, c, mode_c), n_warmup=1, n_repeat=5
+)
 
 transfer_byte = a.size * a.itemsize + c.size * c.itemsize
 if beta != 0.0:
@@ -35,6 +34,6 @@ if beta != 0.0:
 elapsed = perf.gpu_times.mean()
 gbs = transfer_byte / elapsed / 1e9
 
-print('dtype: {}'.format(numpy.dtype(dtype).name))
+print("dtype: {}".format(numpy.dtype(dtype).name))
 print(perf)
-print('effective memory bandwidth (GB/s): {}'.format(gbs))
+print("effective memory bandwidth (GB/s): {}".format(gbs))

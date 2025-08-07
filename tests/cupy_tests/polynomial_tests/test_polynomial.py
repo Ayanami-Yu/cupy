@@ -36,7 +36,7 @@ class TestPolynomial(unittest.TestCase):
             with pytest.raises(ValueError):
                 xp.polynomial.polynomial.polyvander(a, -3)
 
-    @testing.with_requires('numpy>=1.17')
+    @testing.with_requires("numpy>=1.17")
     @testing.for_all_dtypes()
     def test_polyvander_non_integral_float_degree(self, dtype):
         for xp in (numpy, cupy):
@@ -44,7 +44,7 @@ class TestPolynomial(unittest.TestCase):
             with pytest.raises(TypeError):
                 xp.polynomial.polynomial.polyvander(a, 2.6)
 
-    @testing.with_requires('numpy>=2.0')
+    @testing.with_requires("numpy>=2.0")
     @testing.for_all_dtypes(no_float16=True)
     def test_polyvander_integral_float_degree(self, dtype):
         for xp in (numpy, cupy):

@@ -23,8 +23,8 @@ def _syevd(a, UPLO, with_eigen_vector, overwrite_a=False):
     from cupy_backends.cuda.libs import cublas
     from cupy_backends.cuda.libs import cusolver
 
-    if UPLO not in ('L', 'U'):
-        raise ValueError('UPLO argument must be \'L\' or \'U\'')
+    if UPLO not in ("L", "U"):
+        raise ValueError("UPLO argument must be 'L' or 'U'")
 
     # reject_float16=False for backward compatibility
     dtype, v_dtype = _util.linalg_common_type(a, reject_float16=False)
@@ -32,7 +32,7 @@ def _syevd(a, UPLO, with_eigen_vector, overwrite_a=False):
     w_dtype = v_dtype.char.lower()
 
     # Note that cuSolver assumes fortran array
-    v = a.astype(dtype, order='F', copy=not overwrite_a)
+    v = a.astype(dtype, order="F", copy=not overwrite_a)
 
     m, lda = a.shape
     w = cupy.empty(m, real_dtype)
@@ -44,7 +44,7 @@ def _syevd(a, UPLO, with_eigen_vector, overwrite_a=False):
     else:
         jobz = cusolver.CUSOLVER_EIG_MODE_NOVECTOR
 
-    if UPLO == 'L':
+    if UPLO == "L":
         uplo = cublas.CUBLAS_FILL_MODE_LOWER
     else:  # UPLO == 'U'
         uplo = cublas.CUBLAS_FILL_MODE_UPPER
@@ -56,52 +56,87 @@ def _syevd(a, UPLO, with_eigen_vector, overwrite_a=False):
         params = cusolver.createParams()
         try:
             work_device_size, work_host_sizse = cusolver.xsyevd_bufferSize(
-                handle, params, jobz, uplo, m, type_v, v.data.ptr, lda,
-                type_w, w.data.ptr, type_v)
-            work_device = cupy.empty(work_device_size, 'b')
-            work_host = numpy.empty(work_host_sizse, 'b')
+                handle,
+                params,
+                jobz,
+                uplo,
+                m,
+                type_v,
+                v.data.ptr,
+                lda,
+                type_w,
+                w.data.ptr,
+                type_v,
+            )
+            work_device = cupy.empty(work_device_size, "b")
+            work_host = numpy.empty(work_host_sizse, "b")
             cusolver.xsyevd(
-                handle, params, jobz, uplo, m, type_v, v.data.ptr, lda,
-                type_w, w.data.ptr, type_v,
-                work_device.data.ptr, work_device_size,
-                work_host.ctypes.data, work_host_sizse, dev_info.data.ptr)
+                handle,
+                params,
+                jobz,
+                uplo,
+                m,
+                type_v,
+                v.data.ptr,
+                lda,
+                type_w,
+                w.data.ptr,
+                type_v,
+                work_device.data.ptr,
+                work_device_size,
+                work_host.ctypes.data,
+                work_host_sizse,
+                dev_info.data.ptr,
+            )
         finally:
             cusolver.destroyParams(params)
         cupy.linalg._util._check_cusolver_dev_info_if_synchronization_allowed(
-            cusolver.xsyevd, dev_info)
+            cusolver.xsyevd, dev_info
+        )
     else:
-        if dtype == 'f':
+        if dtype == "f":
             buffer_size = cusolver.ssyevd_bufferSize
             syevd = cusolver.ssyevd
-        elif dtype == 'd':
+        elif dtype == "d":
             buffer_size = cusolver.dsyevd_bufferSize
             syevd = cusolver.dsyevd
-        elif dtype == 'F':
+        elif dtype == "F":
             buffer_size = cusolver.cheevd_bufferSize
             syevd = cusolver.cheevd
-        elif dtype == 'D':
+        elif dtype == "D":
             buffer_size = cusolver.zheevd_bufferSize
             syevd = cusolver.zheevd
         else:
-            raise RuntimeError('Only float32, float64, complex64, and '
-                               'complex128 are supported')
+            raise RuntimeError(
+                "Only float32, float64, complex64, and " "complex128 are supported"
+            )
 
-        work_size = buffer_size(
-            handle, jobz, uplo, m, v.data.ptr, lda, w.data.ptr)
+        work_size = buffer_size(handle, jobz, uplo, m, v.data.ptr, lda, w.data.ptr)
         work = cupy.empty(work_size, dtype)
         syevd(
-            handle, jobz, uplo, m, v.data.ptr, lda,
-            w.data.ptr, work.data.ptr, work_size, dev_info.data.ptr)
+            handle,
+            jobz,
+            uplo,
+            m,
+            v.data.ptr,
+            lda,
+            w.data.ptr,
+            work.data.ptr,
+            work_size,
+            dev_info.data.ptr,
+        )
         cupy.linalg._util._check_cusolver_dev_info_if_synchronization_allowed(
-            syevd, dev_info)
+            syevd, dev_info
+        )
 
     return w.astype(w_dtype, copy=False), v.astype(v_dtype, copy=False)
 
 
 # assemble complex eigen vectors from real eigen vectors
 _assemble_complex_evs_kernel = cupy._core.ElementwiseKernel(
-    'uint64 n, raw C w, raw R v_real', 'raw C v_complex',
-    '''
+    "uint64 n, raw C w, raw R v_real",
+    "raw C v_complex",
+    """
         int col_idx = i % n;
         auto ew_i       = w[col_idx].imag();
         // if img == 0 -> ev = ev[i]
@@ -112,14 +147,14 @@ _assemble_complex_evs_kernel = cupy._core.ElementwiseKernel(
         R factor     = ((ew_i > 0) ? R(1.0) : ((ew_i < 0) ? R(-1.0) : R(0.0)));
         v_complex[i].real(v_real[real_idx]);
         v_complex[i].imag(factor * v_real[img_idx]);
-    ''',
-    'cupy_assemble_complex_evs_kernel'
+    """,
+    "cupy_assemble_complex_evs_kernel",
 )
 
 
 def _assemble_complex_evs(w, v_real, shape):
     n = len(w)
-    v_complex = _assemble_complex_evs_kernel(n, w, v_real, size=n*n)
+    v_complex = _assemble_complex_evs_kernel(n, w, v_real, size=n * n)
     return v_complex.reshape(shape)
 
 
@@ -128,8 +163,8 @@ def _geev(a, with_eigen_vector):
     from cupyx.cusolver import check_availability
     from cupyx import empty_pinned
 
-    if not check_availability('geev'):
-        raise RuntimeError('geev is not available')
+    if not check_availability("geev"):
+        raise RuntimeError("geev is not available")
     if runtime.is_hip:
         raise NotImplementedError("geev is not implemented for HIP")
 
@@ -138,10 +173,10 @@ def _geev(a, with_eigen_vector):
     complex_dtype = numpy.dtype(input_dtype.char.upper())
 
     # preconvert input to be col-major for each matrix
-    a = cupy.swapaxes(a, -2, -1).copy(order='C')
+    a = cupy.swapaxes(a, -2, -1).copy(order="C")
 
     if input_dtype != a.dtype:
-        a_ = a.astype(input_dtype, order='C', copy=True)
+        a_ = a.astype(input_dtype, order="C", copy=True)
     else:
         a_ = a
 
@@ -153,7 +188,7 @@ def _geev(a, with_eigen_vector):
     # Used for both right and (uncomputed) left eigenvectors
     real_input = input_dtype != complex_dtype
     if real_input:
-        v_real = cupy.empty((m, m), dtype=input_dtype, order='F')
+        v_real = cupy.empty((m, m), dtype=input_dtype, order="F")
 
     dev_info = cupy.empty((), numpy.int32)
     handle = device.Device().cusolver_handle
@@ -172,11 +207,26 @@ def _geev(a, with_eigen_vector):
     try:
         v_ = v_real if real_input else v
         work_device_size, work_host_size = cusolver.xgeev_bufferSize(
-            handle, params, jobvl, jobvr, m, type_input, a_.data.ptr, lda,
-            type_complex, w.data.ptr, type_input, v_.data.ptr, lda,
-            type_input, v_.data.ptr, lda, type_input)
-        work_device = cupy.empty(work_device_size, 'b')
-        work_host = empty_pinned(work_host_size, 'b')
+            handle,
+            params,
+            jobvl,
+            jobvr,
+            m,
+            type_input,
+            a_.data.ptr,
+            lda,
+            type_complex,
+            w.data.ptr,
+            type_input,
+            v_.data.ptr,
+            lda,
+            type_input,
+            v_.data.ptr,
+            lda,
+            type_input,
+        )
+        work_device = cupy.empty(work_device_size, "b")
+        work_host = empty_pinned(work_host_size, "b")
 
         if len(a.shape) > 2:
             for ind in numpy.ndindex(a.shape[:-2]):
@@ -184,23 +234,58 @@ def _geev(a, with_eigen_vector):
                 w_ind = w[ind]
                 v_ind = v_real if real_input else v[ind]
                 cusolver.xgeev(
-                    handle, params, jobvl, jobvr, m, type_input,
-                    a_ind.data.ptr, lda, type_complex, w_ind.data.ptr,
-                    type_input, v_ind.data.ptr, lda, type_input,
-                    v_ind.data.ptr, lda, type_input, work_device.data.ptr,
-                    work_device_size, work_host.ctypes.data, work_host_size,
-                    dev_info.data.ptr)
+                    handle,
+                    params,
+                    jobvl,
+                    jobvr,
+                    m,
+                    type_input,
+                    a_ind.data.ptr,
+                    lda,
+                    type_complex,
+                    w_ind.data.ptr,
+                    type_input,
+                    v_ind.data.ptr,
+                    lda,
+                    type_input,
+                    v_ind.data.ptr,
+                    lda,
+                    type_input,
+                    work_device.data.ptr,
+                    work_device_size,
+                    work_host.ctypes.data,
+                    work_host_size,
+                    dev_info.data.ptr,
+                )
                 if real_input and with_eigen_vector:
                     # in case we have real input and complex output we need to
                     # assemble complex eigen vectors from real eigen vectors
                     v[ind] = _assemble_complex_evs(w_ind, v_ind, a_ind.shape)
         else:
             cusolver.xgeev(
-                handle, params, jobvl, jobvr, m, type_input, a_.data.ptr,
-                lda, type_complex, w.data.ptr, type_input, v_.data.ptr, lda,
-                type_input, v_.data.ptr, lda, type_input, work_device.data.ptr,
-                work_device_size, work_host.ctypes.data, work_host_size,
-                dev_info.data.ptr)
+                handle,
+                params,
+                jobvl,
+                jobvr,
+                m,
+                type_input,
+                a_.data.ptr,
+                lda,
+                type_complex,
+                w.data.ptr,
+                type_input,
+                v_.data.ptr,
+                lda,
+                type_input,
+                v_.data.ptr,
+                lda,
+                type_input,
+                work_device.data.ptr,
+                work_device_size,
+                work_host.ctypes.data,
+                work_host_size,
+                dev_info.data.ptr,
+            )
             if real_input and with_eigen_vector:
                 # in case we have real input and complex output we need to
                 # assemble complex eigen vectors from real eigen vectors
@@ -209,19 +294,20 @@ def _geev(a, with_eigen_vector):
     finally:
         cusolver.destroyParams(params)
     cupy.linalg._util._check_cusolver_dev_info_if_synchronization_allowed(
-        cusolver.xgeev, dev_info)
+        cusolver.xgeev, dev_info
+    )
 
-    a = cupy.swapaxes(a, -2, -1).copy(order='C')
+    a = cupy.swapaxes(a, -2, -1).copy(order="C")
 
     # no need to swap axes back for real input as
     # _assemble_complex_evs already transposes
     if with_eigen_vector and not real_input:
-        v = cupy.swapaxes(v, -2, -1).copy(order='C')
+        v = cupy.swapaxes(v, -2, -1).copy(order="C")
 
     return w, v
 
 
-def eigh(a, UPLO='L'):
+def eigh(a, UPLO="L"):
     """
     Return the eigenvalues and eigenvectors of a complex Hermitian
     (conjugate symmetric) or a real symmetric matrix.
@@ -254,6 +340,7 @@ def eigh(a, UPLO='L'):
     .. seealso:: :func:`numpy.linalg.eigh`
     """
     import cupyx.cusolver
+
     _util._assert_stacked_2d(a)
     _util._assert_stacked_square(a)
 
@@ -314,7 +401,7 @@ def eig(a):
     return _geev(a, True)
 
 
-def eigvalsh(a, UPLO='L'):
+def eigvalsh(a, UPLO="L"):
     """
     Compute the eigenvalues of a complex Hermitian or real symmetric matrix.
 
@@ -341,6 +428,7 @@ def eigvalsh(a, UPLO='L'):
     .. seealso:: :func:`numpy.linalg.eigvalsh`
     """
     import cupyx.cusolver
+
     _util._assert_stacked_2d(a)
     _util._assert_stacked_square(a)
 

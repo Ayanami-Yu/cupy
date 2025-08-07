@@ -29,7 +29,7 @@ def _atleast_nd_helper(n, arys):
         res.append(a)
 
     if len(res) == 1:
-        res, = res
+        (res,) = res
     return res
 
 
@@ -146,7 +146,7 @@ def expand_dims(a, axis):
 
     """
     if type(axis) not in (tuple, list):
-        axis = axis,
+        axis = (axis,)
     return _manipulation._expand_dims(a, axis)
 
 

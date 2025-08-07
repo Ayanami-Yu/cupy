@@ -37,7 +37,7 @@ class TestCorrcoef(unittest.TestCase):
         y = testing.shaped_arange((2, 3), xp, dtype)
         return xp.corrcoef(a, y=y, rowvar=False)
 
-    @testing.with_requires('numpy>=1.20')
+    @testing.with_requires("numpy>=1.20")
     @testing.for_all_dtypes()
     @testing.numpy_cupy_allclose(accept_error=True)
     def test_corrcoef_dtype(self, xp, dtype):
@@ -57,37 +57,61 @@ class TestCov(unittest.TestCase):
 
     @testing.for_all_dtypes()
     @testing.numpy_cupy_allclose(accept_error=True)
-    def check(self, a_shape, y_shape=None, rowvar=True, bias=False,
-              ddof=None, xp=None, dtype=None,
-              fweights=None, aweights=None, name=None):
+    def check(
+        self,
+        a_shape,
+        y_shape=None,
+        rowvar=True,
+        bias=False,
+        ddof=None,
+        xp=None,
+        dtype=None,
+        fweights=None,
+        aweights=None,
+        name=None,
+    ):
         a, y = self.generate_input(a_shape, y_shape, xp, dtype)
         if fweights is not None:
             fweights = name.asarray(fweights)
         if aweights is not None:
             aweights = name.asarray(aweights)
         # print(type(fweights))
-        return xp.cov(a, y, rowvar, bias, ddof,
-                      fweights, aweights, dtype=dtype)
+        return xp.cov(a, y, rowvar, bias, ddof, fweights, aweights, dtype=dtype)
 
     @testing.for_all_dtypes()
     @testing.numpy_cupy_allclose(accept_error=True)
-    def check_warns(self, a_shape, y_shape=None, rowvar=True, bias=False,
-                    ddof=None, xp=None, dtype=None,
-                    fweights=None, aweights=None):
+    def check_warns(
+        self,
+        a_shape,
+        y_shape=None,
+        rowvar=True,
+        bias=False,
+        ddof=None,
+        xp=None,
+        dtype=None,
+        fweights=None,
+        aweights=None,
+    ):
         with testing.assert_warns(RuntimeWarning):
             a, y = self.generate_input(a_shape, y_shape, xp, dtype)
-            return xp.cov(a, y, rowvar, bias, ddof,
-                          fweights, aweights, dtype=dtype)
+            return xp.cov(a, y, rowvar, bias, ddof, fweights, aweights, dtype=dtype)
 
     @testing.for_all_dtypes()
-    def check_raises(self, a_shape, y_shape=None,
-                     rowvar=True, bias=False, ddof=None,
-                     dtype=None, fweights=None, aweights=None):
+    def check_raises(
+        self,
+        a_shape,
+        y_shape=None,
+        rowvar=True,
+        bias=False,
+        ddof=None,
+        dtype=None,
+        fweights=None,
+        aweights=None,
+    ):
         for xp in (numpy, cupy):
             a, y = self.generate_input(a_shape, y_shape, xp, dtype)
             with pytest.raises(ValueError):
-                xp.cov(a, y, rowvar, bias, ddof,
-                       fweights, aweights, dtype=dtype)
+                xp.cov(a, y, rowvar, bias, ddof, fweights, aweights, dtype=dtype)
 
     @testing.with_requires("numpy>=2.2")
     def test_cov(self):
@@ -101,8 +125,7 @@ class TestCov(unittest.TestCase):
         self.check((1, 3), fweights=(1, 4, 1))
         self.check((1, 3), aweights=(1.0, 4.0, 1.0))
         self.check((1, 3), bias=True, aweights=(1.0, 4.0, 1.0))
-        self.check((1, 3), fweights=(1, 4, 1),
-                   aweights=(1.0, 4.0, 1.0))
+        self.check((1, 3), fweights=(1, 4, 1), aweights=(1.0, 4.0, 1.0))
 
     def test_cov_warns(self):
         self.check_warns((2, 3), ddof=3)
@@ -117,11 +140,15 @@ class TestCov(unittest.TestCase):
         self.check((0, 1))
 
 
-@testing.parameterize(*testing.product({
-    'mode': ['valid', 'same', 'full'],
-    'shape1': [(5,), (6,), (20,), (21,)],
-    'shape2': [(5,), (6,), (20,), (21,)],
-}))
+@testing.parameterize(
+    *testing.product(
+        {
+            "mode": ["valid", "same", "full"],
+            "shape1": [(5,), (6,), (20,), (21,)],
+            "shape2": [(5,), (6,), (20,), (21,)],
+        }
+    )
+)
 class TestCorrelateShapeCombination(unittest.TestCase):
 
     @testing.for_all_dtypes(no_float16=True)
@@ -132,7 +159,7 @@ class TestCorrelateShapeCombination(unittest.TestCase):
         return xp.correlate(a, b, mode=self.mode)
 
 
-@pytest.mark.parametrize('mode', ['valid', 'full', 'same'])
+@pytest.mark.parametrize("mode", ["valid", "full", "same"])
 class TestCorrelate:
 
     @testing.for_all_dtypes()
@@ -149,7 +176,7 @@ class TestCorrelate:
         b = testing.shaped_arange((1000,), xp, dtype)
         return xp.correlate(a[200::], b[10::700], mode=mode)
 
-    @testing.for_all_dtypes_combination(names=['dtype1', 'dtype2'])
+    @testing.for_all_dtypes_combination(names=["dtype1", "dtype2"])
     @testing.numpy_cupy_allclose(rtol=1e-2)
     def test_correlate_diff_types(self, xp, dtype1, dtype2, mode):
         a = testing.shaped_random((200,), xp, dtype1)
@@ -157,12 +184,10 @@ class TestCorrelate:
         return xp.correlate(a, b, mode=mode)
 
 
-@testing.parameterize(*testing.product({
-    'mode': ['valid', 'same', 'full']
-}))
+@testing.parameterize(*testing.product({"mode": ["valid", "same", "full"]}))
 class TestCorrelateInvalid(unittest.TestCase):
 
-    @testing.with_requires('numpy>=1.18')
+    @testing.with_requires("numpy>=1.18")
     @testing.for_all_dtypes()
     def test_correlate_empty(self, dtype):
         for xp in (numpy, cupy):

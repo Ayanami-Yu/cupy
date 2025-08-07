@@ -1,6 +1,7 @@
-'''Fast Hankel transforms using the FFTLog algorithm.
+"""Fast Hankel transforms using the FFTLog algorithm.
 The implementation closely follows the Fortran code of Hamilton (2000).
-'''
+"""
+
 from __future__ import annotations
 
 
@@ -14,9 +15,11 @@ from cupyx.scipy.special import loggamma, poch
 try:
     # fht only exists in SciPy >= 1.7
     from scipy.fft import fht as _fht
+
     _scipy_fft = _fft._scipy_fft
     del _fht
 except ImportError:
+
     class _DummyModule:
         def __getattr__(self, name):
             return None
@@ -24,7 +27,7 @@ except ImportError:
     _scipy_fft = _DummyModule()
 
 # Note scipy also defines fhtoffset but this only operates on scalars
-__all__ = ['fht', 'ifht']
+__all__ = ["fht", "ifht"]
 
 
 # constants
@@ -76,9 +79,9 @@ def fht(a, dln, mu, offset=0.0, bias=0.0):
     # bias input array
     if bias != 0:
         # a_q(r) = a(r) (r/r_c)^{-q}
-        j_c = (n-1)/2
+        j_c = (n - 1) / 2
         j = cupy.arange(n)
-        a = a * cupy.exp(-bias*(j - j_c)*dln)
+        a = a * cupy.exp(-bias * (j - j_c) * dln)
 
     # compute FHT coefficients
     u = fhtcoeff(n, dln, mu, offset=offset, bias=bias)
@@ -89,7 +92,7 @@ def fht(a, dln, mu, offset=0.0, bias=0.0):
     # bias output array
     if bias != 0:
         # A(k) = A_q(k) (k/k_c)^{-q} (k_c r_c)^{-q}
-        A *= cupy.exp(-bias*((j - j_c)*dln + offset))
+        A *= cupy.exp(-bias * ((j - j_c) * dln + offset))
 
     return A
 
@@ -153,16 +156,15 @@ def ifht(A, dln, mu, offset=0.0, bias=0.0):
 
 
 def fhtcoeff(n, dln, mu, offset=0.0, bias=0.0):
-    '''Compute the coefficient array for a fast Hankel transform.
-    '''
+    """Compute the coefficient array for a fast Hankel transform."""
 
     lnkr, q = offset, bias
 
     # Hankel transform coefficients
     # u_m = (kr)^{-i 2m pi/(n dlnr)} U_mu(q + i 2m pi/(n dlnr))
     # with U_mu(x) = 2^x Gamma((mu+1+x)/2)/Gamma((mu+1-x)/2)
-    xp = (mu + 1 + q)/2
-    xm = (mu + 1 - q)/2
+    xp = (mu + 1 + q) / 2
+    xm = (mu + 1 - q) / 2
     y = cupy.linspace(0, math.pi * (n // 2) / (n * dln), n // 2 + 1)
     u = cupy.empty(n // 2 + 1, dtype=complex)
     v = cupy.empty(n // 2 + 1, dtype=complex)
@@ -194,22 +196,22 @@ def fhtcoeff(n, dln, mu, offset=0.0, bias=0.0):
 
 
 def _fhtq(a, u, inverse=False):
-    '''Compute the biased fast Hankel transform.
+    """Compute the biased fast Hankel transform.
 
     This is the basic FFTLog routine.
-    '''
+    """
 
     # size of transform
     n = a.shape[-1]
 
     # check for singular transform or singular inverse transform
     if cupy.isinf(u[0]) and not inverse:
-        warn('singular transform; consider changing the bias')
+        warn("singular transform; consider changing the bias")
         # fix coefficient to obtain (potentially correct) transform anyway
         u = u.copy()
         u[0] = 0
     elif u[0] == 0 and inverse:
-        warn('singular inverse transform; consider changing the bias')
+        warn("singular inverse transform; consider changing the bias")
         # fix coefficient to obtain (potentially correct) inverse anyway
         u = u.copy()
         u[0] = cupy.inf

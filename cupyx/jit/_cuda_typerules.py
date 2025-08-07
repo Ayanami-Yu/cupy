@@ -19,27 +19,52 @@ from cupyx.jit import _cuda_types
 
 
 _numpy_scalar_invert = _core.create_ufunc(
-    'numpy_scalar_invert',
-    ('?->?', 'b->b', 'B->B', 'h->h', 'H->H', 'i->i', 'I->I',
-     'l->l', 'L->L', 'q->q', 'Q->Q'),
-    'out0 = ~in0',
+    "numpy_scalar_invert",
+    (
+        "?->?",
+        "b->b",
+        "B->B",
+        "h->h",
+        "H->H",
+        "i->i",
+        "I->I",
+        "l->l",
+        "L->L",
+        "q->q",
+        "Q->Q",
+    ),
+    "out0 = ~in0",
 )
 
 
 _numpy_scalar_logical_not = _core.create_ufunc(
-    'numpy_scalar_logical_not',
-    ('?->?', 'b->?', 'B->?', 'h->?', 'H->?', 'i->?', 'I->?', 'l->?', 'L->?',
-     'q->?', 'Q->?', 'e->?', 'f->?', 'd->?',
-     ('F->?', 'out0 = !in0.real() && !in0.imag()'),
-     ('D->?', 'out0 = !in0.real() && !in0.imag()')),
-    'out0 = !in0',
+    "numpy_scalar_logical_not",
+    (
+        "?->?",
+        "b->?",
+        "B->?",
+        "h->?",
+        "H->?",
+        "i->?",
+        "I->?",
+        "l->?",
+        "L->?",
+        "q->?",
+        "Q->?",
+        "e->?",
+        "f->?",
+        "d->?",
+        ("F->?", "out0 = !in0.real() && !in0.imag()"),
+        ("D->?", "out0 = !in0.real() && !in0.imag()"),
+    ),
+    "out0 = !in0",
 )
 
 
-_scalar_lt = _core.create_comparison('scalar_less', '<')
-_scalar_lte = _core.create_comparison('scalar_less', '<=')
-_scalar_gt = _core.create_comparison('scalar_less', '>')
-_scalar_gte = _core.create_comparison('scalar_less', '>=')
+_scalar_lt = _core.create_comparison("scalar_less", "<")
+_scalar_lte = _core.create_comparison("scalar_less", "<=")
+_scalar_gt = _core.create_comparison("scalar_less", ">")
+_scalar_gte = _core.create_comparison("scalar_less", ">=")
 
 
 _py_ops: Mapping[type[ast.AST], Callable[..., Any]] = {
@@ -101,9 +126,9 @@ def get_pyfunc(op_type: type[ast.AST]) -> Callable[..., Any]:
 
 
 def get_ufunc(mode: str, op_type: type[ast.AST]) -> cupy.ufunc:
-    if mode == 'numpy':
+    if mode == "numpy":
         return _numpy_ops[op_type]
-    if mode == 'cuda':
+    if mode == "cuda":
         return _numpy_ops[op_type]
     assert False
 
@@ -112,7 +137,7 @@ def get_ctype_from_scalar(mode: str, x: Any) -> _cuda_types.Scalar:
     if isinstance(x, numpy.generic):
         return _cuda_types.Scalar(x.dtype)
 
-    if mode == 'numpy':
+    if mode == "numpy":
         if isinstance(x, bool):
             return _cuda_types.Scalar(numpy.bool_)
         if isinstance(x, int):
@@ -122,7 +147,7 @@ def get_ctype_from_scalar(mode: str, x: Any) -> _cuda_types.Scalar:
         if isinstance(x, complex):
             return _cuda_types.Scalar(numpy.complex128)
 
-    if mode == 'cuda':
+    if mode == "cuda":
         if isinstance(x, bool):
             return _cuda_types.Scalar(numpy.bool_)
         if isinstance(x, int):
@@ -134,10 +159,10 @@ def get_ctype_from_scalar(mode: str, x: Any) -> _cuda_types.Scalar:
         if isinstance(x, complex):
             return _cuda_types.Scalar(numpy.complex64)
 
-    raise NotImplementedError(f'{x} is not scalar object.')
+    raise NotImplementedError(f"{x} is not scalar object.")
 
 
-_typechars = '?bBhHiIlLqQefdFD'
+_typechars = "?bBhHiIlLqQefdFD"
 
 
 def _cuda_can_cast(from_dtype: npt.DTypeLike, to_dtype: npt.DTypeLike) -> bool:
@@ -147,18 +172,16 @@ def _cuda_can_cast(from_dtype: npt.DTypeLike, to_dtype: npt.DTypeLike) -> bool:
 
 
 def guess_routine(
-        ufunc: cupy.ufunc,
-        in_types: tuple[numpy.dtype, ...],
-        dtype: numpy.dtype | None,
-        mode: str,
+    ufunc: cupy.ufunc,
+    in_types: tuple[numpy.dtype, ...],
+    dtype: numpy.dtype | None,
+    mode: str,
 ) -> cupy._core._kernel._Op:
     if dtype is not None:
         return ufunc._ops._guess_routine_from_dtype(dtype)
-    can_cast = numpy.can_cast if mode == 'numpy' else _cuda_can_cast
+    can_cast = numpy.can_cast if mode == "numpy" else _cuda_can_cast
 
-    return ufunc._ops._guess_routine_from_in_types(
-        tuple(in_types), None, can_cast
-    )
+    return ufunc._ops._guess_routine_from_in_types(tuple(in_types), None, can_cast)
 
 
 def to_ctype(t) -> _cuda_types.TypeBase:

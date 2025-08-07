@@ -8,6 +8,7 @@ Cephes Math Library Release 2.0:  April, 1987
 Copyright 1984, 1987 by Stephen L. Moshier
 Direct inquiries to 30 Frost Street, Cambridge, MA 02140
 """
+
 from __future__ import annotations
 
 
@@ -264,12 +265,12 @@ __device__ inline double zeta_reflection(double x)
 
 """
 zetac_definition = (
-    zeta_definition +
-    zetac_h +
-    zetac_smallneg_definition +
-    zetac_positive_definition +
-    zeta_reflection +
-    """
+    zeta_definition
+    + zetac_h
+    + zetac_smallneg_definition
+    + zetac_positive_definition
+    + zeta_reflection
+    + """
     /*
  * Riemann zeta function, minus one
  */
@@ -298,12 +299,14 @@ double __device__ zetac(double x)
 }
     """
 )
-zetac_preamble = (polevl_definition+p1evl_definition +
-                  _lanczos_preamble+zetac_definition)
+zetac_preamble = (
+    polevl_definition + p1evl_definition + _lanczos_preamble + zetac_definition
+)
 
 zetac = _core.create_ufunc(
-    'cupyx_scipy_special_zetac', ('l->d', 'L->d', 'e->d', 'f->f', 'd->d'),
-    'out0 = zetac(in0)',
+    "cupyx_scipy_special_zetac",
+    ("l->d", "L->d", "e->d", "f->f", "d->d"),
+    "out0 = zetac(in0)",
     preamble=zetac_preamble,
     doc="""Riemann zeta function minus 1.
 
@@ -315,4 +318,5 @@ zetac = _core.create_ufunc(
 
     .. seealso:: :data:`scipy.special.zetac`
 
-    """)
+    """,
+)

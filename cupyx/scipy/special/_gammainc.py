@@ -16,6 +16,7 @@ Cephes Math Library Release 2.0:  April, 1987
 Copyright 1984, 1987 by Stephen L. Moshier
 Direct inquiries to 30 Frost Street, Cambridge, MA 02140
 """
+
 from __future__ import annotations
 
 
@@ -27,9 +28,7 @@ from cupyx.scipy.special._zeta import zeta_definition
 
 _zeta_c = zeta_definition
 # comment out duplicate MACHEP definition
-_zeta_c = _zeta_c.replace(
-    "__constant__ double MACHEP", "// __constant__ double MACHEP"
-)
+_zeta_c = _zeta_c.replace("__constant__ double MACHEP", "// __constant__ double MACHEP")
 
 
 # TODO: finish

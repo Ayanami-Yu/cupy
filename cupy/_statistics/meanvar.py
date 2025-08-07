@@ -62,11 +62,12 @@ def nanmedian(a, axis=None, out=None, overwrite_input=False, keepdims=False):
     .. seealso:: :func:`numpy.nanmedian`
 
     """
-    if a.dtype.char in 'efdFD':
+    if a.dtype.char in "efdFD":
         return _statistics._nanmedian(a, axis, out, overwrite_input, keepdims)
     else:
-        return median(a, axis=axis, out=out, overwrite_input=overwrite_input,
-                      keepdims=keepdims)
+        return median(
+            a, axis=axis, out=out, overwrite_input=overwrite_input, keepdims=keepdims
+        )
 
 
 def average(a, axis=None, weights=None, returned=False, *, keepdims=False):
@@ -104,8 +105,9 @@ def average(a, axis=None, weights=None, returned=False, *, keepdims=False):
         wgt = cupy.asarray(weights)
 
         if issubclass(a.dtype.type, (numpy.integer, numpy.bool_)):
-            result_dtype = functools.reduce(numpy.promote_types,
-                                            (a.dtype, wgt.dtype, 'f8'))
+            result_dtype = functools.reduce(
+                numpy.promote_types, (a.dtype, wgt.dtype, "f8")
+            )
         else:
             result_dtype = numpy.promote_types(a.dtype, wgt.dtype)
 
@@ -113,14 +115,16 @@ def average(a, axis=None, weights=None, returned=False, *, keepdims=False):
         if a.shape != wgt.shape:
             if axis is None:
                 raise TypeError(
-                    'Axis must be specified when shapes of a and weights '
-                    'differ.')
+                    "Axis must be specified when shapes of a and weights " "differ."
+                )
             if wgt.ndim != 1:
                 raise TypeError(
-                    '1D weights expected when shapes of a and weights differ.')
+                    "1D weights expected when shapes of a and weights differ."
+                )
             if wgt.shape[0] != a.shape[axis]:
                 raise ValueError(
-                    'Length of weights not compatible with specified axis.')
+                    "Length of weights not compatible with specified axis."
+                )
 
             # setup wgt to broadcast along axis
             wgt = cupy.broadcast_to(wgt, (a.ndim - 1) * (1,) + wgt.shape)
@@ -128,11 +132,11 @@ def average(a, axis=None, weights=None, returned=False, *, keepdims=False):
 
         scl = wgt.sum(axis=axis, dtype=result_dtype, keepdims=keepdims)
         if cupy.any(scl == 0.0):  # synchronize!
-            raise ZeroDivisionError(
-                'Weights sum to zero, can\'t be normalized')
+            raise ZeroDivisionError("Weights sum to zero, can't be normalized")
 
-        avg = cupy.multiply(a, wgt, dtype=result_dtype).sum(
-            axis, keepdims=keepdims) / scl
+        avg = (
+            cupy.multiply(a, wgt, dtype=result_dtype).sum(axis, keepdims=keepdims) / scl
+        )
 
     if returned:
         if scl.shape != avg.shape:
@@ -183,8 +187,7 @@ def var(a, axis=None, dtype=None, out=None, ddof=0, keepdims=False):
 
     """
     # TODO(okuta): check type
-    return a.var(axis=axis, dtype=dtype, out=out, ddof=ddof,
-                 keepdims=keepdims)
+    return a.var(axis=axis, dtype=dtype, out=out, ddof=ddof, keepdims=keepdims)
 
 
 def std(a, axis=None, dtype=None, out=None, ddof=0, keepdims=False):
@@ -206,8 +209,7 @@ def std(a, axis=None, dtype=None, out=None, ddof=0, keepdims=False):
 
     """
     # TODO(okuta): check type
-    return a.std(axis=axis, dtype=dtype, out=out, ddof=ddof,
-                 keepdims=keepdims)
+    return a.std(axis=axis, dtype=dtype, out=out, ddof=ddof, keepdims=keepdims)
 
 
 def nanmean(a, axis=None, dtype=None, out=None, keepdims=False):
@@ -228,12 +230,11 @@ def nanmean(a, axis=None, dtype=None, out=None, keepdims=False):
     .. seealso:: :func:`numpy.nanmean`
 
     """
-    if a.dtype.kind in 'biu':
+    if a.dtype.kind in "biu":
         return a.mean(axis=axis, dtype=dtype, out=out, keepdims=keepdims)
 
     # TODO(okuta): check type
-    return _statistics._nanmean(
-        a, axis=axis, dtype=dtype, out=out, keepdims=keepdims)
+    return _statistics._nanmean(a, axis=axis, dtype=dtype, out=out, keepdims=keepdims)
 
 
 def nanvar(a, axis=None, dtype=None, out=None, ddof=0, keepdims=False):
@@ -254,13 +255,13 @@ def nanvar(a, axis=None, dtype=None, out=None, ddof=0, keepdims=False):
     .. seealso:: :func:`numpy.nanvar`
 
     """
-    if a.dtype.kind in 'biu':
-        return a.var(axis=axis, dtype=dtype, out=out, ddof=ddof,
-                     keepdims=keepdims)
+    if a.dtype.kind in "biu":
+        return a.var(axis=axis, dtype=dtype, out=out, ddof=ddof, keepdims=keepdims)
 
     # TODO(okuta): check type
     return _statistics._nanvar(
-        a, axis=axis, dtype=dtype, out=out, ddof=ddof, keepdims=keepdims)
+        a, axis=axis, dtype=dtype, out=out, ddof=ddof, keepdims=keepdims
+    )
 
 
 def nanstd(a, axis=None, dtype=None, out=None, ddof=0, keepdims=False):
@@ -281,10 +282,10 @@ def nanstd(a, axis=None, dtype=None, out=None, ddof=0, keepdims=False):
     .. seealso:: :func:`numpy.nanstd`
 
     """
-    if a.dtype.kind in 'biu':
-        return a.std(axis=axis, dtype=dtype, out=out, ddof=ddof,
-                     keepdims=keepdims)
+    if a.dtype.kind in "biu":
+        return a.std(axis=axis, dtype=dtype, out=out, ddof=ddof, keepdims=keepdims)
 
     # TODO(okuta): check type
     return _statistics._nanstd(
-        a, axis=axis, dtype=dtype, out=out, ddof=ddof, keepdims=keepdims)
+        a, axis=axis, dtype=dtype, out=out, ddof=ddof, keepdims=keepdims
+    )

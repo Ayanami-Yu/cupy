@@ -10,9 +10,17 @@ import cupy
 
 # NumPy-like assertion functions that accept both NumPy and CuPy arrays
 
+
 def assert_allclose(
-        actual, desired, rtol=1e-7, atol=0, equal_nan=True,
-        err_msg='', verbose=True, *, strict=False
+    actual,
+    desired,
+    rtol=1e-7,
+    atol=0,
+    equal_nan=True,
+    err_msg="",
+    verbose=True,
+    *,
+    strict=False,
 ):
     """Raises an AssertionError if objects are not equal up to desired tolerance.
 
@@ -28,28 +36,41 @@ def assert_allclose(
     .. seealso:: :func:`numpy.testing.assert_allclose`
 
     """  # NOQA
-    if numpy.lib.NumpyVersion(numpy.__version__) >= '2.0.0':
+    if numpy.lib.NumpyVersion(numpy.__version__) >= "2.0.0":
         numpy.testing.assert_allclose(
-            cupy.asnumpy(actual), cupy.asnumpy(desired),
-            rtol=rtol, atol=atol, equal_nan=equal_nan, err_msg=err_msg,
-            verbose=verbose, strict=strict,
+            cupy.asnumpy(actual),
+            cupy.asnumpy(desired),
+            rtol=rtol,
+            atol=atol,
+            equal_nan=equal_nan,
+            err_msg=err_msg,
+            verbose=verbose,
+            strict=strict,
         )
     else:
         if strict:
             warnings.warn(
-                '`cupy.testing.assert_allclose` does not support `strict` '
-                'option with NumPy v1.',
-                RuntimeWarning
+                "`cupy.testing.assert_allclose` does not support `strict` "
+                "option with NumPy v1.",
+                RuntimeWarning,
             )
         numpy.testing.assert_allclose(
-            cupy.asnumpy(actual), cupy.asnumpy(desired),
-            rtol=rtol, atol=atol, equal_nan=equal_nan, err_msg=err_msg,
+            cupy.asnumpy(actual),
+            cupy.asnumpy(desired),
+            rtol=rtol,
+            atol=atol,
+            equal_nan=equal_nan,
+            err_msg=err_msg,
             verbose=verbose,
         )
 
 
 def assert_array_almost_equal(
-        actual, desired, decimal=6, err_msg='', verbose=True,
+    actual,
+    desired,
+    decimal=6,
+    err_msg="",
+    verbose=True,
 ):
     """Raises an AssertionError if objects are not equal up to desired precision.
 
@@ -64,8 +85,11 @@ def assert_array_almost_equal(
     .. seealso:: :func:`numpy.testing.assert_array_almost_equal`
     """  # NOQA
     numpy.testing.assert_array_almost_equal(
-        cupy.asnumpy(actual), cupy.asnumpy(desired), decimal=decimal,
-        err_msg=err_msg, verbose=verbose,
+        cupy.asnumpy(actual),
+        cupy.asnumpy(desired),
+        decimal=decimal,
+        err_msg=err_msg,
+        verbose=verbose,
     )
 
 
@@ -80,7 +104,8 @@ def assert_array_almost_equal_nulp(x, y, nulp=1):
     .. seealso:: :func:`numpy.testing.assert_array_almost_equal_nulp`
     """
     numpy.testing.assert_array_almost_equal_nulp(
-        cupy.asnumpy(x), cupy.asnumpy(y), nulp=nulp)
+        cupy.asnumpy(x), cupy.asnumpy(y), nulp=nulp
+    )
 
 
 def assert_array_max_ulp(a, b, maxulp=1, dtype=None):
@@ -96,12 +121,12 @@ def assert_array_max_ulp(a, b, maxulp=1, dtype=None):
     .. seealso:: :func:`numpy.testing.assert_array_max_ulp`
     """  # NOQA
     numpy.testing.assert_array_max_ulp(
-        cupy.asnumpy(a), cupy.asnumpy(b), maxulp=maxulp, dtype=dtype)
+        cupy.asnumpy(a), cupy.asnumpy(b), maxulp=maxulp, dtype=dtype
+    )
 
 
 def assert_array_equal(
-        actual, desired, err_msg='', verbose=True, *,
-        strict=False, strides_check=False
+    actual, desired, err_msg="", verbose=True, *, strict=False, strides_check=False
 ):
     """Raises an AssertionError if two array_like objects are not equal.
 
@@ -119,35 +144,40 @@ def assert_array_equal(
 
     .. seealso:: :func:`numpy.testing.assert_array_equal`
     """
-    if numpy.lib.NumpyVersion(numpy.__version__) >= '1.24.0':
+    if numpy.lib.NumpyVersion(numpy.__version__) >= "1.24.0":
         numpy.testing.assert_array_equal(
-            cupy.asnumpy(actual), cupy.asnumpy(desired), err_msg=err_msg,
-            verbose=verbose, strict=strict,
+            cupy.asnumpy(actual),
+            cupy.asnumpy(desired),
+            err_msg=err_msg,
+            verbose=verbose,
+            strict=strict,
         )
     else:
         if strict:
             warnings.warn(
-                '`cupy.testing.assert_allclose` does not support `strict` '
-                'option with NumPy v1.',
-                RuntimeWarning
+                "`cupy.testing.assert_allclose` does not support `strict` "
+                "option with NumPy v1.",
+                RuntimeWarning,
             )
         numpy.testing.assert_array_equal(
-            cupy.asnumpy(actual), cupy.asnumpy(desired), err_msg=err_msg,
+            cupy.asnumpy(actual),
+            cupy.asnumpy(desired),
+            err_msg=err_msg,
             verbose=verbose,
         )
 
     if strides_check:
         if actual.strides != desired.strides:
-            msg = ['Strides are not equal:']
+            msg = ["Strides are not equal:"]
             if err_msg:
-                msg = [msg[0] + ' ' + err_msg]
+                msg = [msg[0] + " " + err_msg]
             if verbose:
-                msg.append(' x: {}'.format(actual.strides))
-                msg.append(' y: {}'.format(desired.strides))
-            raise AssertionError('\n'.join(msg))
+                msg.append(" x: {}".format(actual.strides))
+                msg.append(" y: {}".format(desired.strides))
+            raise AssertionError("\n".join(msg))
 
 
-def assert_array_list_equal(xlist, ylist, err_msg='', verbose=True):
+def assert_array_list_equal(xlist, ylist, err_msg="", verbose=True):
     """Compares lists of arrays pairwise with ``assert_array_equal``.
 
     Args:
@@ -170,21 +200,21 @@ def assert_array_list_equal(xlist, ylist, err_msg='', verbose=True):
     y_type = type(ylist)
     if x_type is not y_type:
         raise AssertionError(
-            'Matching types of list or tuple are expected, '
-            'but were different types '
-            '(xlist:{} ylist:{})'.format(x_type, y_type))
+            "Matching types of list or tuple are expected, "
+            "but were different types "
+            "(xlist:{} ylist:{})".format(x_type, y_type)
+        )
     if x_type not in (list, tuple):
-        raise AssertionError(
-            'List or tuple is expected, but was {}'.format(x_type))
+        raise AssertionError("List or tuple is expected, but was {}".format(x_type))
     if len(xlist) != len(ylist):
-        raise AssertionError('List size is different')
+        raise AssertionError("List size is different")
     for x, y in zip(xlist, ylist):
         numpy.testing.assert_array_equal(
-            cupy.asnumpy(x), cupy.asnumpy(y), err_msg=err_msg,
-            verbose=verbose)
+            cupy.asnumpy(x), cupy.asnumpy(y), err_msg=err_msg, verbose=verbose
+        )
 
 
-def assert_array_less(x, y, err_msg='', verbose=True, *, strict=False):
+def assert_array_less(x, y, err_msg="", verbose=True, *, strict=False):
     """Raises an AssertionError if array_like objects are not ordered by less than.
 
     Args:
@@ -196,19 +226,24 @@ def assert_array_less(x, y, err_msg='', verbose=True, *, strict=False):
 
     .. seealso:: :func:`numpy.testing.assert_array_less`
     """  # NOQA
-    if numpy.lib.NumpyVersion(numpy.__version__) >= '2.0.0':
+    if numpy.lib.NumpyVersion(numpy.__version__) >= "2.0.0":
         numpy.testing.assert_array_less(
-            cupy.asnumpy(x), cupy.asnumpy(y), err_msg=err_msg,
-            verbose=verbose, strict=strict,
+            cupy.asnumpy(x),
+            cupy.asnumpy(y),
+            err_msg=err_msg,
+            verbose=verbose,
+            strict=strict,
         )
     else:
         if strict:
             warnings.warn(
-                '`cupy.testing.assert_allclose` does not support `strict` '
-                'option with NumPy v1.',
-                RuntimeWarning
+                "`cupy.testing.assert_allclose` does not support `strict` "
+                "option with NumPy v1.",
+                RuntimeWarning,
             )
         numpy.testing.assert_array_less(
-            cupy.asnumpy(x), cupy.asnumpy(y), err_msg=err_msg,
+            cupy.asnumpy(x),
+            cupy.asnumpy(y),
+            err_msg=err_msg,
             verbose=verbose,
         )

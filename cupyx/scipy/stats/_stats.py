@@ -7,6 +7,7 @@ References
    Probability and Statistics Tables and Formulae. Chapman & Hall: New
    York. 2000.
 """
+
 from __future__ import annotations
 
 import cupy as cp
@@ -69,7 +70,7 @@ def trim_mean(a, proportiontocut, axis=0):
     nobs = a.shape[axis]
     lowercut = int(proportiontocut * nobs)
     uppercut = nobs - lowercut
-    if (lowercut > uppercut):
+    if lowercut > uppercut:
         raise ValueError("Proportion too big.")
 
     atmp = cp.partition(a, (lowercut, uppercut - 1), axis)

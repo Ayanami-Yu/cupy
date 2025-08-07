@@ -24,6 +24,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 """
+
 from __future__ import annotations
 
 
@@ -38,14 +39,14 @@ from cupyx import jit
 
 def _get_typename(dtype):
     typename = get_typename(dtype)
-    if typename == 'float16':
+    if typename == "float16":
         if runtime.is_hip:
             # 'half' in name_expressions weirdly raises
             # HIPRTC_ERROR_NAME_EXPRESSION_NOT_VALID in getLoweredName() on
             # ROCm
-            typename = '__half'
+            typename = "__half"
         else:
-            typename = 'half'
+            typename = "half"
     return typename
 
 
@@ -306,10 +307,12 @@ __global__ void peak_widths<half>(
 """  # NOQA
 
 PEAKS_MODULE = cupy.RawModule(
-    code=PEAKS_KERNEL, options=('-std=c++11',),
-    name_expressions=[f'local_maxima_1d<{x}>' for x in TYPE_NAMES] +
-    [f'peak_prominences<{x}>' for x in TYPE_NAMES] +
-    [f'peak_widths<{x}>' for x in TYPE_NAMES])
+    code=PEAKS_KERNEL,
+    options=("-std=c++11",),
+    name_expressions=[f"local_maxima_1d<{x}>" for x in TYPE_NAMES]
+    + [f"peak_prominences<{x}>" for x in TYPE_NAMES]
+    + [f"peak_widths<{x}>" for x in TYPE_NAMES],
+)
 
 
 ARGREL_KERNEL = r"""
@@ -474,15 +477,17 @@ __global__ void boolrelextrema_2D( const int  in_x,
 
 
 ARGREL_MODULE = cupy.RawModule(
-    code=ARGREL_KERNEL, options=('-std=c++11',),
-    name_expressions=[f'boolrelextrema_1D<{x}>' for x in FLOAT_INT_NAMES] +
-    [f'boolrelextrema_2D<{x}>' for x in FLOAT_INT_NAMES])
+    code=ARGREL_KERNEL,
+    options=("-std=c++11",),
+    name_expressions=[f"boolrelextrema_1D<{x}>" for x in FLOAT_INT_NAMES]
+    + [f"boolrelextrema_2D<{x}>" for x in FLOAT_INT_NAMES],
+)
 
 
 def _get_module_func(module, func_name, *template_args):
     args_dtypes = [_get_typename(arg.dtype) for arg in template_args]
-    template = ', '.join(args_dtypes)
-    kernel_name = f'{func_name}<{template}>' if template_args else func_name
+    template = ", ".join(args_dtypes)
+    kernel_name = f"{func_name}<{template}>" if template_args else func_name
     kernel = module.get_function(kernel_name)
     return kernel
 
@@ -496,9 +501,10 @@ def _local_maxima_1d(x):
     left_edges = cupy.empty(samples, dtype=cupy.int64)
     right_edges = cupy.empty(samples, dtype=cupy.int64)
 
-    local_max_kernel = _get_module_func(PEAKS_MODULE, 'local_maxima_1d', x)
-    local_max_kernel((n_blocks,), (block_sz,),
-                     (x.shape[0], x, midpoints, left_edges, right_edges))
+    local_max_kernel = _get_module_func(PEAKS_MODULE, "local_maxima_1d", x)
+    local_max_kernel(
+        (n_blocks,), (block_sz,), (x.shape[0], x, midpoints, left_edges, right_edges)
+    )
 
     pos_idx = midpoints > 0
     midpoints = midpoints[pos_idx]
@@ -543,13 +549,11 @@ def _unpack_condition_args(interval, x, peaks):
     # Reduce arrays if arrays
     if isinstance(imin, cupy.ndarray):
         if imin.size != x.size:
-            raise ValueError(
-                'array size of lower interval border must match x')
+            raise ValueError("array size of lower interval border must match x")
         imin = imin[peaks]
     if isinstance(imax, cupy.ndarray):
         if imax.size != x.size:
-            raise ValueError(
-                'array size of upper interval border must match x')
+            raise ValueError("array size of upper interval border must match x")
         imax = imax[peaks]
 
     return imin, imax
@@ -583,9 +587,9 @@ def _select_by_property(peak_properties, pmin, pmax):
     """
     keep = cupy.ones(peak_properties.size, dtype=bool)
     if pmin is not None:
-        keep &= (pmin <= peak_properties)
+        keep &= pmin <= peak_properties
     if pmax is not None:
-        keep &= (peak_properties <= pmax)
+        keep &= peak_properties <= pmax
     return keep
 
 
@@ -617,15 +621,14 @@ def _select_by_peak_threshold(x, peaks, tmin, tmax):
     # Stack thresholds on both sides to make min / max operations easier:
     # tmin is compared with the smaller, and tmax with the greater threshold to
     # each peak's side
-    stacked_thresholds = cupy.vstack([x[peaks] - x[peaks - 1],
-                                      x[peaks] - x[peaks + 1]])
+    stacked_thresholds = cupy.vstack([x[peaks] - x[peaks - 1], x[peaks] - x[peaks + 1]])
     keep = cupy.ones(peaks.size, dtype=bool)
     if tmin is not None:
         min_thresholds = cupy.min(stacked_thresholds, axis=0)
-        keep &= (tmin <= min_thresholds)
+        keep &= tmin <= min_thresholds
     if tmax is not None:
         max_thresholds = cupy.max(stacked_thresholds, axis=0)
-        keep &= (max_thresholds <= tmax)
+        keep &= max_thresholds <= tmax
 
     return keep, stacked_thresholds[0], stacked_thresholds[1]
 
@@ -704,9 +707,9 @@ def _arg_x_as_expected(value):
     value : ndarray
         A 1-D C-contiguous array.
     """
-    value = cupy.asarray(value, order='C')
+    value = cupy.asarray(value, order="C")
     if value.ndim != 1:
-        raise ValueError('`x` must be a 1-D array')
+        raise ValueError("`x` must be a 1-D array")
     return value
 
 
@@ -730,8 +733,7 @@ def _arg_wlen_as_expected(value):
         value = math.ceil(value)
         value = cupy.intp(value)
     else:
-        raise ValueError('`wlen` must be larger than 1, was {}'
-                         .format(value))
+        raise ValueError("`wlen` must be larger than 1, was {}".format(value))
     return value
 
 
@@ -752,11 +754,11 @@ def _arg_peaks_as_expected(value):
         value = cupy.array([], dtype=cupy.int64)
     try:
         # Safely convert to C-contiguous array of type cupy.int64
-        value = value.astype(cupy.int64, order='C', copy=False)
+        value = value.astype(cupy.int64, order="C", copy=False)
     except TypeError as e:
         raise TypeError("cannot safely cast `peaks` to dtype('intp')") from e
     if value.ndim != 1:
-        raise ValueError('`peaks` must be a 1-D array')
+        raise ValueError("`peaks` must be a 1-D array")
     return value
 
 
@@ -772,7 +774,7 @@ def _check_prominence_invalid(n, peaks, left_bases, right_bases, out):
 
 def _peak_prominences(x, peaks, wlen=None, check=False):
     if check and cupy.any(cupy.logical_or(peaks < 0, peaks > x.shape[0] - 1)):
-        raise ValueError('peaks are not a valid index')
+        raise ValueError("peaks are not a valid index")
 
     prominences = cupy.empty(peaks.shape[0], dtype=x.dtype)
     left_bases = cupy.empty(peaks.shape[0], dtype=cupy.int64)
@@ -782,28 +784,36 @@ def _peak_prominences(x, peaks, wlen=None, check=False):
     block_sz = 128
     n_blocks = (n + block_sz - 1) // block_sz
 
-    peak_prom_kernel = _get_module_func(PEAKS_MODULE, 'peak_prominences', x)
+    peak_prom_kernel = _get_module_func(PEAKS_MODULE, "peak_prominences", x)
     peak_prom_kernel(
-        (n_blocks,), (block_sz,),
-        (x.shape[0], n, x, peaks, wlen, prominences, left_bases, right_bases))
+        (n_blocks,),
+        (block_sz,),
+        (x.shape[0], n, x, peaks, wlen, prominences, left_bases, right_bases),
+    )
 
     return prominences, left_bases, right_bases
 
 
-def _peak_widths(x, peaks, rel_height, prominences, left_bases, right_bases,
-                 check=False):
+def _peak_widths(
+    x, peaks, rel_height, prominences, left_bases, right_bases, check=False
+):
     if rel_height < 0:
-        raise ValueError('`rel_height` must be greater or equal to 0.0')
+        raise ValueError("`rel_height` must be greater or equal to 0.0")
     if prominences is None:
-        raise TypeError('prominences must not be None')
+        raise TypeError("prominences must not be None")
     if left_bases is None:
-        raise TypeError('left_bases must not be None')
+        raise TypeError("left_bases must not be None")
     if right_bases is None:
-        raise TypeError('right_bases must not be None')
-    if not (peaks.shape[0] == prominences.shape[0] == left_bases.shape[0]
-            == right_bases.shape[0]):
-        raise ValueError("arrays in `prominence_data` must have the same "
-                         "shape as `peaks`")
+        raise TypeError("right_bases must not be None")
+    if not (
+        peaks.shape[0]
+        == prominences.shape[0]
+        == left_bases.shape[0]
+        == right_bases.shape[0]
+    ):
+        raise ValueError(
+            "arrays in `prominence_data` must have the same " "shape as `peaks`"
+        )
 
     n = peaks.shape[0]
     block_sz = 128
@@ -812,8 +822,10 @@ def _peak_widths(x, peaks, rel_height, prominences, left_bases, right_bases,
     if check and n > 0:
         invalid = cupy.zeros(n, dtype=cupy.bool_)
         _check_prominence_invalid(
-            (n_blocks,), (block_sz,),
-            (x.shape[0], peaks, left_bases, right_bases, invalid))
+            (n_blocks,),
+            (block_sz,),
+            (x.shape[0], peaks, left_bases, right_bases, invalid),
+        )
         if cupy.any(invalid):
             raise ValueError("prominence data is invalid")
 
@@ -822,11 +834,24 @@ def _peak_widths(x, peaks, rel_height, prominences, left_bases, right_bases,
     left_ips = cupy.empty(peaks.shape[0], dtype=cupy.float64)
     right_ips = cupy.empty(peaks.shape[0], dtype=cupy.float64)
 
-    peak_widths_kernel = _get_module_func(PEAKS_MODULE, 'peak_widths', x)
+    peak_widths_kernel = _get_module_func(PEAKS_MODULE, "peak_widths", x)
     peak_widths_kernel(
-        (n_blocks,), (block_sz,),
-        (n, x, peaks, rel_height, prominences, left_bases, right_bases,
-         widths, width_heights, left_ips, right_ips))
+        (n_blocks,),
+        (block_sz,),
+        (
+            n,
+            x,
+            peaks,
+            rel_height,
+            prominences,
+            left_bases,
+            right_bases,
+            widths,
+            width_heights,
+            left_ips,
+            right_ips,
+        ),
+    )
     return widths, width_heights, left_ips, right_ips
 
 
@@ -1011,9 +1036,17 @@ def peak_widths(x, peaks, rel_height=0.5, prominence_data=None, wlen=None):
     return _peak_widths(x, peaks, rel_height, *prominence_data, check=True)
 
 
-def find_peaks(x, height=None, threshold=None, distance=None,
-               prominence=None, width=None, wlen=None, rel_height=0.5,
-               plateau_size=None):
+def find_peaks(
+    x,
+    height=None,
+    threshold=None,
+    distance=None,
+    prominence=None,
+    width=None,
+    wlen=None,
+    rel_height=0.5,
+    plateau_size=None,
+):
     """
     Find peaks inside a signal based on peak properties.
 
@@ -1150,7 +1183,7 @@ def find_peaks(x, height=None, threshold=None, distance=None,
 
     x = _arg_x_as_expected(x)
     if distance is not None and distance < 1:
-        raise ValueError('`distance` must be greater or equal to 1')
+        raise ValueError("`distance` must be greater or equal to 1")
 
     peaks, left_edges, right_edges = _local_maxima_1d(x)
     properties = {}
@@ -1179,7 +1212,8 @@ def find_peaks(x, height=None, threshold=None, distance=None,
         # Evaluate threshold condition
         tmin, tmax = _unpack_condition_args(threshold, x, peaks)
         keep, left_thresholds, right_thresholds = _select_by_peak_threshold(
-            x, peaks, tmin, tmax)
+            x, peaks, tmin, tmax
+        )
         peaks = peaks[keep]
         properties["left_thresholds"] = left_thresholds
         properties["right_thresholds"] = right_thresholds
@@ -1194,28 +1228,38 @@ def find_peaks(x, height=None, threshold=None, distance=None,
     if prominence is not None or width is not None:
         # Calculate prominence (required for both conditions)
         wlen = _arg_wlen_as_expected(wlen)  # NOQA
-        properties.update(zip(
-            ['prominences', 'left_bases', 'right_bases'],
-            _peak_prominences(x, peaks, wlen=wlen)  # NOQA
-        ))
+        properties.update(
+            zip(
+                ["prominences", "left_bases", "right_bases"],
+                _peak_prominences(x, peaks, wlen=wlen),  # NOQA
+            )
+        )
 
     if prominence is not None:
         # Evaluate prominence condition
         pmin, pmax = _unpack_condition_args(prominence, x, peaks)  # NOQA
-        keep = _select_by_property(properties['prominences'], pmin, pmax)  # NOQA
+        keep = _select_by_property(properties["prominences"], pmin, pmax)  # NOQA
         peaks = peaks[keep]
         properties = {key: array[keep] for key, array in properties.items()}
 
     if width is not None:
         # Calculate widths
-        properties.update(zip(
-            ['widths', 'width_heights', 'left_ips', 'right_ips'],
-            _peak_widths(x, peaks, rel_height, properties['prominences'],  # NOQA
-                         properties['left_bases'], properties['right_bases'])
-        ))
+        properties.update(
+            zip(
+                ["widths", "width_heights", "left_ips", "right_ips"],
+                _peak_widths(
+                    x,
+                    peaks,
+                    rel_height,
+                    properties["prominences"],  # NOQA
+                    properties["left_bases"],
+                    properties["right_bases"],
+                ),
+            )
+        )
         # Evaluate width condition
         wmin, wmax = _unpack_condition_args(width, x, peaks)  # NOQA
-        keep = _select_by_property(properties['widths'], wmin, wmax)  # NOQA
+        keep = _select_by_property(properties["widths"], wmin, wmax)  # NOQA
         peaks = peaks[keep]
         properties = {key: array[keep] for key, array in properties.items()}
 
@@ -1224,7 +1268,7 @@ def find_peaks(x, height=None, threshold=None, distance=None,
 
 def _peak_finding(data, comparator, axis, order, mode, results):
     comp = _modedict[comparator]
-    clip = mode == 'clip'
+    clip = mode == "clip"
 
     device_id = cupy.cuda.Device()
     num_blocks = (device_id.attributes["MultiProcessorCount"] * 20,)
@@ -1239,8 +1283,16 @@ def _peak_finding(data, comparator, axis, order, mode, results):
         n_blocks_y = (data.shape[0] + block_sz_y - 1) // block_sz_y
         block_sz = (block_sz_x, block_sz_y)
         num_blocks = (n_blocks_x, n_blocks_y)
-        call_args = (data.shape[1], data.shape[0], order, clip, comp, axis,
-                     data, results)
+        call_args = (
+            data.shape[1],
+            data.shape[0],
+            order,
+            clip,
+            comp,
+            axis,
+            data,
+            results,
+        )
 
     boolrelextrema = _get_module_func(ARGREL_MODULE, kernel_name, data)
     boolrelextrema(num_blocks, block_sz, call_args)
@@ -1293,8 +1345,7 @@ def _boolrelextrema(data, comparator, axis=0, order=1, mode="clip"):
         main = cupy.take(data, locs, axis=axis)
         for shift in cupy.arange(1, order + 1):
             if mode == "clip":
-                p_locs = cupy.clip(locs + shift, a_min=None,
-                                   a_max=(datalen - 1))
+                p_locs = cupy.clip(locs + shift, a_min=None, a_max=(datalen - 1))
                 m_locs = cupy.clip(locs - shift, a_min=0, a_max=None)
             else:
                 p_locs = locs + shift
@@ -1477,7 +1528,6 @@ def argrelextrema(data, comparator, axis=0, order=1, mode="clip"):
     results = _boolrelextrema(data, comparator, axis, order, mode)
 
     if mode == "raise":
-        raise NotImplementedError(
-            "CuPy `take` doesn't support `mode='raise'`.")
+        raise NotImplementedError("CuPy `take` doesn't support `mode='raise'`.")
 
     return cupy.nonzero(results)

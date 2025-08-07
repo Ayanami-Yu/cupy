@@ -87,7 +87,7 @@ class TestDeviceAttributes(unittest.TestCase):
         assert isinstance(attributes, dict)
         assert all(isinstance(a, int) for a in attributes.values())
         # test a specific attribute that would be present on any supported GPU
-        assert 'MaxThreadsPerBlock' in attributes
+        assert "MaxThreadsPerBlock" in attributes
 
     def test_device_attributes_error(self):
         with pytest.raises(cuda.runtime.CUDARuntimeError):
@@ -100,8 +100,7 @@ class TestDevicePCIBusId(unittest.TestCase):
         d = cuda.Device()
         pci_bus_id = d.pci_bus_id
         assert re.match(
-            '^[a-fA-F0-9]{4}:[a-fA-F0-9]{2}:[a-fA-F0-9]{2}.[a-fA-F0-9]',
-            pci_bus_id
+            "^[a-fA-F0-9]{4}:[a-fA-F0-9]{2}:[a-fA-F0-9]{2}.[a-fA-F0-9]", pci_bus_id
         )
 
     def test_device_by_pci_bus_id(self):
@@ -112,12 +111,12 @@ class TestDevicePCIBusId(unittest.TestCase):
         assert d2 == d3
 
         with pytest.raises(cuda.runtime.CUDARuntimeError) as excinfo:
-            cuda.Device.from_pci_bus_id('fake:id')
-            assert excinfo == 'cudaErrorInvalidValue: invalid argument'
+            cuda.Device.from_pci_bus_id("fake:id")
+            assert excinfo == "cudaErrorInvalidValue: invalid argument"
 
         with pytest.raises(cuda.runtime.CUDARuntimeError) as excinfo:
-            cuda.Device.from_pci_bus_id('FFFF:FF:FF.F')
-            assert excinfo == 'cudaErrorInvalidDevice: invalid device ordinal'
+            cuda.Device.from_pci_bus_id("FFFF:FF:FF.F")
+            assert excinfo == "cudaErrorInvalidDevice: invalid device ordinal"
 
 
 class TestDeviceHandles(unittest.TestCase):

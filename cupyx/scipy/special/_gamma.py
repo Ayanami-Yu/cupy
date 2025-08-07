@@ -27,7 +27,9 @@ __noinline__ __device__ double Gamma(double in0)
 }}
 """
 
-cgamma_definition = loggamma_definition + """
+cgamma_definition = (
+    loggamma_definition
+    + """
 
 // Compute Gamma(z) using loggamma.
 
@@ -40,17 +42,18 @@ __device__ complex<double> cgamma(complex<double> z)
     return exp(loggamma(z));
 }
 """
+)
 
 
 gamma = _core.create_ufunc(
-    'cupyx_scipy_gamma',
+    "cupyx_scipy_gamma",
     (
-        ('l->d', 'out0 = Gamma(in0)'),
-        ('e->d', 'out0 = Gamma(in0)'),
-        'f->f',
-        'd->d',
-        ('F->F', 'out0 = out0_type(cgamma(in0))'),
-        ('D->D', 'out0 = cgamma(in0)')
+        ("l->d", "out0 = Gamma(in0)"),
+        ("e->d", "out0 = Gamma(in0)"),
+        "f->f",
+        "d->d",
+        ("F->F", "out0 = out0_type(cgamma(in0))"),
+        ("D->D", "out0 = cgamma(in0)"),
     ),
     _gamma_body,
     preamble=gamma_definition + cgamma_definition,
@@ -64,7 +67,8 @@ gamma = _core.create_ufunc(
 
     .. seealso:: :func:`scipy.special.gamma`
 
-    """)
+    """,
+)
 
 # Kernel fusion involves preambles concatenating so
 # if there are several kernels that depend on the same cpp function,
@@ -98,7 +102,9 @@ __device__ T chbevl(T x, T array[], int n)
 """
 
 
-rgamma_implementation = chbevl_implementation + """
+rgamma_implementation = (
+    chbevl_implementation
+    + """
 
 #include <cupy/math_constants.h>
 
@@ -186,9 +192,12 @@ __device__ double rgamma(double x)
 }
 
 """
+)
 
 
-crgamma_implementation = loggamma_definition + """
+crgamma_implementation = (
+    loggamma_definition
+    + """
 
 // Compute 1/Gamma(z) using loggamma
 
@@ -202,19 +211,20 @@ __device__ complex<double> crgamma(complex<double> z)
     return exp(-loggamma(z));  // complex exp via Thrust
 }
 """
+)
 
 
 rgamma = _core.create_ufunc(
-    'cupyx_scipy_rgamma',
+    "cupyx_scipy_rgamma",
     (
-        'l->d',
-        'e->d',
-        'f->f',
-        'd->d',
-        ('F->F', 'out0 = out0_type(crgamma(in0))'),
-        ('D->D', 'out0 = crgamma(in0)')
+        "l->d",
+        "e->d",
+        "f->f",
+        "d->d",
+        ("F->F", "out0 = out0_type(crgamma(in0))"),
+        ("D->D", "out0 = crgamma(in0)"),
     ),
-    'out0 = out0_type(rgamma(in0))',
+    "out0 = out0_type(rgamma(in0))",
     preamble=rgamma_implementation + crgamma_implementation,
     doc="""Reciprocal gamma function.
 
@@ -226,4 +236,5 @@ rgamma = _core.create_ufunc(
 
     .. seealso:: :func:`scipy.special.rgamma`
 
-    """)
+    """,
+)

@@ -4,6 +4,7 @@ Implements the binom function from scipy.
 This is essentially a CUDA C++ adaptation of existing scipy code, available at:
 https://github.com/scipy/scipy/blob/v1.10.1/scipy/special/orthogonal_eval.pxd
 """
+
 from __future__ import annotations
 
 
@@ -13,7 +14,7 @@ from cupyx.scipy.special._beta import (
     lbeta_symp_definition,
     lgam_sgn_definition,
     beta_definition,
-    lbeta_definition
+    lbeta_definition,
 )
 from cupyx.scipy.special._digamma import polevl_definition
 from cupyx.scipy.special._gamma import gamma_definition
@@ -90,15 +91,15 @@ binom = _core.create_ufunc(
     ("ff->f", "dd->d"),
     "out0 = out0_type(binom(in0, in1));",
     preamble=(
-        gamma_definition +
-        beta_preamble +
-        p1evl_definition +
-        polevl_definition +
-        lgam_sgn_definition +
-        lbeta_symp_definition +
-        lbeta_definition +
-        beta_definition +
-        binom_definition
+        gamma_definition
+        + beta_preamble
+        + p1evl_definition
+        + polevl_definition
+        + lgam_sgn_definition
+        + lbeta_symp_definition
+        + lbeta_definition
+        + beta_definition
+        + binom_definition
     ),
     doc="""Binomial coefficient
 

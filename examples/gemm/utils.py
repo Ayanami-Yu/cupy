@@ -7,7 +7,7 @@ def read_code(code_filename, params):
     with open(code_filename) as f:
         code = f.read()
     for k, v in params.items():
-        code = '#define ' + k + ' ' + str(v) + '\n' + code
+        code = "#define " + k + " " + str(v) + "\n" + code
     return code
 
 

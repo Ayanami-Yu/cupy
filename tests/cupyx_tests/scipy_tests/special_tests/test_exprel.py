@@ -12,11 +12,11 @@ except ImportError:
 
 
 atol = {
-    'default': 1e-6,
+    "default": 1e-6,
     cupy.float16: 1e-2,
 }
 rtol = {
-    'default': 1e-6,
+    "default": 1e-6,
     cupy.float16: 1e-2,
 }
 
@@ -37,7 +37,7 @@ class Testexprel:
     @testing.for_all_dtypes(no_complex=True)
     @numpy_cupy_allclose(scipy_name="scp", atol=atol, rtol=rtol)
     def test_exprel_large_values(self, xp, scp, dtype):
-        if xp.dtype(dtype).char in 'bB':
+        if xp.dtype(dtype).char in "bB":
             return xp.array(0)  # Skip to avoid overflow
         return scp.special.exprel(xp.array(720, dtype=dtype))
 

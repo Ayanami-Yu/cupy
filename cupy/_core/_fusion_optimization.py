@@ -42,8 +42,7 @@ def _normalize_ashapes(ops, variables, shape_constraints):
 
 
 def _fuse_two_ops(op1, op2):
-    """Returns a fused Op if the two ops can be fused, and ``None`` otherwise.
-    """
+    """Returns a fused Op if the two ops can be fused, and ``None`` otherwise."""
     # TODO(asi1024): Support reduction postmap.
     if not isinstance(op1, _fusion_op._ElementwiseTraceOp):
         return None

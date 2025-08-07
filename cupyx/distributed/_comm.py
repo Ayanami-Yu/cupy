@@ -7,8 +7,9 @@ from cupyx.distributed import _store
 
 class _Backend(abc.ABC):
 
-    def __init__(self, n_devices, rank,
-                 host=_store._DEFAULT_HOST, port=_store._DEFAULT_PORT):
+    def __init__(
+        self, n_devices, rank, host=_store._DEFAULT_HOST, port=_store._DEFAULT_PORT
+    ):
         self._n_devices = n_devices
         self.rank = rank
         self._store_proxy = _store.TCPStoreProxy(host, port)
@@ -16,11 +17,11 @@ class _Backend(abc.ABC):
             self._store = _store.TCPStore(n_devices)
 
     @abc.abstractmethod
-    def all_reduce(self, in_array, out_array, op='sum', stream=None):
+    def all_reduce(self, in_array, out_array, op="sum", stream=None):
         pass
 
     @abc.abstractmethod
-    def reduce(self, in_array, out_array, root=0, op='sum', stream=None):
+    def reduce(self, in_array, out_array, root=0, op="sum", stream=None):
         pass
 
     @abc.abstractmethod
@@ -28,8 +29,7 @@ class _Backend(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def reduce_scatter(
-            self, in_array, out_array, count, op='sum', stream=None):
+    def reduce_scatter(self, in_array, out_array, count, op="sum", stream=None):
         pass
 
     @abc.abstractmethod

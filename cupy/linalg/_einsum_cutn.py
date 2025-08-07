@@ -22,7 +22,8 @@ def _maybe_lazy_load_cutensornet():
 
     try:
         import cuquantum
-        if hasattr(cuquantum, 'bindings'):
+
+        if hasattr(cuquantum, "bindings"):
             # cuquantum-python >= 25.03
             from cuquantum.bindings import cutensornet  # binding module
             from cuquantum import tensornet  # module for pythonic APIs
@@ -30,6 +31,7 @@ def _maybe_lazy_load_cutensornet():
             # for cuquantum < 25.03, bindings & pythonic APIs
             # all reside under cuquantum.cutensornet
             from cuquantum import cutensornet
+
             tensornet = cutensornet
     except ImportError:
         pass
@@ -37,7 +39,7 @@ def _maybe_lazy_load_cutensornet():
 
 @_util.memoize()
 def _is_cuqnt_22_11_or_higher():
-    ver = [int(i) for i in cuquantum.__version__.split('.')]
+    ver = [int(i) for i in cuquantum.__version__.split(".")]
     if (ver[0] > 22) or (ver[0] == 22 and ver[1] >= 11):
         return True
     return False
@@ -54,9 +56,10 @@ def _get_einsum_operands(args):
 
     if len(args) == 0:
         raise ValueError(
-            'must specify the einstein sum subscripts string and at least one '
-            'operand, or at least one operand and its corresponding '
-            'subscripts list')
+            "must specify the einstein sum subscripts string and at least one "
+            "operand, or at least one operand and its corresponding "
+            "subscripts list"
+        )
 
     if isinstance(args[0], str):
         expr = args[0]
@@ -80,26 +83,29 @@ def _try_use_cutensornet(*args, **kwargs):
     if cupy.cuda.runtime.is_hip:
         return None
 
-    if (_accelerator.ACCELERATOR_CUTENSORNET not in
-            _accelerator.get_routine_accelerators()):
+    if (
+        _accelerator.ACCELERATOR_CUTENSORNET
+        not in _accelerator.get_routine_accelerators()
+    ):
         return None
 
     _maybe_lazy_load_cutensornet()
 
     if cutensornet is None:
         warnings.warn(
-            'using the cuTensorNet backend was requested but it cannot be '
-            'imported -- maybe you forgot to install cuQuantum Python? '
+            "using the cuTensorNet backend was requested but it cannot be "
+            "imported -- maybe you forgot to install cuQuantum Python? "
             'Please do "pip install cuquantum-python" or "conda install '
             '-c conda-forge cuquantum-python" and retry',
-            stacklevel=2)
+            stacklevel=2,
+        )
         return None
 
     # cannot pop as we might still need kwargs later
-    dtype = kwargs.get('dtype', None)
-    path = kwargs.get('optimize', False)
+    dtype = kwargs.get("dtype", None)
+    path = kwargs.get("optimize", False)
     if path is True:
-        path = 'greedy'
+        path = "greedy"
 
     # we do very lightweight pre-processing here just to inspect the
     # operands; the actual input verification is deferred to cuTensorNet
@@ -113,15 +119,20 @@ def _try_use_cutensornet(*args, **kwargs):
         # cases instead of whitelisting what could be done explicitly
         return None
 
-    if (any(op.size == 0 for op in operands) or
-            any(len(op.shape) == 0 for op in operands)):
+    if any(op.size == 0 for op in operands) or any(
+        len(op.shape) == 0 for op in operands
+    ):
         # To cuTensorNet the shape is invalid
         return None
 
     # all input dtypes must be identical (to a numerical dtype)
     result_dtype = cupy.result_type(*operands) if dtype is None else dtype
     if result_dtype not in (
-            cupy.float32, cupy.float64, cupy.complex64, cupy.complex128):
+        cupy.float32,
+        cupy.float64,
+        cupy.complex64,
+        cupy.complex128,
+    ):
         return None
     operands = [op.astype(result_dtype, copy=False) for op in operands]
 
@@ -137,9 +148,9 @@ def _try_use_cutensornet(*args, **kwargs):
         cutn_handle_cache[device] = Handle(handle, cutensornet.destroy)
     else:
         handle = handle.handle
-    cutn_options = {'device_id': device, 'handle': handle}
+    cutn_options = {"device_id": device, "handle": handle}
     if _is_nonblocking_supported():
-        cutn_options['blocking'] = "auto"
+        cutn_options["blocking"] = "auto"
 
     # TODO(leofang): support all valid combinations:
     # - path from user, contract with cutn (done)
@@ -151,38 +162,39 @@ def _try_use_cutensornet(*args, **kwargs):
         # following the same convention (contracting from the right) as would
         # be produced by _iter_path_pairs(), but converting to a list of pairs
         # due to cuTensorNet's requirement
-        path = [(i-1, i-2) for i in range(len(operands), 1, -1)]
-    elif len(path) and path[0] == 'einsum_path':
+        path = [(i - 1, i - 2) for i in range(len(operands), 1, -1)]
+    elif len(path) and path[0] == "einsum_path":
         # let cuTensorNet check if the format is correct
         path = path[1:]
     elif len(path) == 2:
         if isinstance(path[1], (int, float)):
             raise_warning = True
-        if path[0] != 'cutensornet':
+        if path[0] != "cutensornet":
             raise_warning = True
         path = None
     else:  # path is a string
-        if path != 'cutensornet':
+        if path != "cutensornet":
             raise_warning = True
         path = None
     if raise_warning:
         warnings.warn(
             'the cuTensorNet backend ignores the "optimize" option '
-            'except when an explicit contraction path is provided '
-            'or when optimize=False (disable optimization); also, '
-            'the maximum intermediate size, if set, is ignored',
-            stacklevel=2)
-    cutn_optimizer = {'path': path} if path else None
+            "except when an explicit contraction path is provided "
+            "or when optimize=False (disable optimization); also, "
+            "the maximum intermediate size, if set, is ignored",
+            stacklevel=2,
+        )
+    cutn_optimizer = {"path": path} if path else None
 
     if len(args) == 2:
         out = tensornet.contract(
-            args[0], *operands, options=cutn_options, optimize=cutn_optimizer)
+            args[0], *operands, options=cutn_options, optimize=cutn_optimizer
+        )
     elif len(args) == 3:
         inputs = [i for pair in zip(operands, args[0]) for i in pair]
         if args[2] is not None:
             inputs.append(args[2])
-        out = tensornet.contract(
-            *inputs, options=cutn_options, optimize=cutn_optimizer)
+        out = tensornet.contract(*inputs, options=cutn_options, optimize=cutn_optimizer)
     else:
         assert False
 

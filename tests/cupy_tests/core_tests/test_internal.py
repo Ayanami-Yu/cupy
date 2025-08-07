@@ -58,7 +58,8 @@ class TestGetSize:
         assert internal.get_size((numpy.int32(1), numpy.array(1))) == (1, 1)
 
     @pytest.mark.parametrize(
-        'value', [True, numpy.bool_(True), numpy.array(True, dtype='?')])
+        "value", [True, numpy.bool_(True), numpy.array(True, dtype="?")]
+    )
     def test_bool(self, value):
         with pytest.raises(TypeError):
             internal.get_size(value)
@@ -101,7 +102,7 @@ class TestGetCContiguity(unittest.TestCase):
         assert internal.get_c_contiguity((3, 1, 3), (6, 100, 2), 2)
 
     def test_normal3(self):
-        assert internal.get_c_contiguity((3,), (4, ), 4)
+        assert internal.get_c_contiguity((3,), (4,), 4)
 
     def test_normal4(self):
         assert internal.get_c_contiguity((), (), 4)
@@ -133,52 +134,47 @@ class TestInferUnknownDimension(unittest.TestCase):
 
 
 @testing.parameterize(
-    {'slice': (2, 8, 1),    'expect': (2, 8, 1)},
-    {'slice': (2, None, 1), 'expect': (2, 10, 1)},
-    {'slice': (2, 1, 1),    'expect': (2, 2, 1)},
-    {'slice': (2, -1, 1),   'expect': (2, 9, 1)},
-
-    {'slice': (None, 8, 1),  'expect': (0, 8, 1)},
-    {'slice': (-3, 8, 1),    'expect': (7, 8, 1)},
-    {'slice': (11, 8, 1),    'expect': (10, 10, 1)},
-    {'slice': (11, 11, 1),   'expect': (10, 10, 1)},
-    {'slice': (-11, 8, 1),   'expect': (0, 8, 1)},
-    {'slice': (-11, -11, 1), 'expect': (0, 0, 1)},
-
-    {'slice': (8, 2, -1),    'expect': (8, 2, -1)},
-    {'slice': (8, None, -1), 'expect': (8, -1, -1)},
-    {'slice': (8, 9, -1),    'expect': (8, 8, -1)},
-    {'slice': (8, -3, -1),   'expect': (8, 7, -1)},
-
-    {'slice': (None, 8, -1),  'expect': (9, 8, -1)},
-    {'slice': (-3, 6, -1),    'expect': (7, 6, -1)},
-
-    {'slice': (10, 10, -1),   'expect': (9, 9, -1)},
-    {'slice': (10, 8, -1),    'expect': (9, 8, -1)},
-    {'slice': (9, 10, -1),    'expect': (9, 9, -1)},
-    {'slice': (9, 9, -1),     'expect': (9, 9, -1)},
-    {'slice': (9, 8, -1),     'expect': (9, 8, -1)},
-    {'slice': (8, 8, -1),     'expect': (8, 8, -1)},
-    {'slice': (-9, -8, -1),   'expect': (1, 1, -1)},
-    {'slice': (-9, -9, -1),   'expect': (1, 1, -1)},
-    {'slice': (-9, -10, -1),  'expect': (1, 0, -1)},
-    {'slice': (-9, -11, -1),  'expect': (1, -1, -1)},
-    {'slice': (-9, -12, -1),  'expect': (1, -1, -1)},
-    {'slice': (-10, -9, -1),  'expect': (0, 0, -1)},
-    {'slice': (-10, -10, -1), 'expect': (0, 0, -1)},
-    {'slice': (-10, -11, -1), 'expect': (0, -1, -1)},
-    {'slice': (-10, -12, -1), 'expect': (0, -1, -1)},
-    {'slice': (-11, 8, -1),   'expect': (-1, -1, -1)},
-    {'slice': (-11, -9, -1),  'expect': (-1, -1, -1)},
-    {'slice': (-11, -10, -1), 'expect': (-1, -1, -1)},
-    {'slice': (-11, -11, -1), 'expect': (-1, -1, -1)},
-    {'slice': (-11, -12, -1), 'expect': (-1, -1, -1)},
+    {"slice": (2, 8, 1), "expect": (2, 8, 1)},
+    {"slice": (2, None, 1), "expect": (2, 10, 1)},
+    {"slice": (2, 1, 1), "expect": (2, 2, 1)},
+    {"slice": (2, -1, 1), "expect": (2, 9, 1)},
+    {"slice": (None, 8, 1), "expect": (0, 8, 1)},
+    {"slice": (-3, 8, 1), "expect": (7, 8, 1)},
+    {"slice": (11, 8, 1), "expect": (10, 10, 1)},
+    {"slice": (11, 11, 1), "expect": (10, 10, 1)},
+    {"slice": (-11, 8, 1), "expect": (0, 8, 1)},
+    {"slice": (-11, -11, 1), "expect": (0, 0, 1)},
+    {"slice": (8, 2, -1), "expect": (8, 2, -1)},
+    {"slice": (8, None, -1), "expect": (8, -1, -1)},
+    {"slice": (8, 9, -1), "expect": (8, 8, -1)},
+    {"slice": (8, -3, -1), "expect": (8, 7, -1)},
+    {"slice": (None, 8, -1), "expect": (9, 8, -1)},
+    {"slice": (-3, 6, -1), "expect": (7, 6, -1)},
+    {"slice": (10, 10, -1), "expect": (9, 9, -1)},
+    {"slice": (10, 8, -1), "expect": (9, 8, -1)},
+    {"slice": (9, 10, -1), "expect": (9, 9, -1)},
+    {"slice": (9, 9, -1), "expect": (9, 9, -1)},
+    {"slice": (9, 8, -1), "expect": (9, 8, -1)},
+    {"slice": (8, 8, -1), "expect": (8, 8, -1)},
+    {"slice": (-9, -8, -1), "expect": (1, 1, -1)},
+    {"slice": (-9, -9, -1), "expect": (1, 1, -1)},
+    {"slice": (-9, -10, -1), "expect": (1, 0, -1)},
+    {"slice": (-9, -11, -1), "expect": (1, -1, -1)},
+    {"slice": (-9, -12, -1), "expect": (1, -1, -1)},
+    {"slice": (-10, -9, -1), "expect": (0, 0, -1)},
+    {"slice": (-10, -10, -1), "expect": (0, 0, -1)},
+    {"slice": (-10, -11, -1), "expect": (0, -1, -1)},
+    {"slice": (-10, -12, -1), "expect": (0, -1, -1)},
+    {"slice": (-11, 8, -1), "expect": (-1, -1, -1)},
+    {"slice": (-11, -9, -1), "expect": (-1, -1, -1)},
+    {"slice": (-11, -10, -1), "expect": (-1, -1, -1)},
+    {"slice": (-11, -11, -1), "expect": (-1, -1, -1)},
+    {"slice": (-11, -12, -1), "expect": (-1, -1, -1)},
 )
 class TestCompleteSlice(unittest.TestCase):
 
     def test_complete_slice(self):
-        assert internal.complete_slice(
-            slice(*self.slice), 10) == slice(*self.expect)
+        assert internal.complete_slice(slice(*self.slice), 10) == slice(*self.expect)
 
 
 class TestCompleteSliceError(unittest.TestCase):
@@ -205,16 +201,16 @@ class TestCompleteSliceError(unittest.TestCase):
 
 
 @testing.parameterize(
-    {'x': 0, 'expect': 0},
-    {'x': 1, 'expect': 1},
-    {'x': 2, 'expect': 2},
-    {'x': 3, 'expect': 4},
-    {'x': 2 ** 10,     'expect': 2 ** 10},
-    {'x': 2 ** 10 - 1, 'expect': 2 ** 10},
-    {'x': 2 ** 10 + 1, 'expect': 2 ** 11},
-    {'x': 2 ** 40,     'expect': 2 ** 40},
-    {'x': 2 ** 40 - 1, 'expect': 2 ** 40},
-    {'x': 2 ** 40 + 1, 'expect': 2 ** 41},
+    {"x": 0, "expect": 0},
+    {"x": 1, "expect": 1},
+    {"x": 2, "expect": 2},
+    {"x": 3, "expect": 4},
+    {"x": 2**10, "expect": 2**10},
+    {"x": 2**10 - 1, "expect": 2**10},
+    {"x": 2**10 + 1, "expect": 2**11},
+    {"x": 2**40, "expect": 2**40},
+    {"x": 2**40 - 1, "expect": 2**40},
+    {"x": 2**40 + 1, "expect": 2**41},
 )
 class TestClp2(unittest.TestCase):
 
@@ -222,13 +218,25 @@ class TestClp2(unittest.TestCase):
         assert internal.clp2(self.x) == self.expect
 
 
-@testing.parameterize(*testing.product({
-    'value': [0.0, 1.0, -1.0,
-              0.25, -0.25,
-              11.0, -11.0,
-              2 ** -15, -(2 ** -15),  # Denormalized Number
-              float('inf'), float('-inf')],
-}))
+@testing.parameterize(
+    *testing.product(
+        {
+            "value": [
+                0.0,
+                1.0,
+                -1.0,
+                0.25,
+                -0.25,
+                11.0,
+                -11.0,
+                2**-15,
+                -(2**-15),  # Denormalized Number
+                float("inf"),
+                float("-inf"),
+            ],
+        }
+    )
+)
 class TestConvertFloat16(unittest.TestCase):
 
     def test_conversion(self):
@@ -239,5 +247,5 @@ class TestConvertFloat16(unittest.TestCase):
 class TestConvertFloat16Nan(unittest.TestCase):
 
     def test_conversion(self):
-        half = internal.to_float16(float('nan'))
+        half = internal.to_float16(float("nan"))
         assert math.isnan(internal.from_float16(half))
